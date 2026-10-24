@@ -475,8 +475,9 @@ resolved（SSE interrupt_resolved；关闭弹窗）
 
 ### 9.1 本地分析 happy path
 
-**Given** 仓库存在 `examples/demo_shop`，有可用模型 Key  
-**When** 首页填入并开始分析  
+**Given** 仓库存在 `examples/demo_shop`，有可用模型 Key
+
+**When** 首页填入并开始分析
 **Then**
 
 - 进入运行页，显示阶段/待办/工具/Token；
@@ -488,8 +489,9 @@ resolved（SSE interrupt_resolved；关闭弹窗）
 
 ### 9.2 无 Key 本地降级
 
-**Given** 没有 API Key  
-**When** 分析本地仓库  
+**Given** 没有 API Key
+
+**When** 分析本地仓库
 **Then**
 
 - warning 说明仅规则扫描；
@@ -500,8 +502,9 @@ resolved（SSE interrupt_resolved；关闭弹窗）
 
 ### 9.3 GitHub 批准
 
-**Given** 有效公开 GitHub URL、Git 可用、网络可达  
-**When** 开始分析，在 HITL 点“允许克隆并继续”  
+**Given** 有效公开 GitHub URL、Git 可用、网络可达
+
+**When** 开始分析，在 HITL 点“允许克隆并继续”
 **Then**
 
 - 弹窗显示 URL/倒计时/按钮；
@@ -511,7 +514,8 @@ resolved（SSE interrupt_resolved；关闭弹窗）
 
 ### 9.4 GitHub 拒绝
 
-**When** HITL 点“拒绝”  
+**When** HITL 点“拒绝”
+
 **Then**
 
 - 弹窗关闭；
@@ -522,8 +526,9 @@ resolved（SSE interrupt_resolved；关闭弹窗）
 
 ### 9.5 报告追问
 
-**Given** 已完成报告  
-**When** 打开“追问”，输入“数据库和缓存分别用在哪里？”  
+**Given** 已完成报告
+
+**When** 打开“追问”，输入“数据库和缓存分别用在哪里？”
 **Then**
 
 - 显示用户消息和流式助手消息；
@@ -534,7 +539,8 @@ resolved（SSE interrupt_resolved；关闭弹窗）
 
 ### 9.6 历史与导出
 
-**When** 打开历史、点击报告、导出 Markdown/JSON  
+**When** 打开历史、点击报告、导出 Markdown/JSON
+
 **Then**
 
 - 历史显示摘要；
