@@ -43,6 +43,18 @@
 
 ---
 
+## 项目文档
+
+| 文档 | 给谁看 | 内容 |
+| --- | --- | --- |
+| [AGENTS.md](AGENTS.md) | AI Agent / 新维护者 | 最短上下文入口、P0 红线、修改流程、验收清单 |
+| [需求文档](docs/REQUIREMENTS.md) | 产品 / 维护者 / Agent | 功能契约、优先级、状态机、验收场景、防遗忘清单 |
+| [代码文档](docs/CODE_DOCUMENTATION.md) | 维护者 / Agent | 文件地图、调用链、报告 JSON、API/SSE 契约、前端 store、已知限制 |
+
+> **给 Agent 的硬要求**：改代码前先读 [AGENTS.md](AGENTS.md) 和 [需求文档](docs/REQUIREMENTS.md)；任何 P0 功能删除都必须得到人类明确确认。
+
+---
+
 ## 1. 它能做什么
 
 | 能力 | 说明 |
@@ -562,6 +574,11 @@ repolens/
 ├── start.ps1 / start.bat     # Windows 一键启动
 ├── check_secrets.py          # 发布前密钥/敏感信息扫描
 ├── SECURITY.md               # 敏感信息与发布检查说明
+├── AGENTS.md                 # AI Agent 最短入口（必读）
+├── docs/
+│   ├── REQUIREMENTS.md       # 需求契约 / P0 清单 / 验收场景
+│   ├── CODE_DOCUMENTATION.md # 代码地图 / API / 数据流 / 限制
+│   └── *.png                 # 界面截图
 ├── requirements.txt
 ├── .env.example              # 复制为 .env 填 Key
 ├── .github/workflows/        # CI：secret-check
@@ -580,7 +597,7 @@ repolens/
 ├── repolens/
 │   ├── config.py             # 模型/端口/克隆限制配置
 │   ├── events.py             # 进程内事件总线（线程安全）
-│   ├── catalog.py            # 技术名词典（200+ 框架/库/工具）
+│   ├── catalog.py            # 技术名词典（252 项，12 个分类）
 │   ├── scanner.py            # 纯 Python 扫描器（不做 AI）
 │   ├── sources.py            # 本地路径校验 / GitHub 克隆
 │   ├── security.py           # 脱敏 / 敏感文件判断
@@ -604,7 +621,7 @@ repolens/
 
 ### 建议的代码阅读顺序
 
-第一次读这个项目，不要从 `scanner.py` 的 1300 行开始。建议按「请求怎么进来 → 怎么调用 Agent → 怎么扫描 → 怎么合并」的顺序：
+第一次读这个项目，不要从 `scanner.py` 的 1400 行开始。建议按「请求怎么进来 → 怎么调用 Agent → 怎么扫描 → 怎么合并」的顺序：
 
 1. `run.py`：入口，启动服务器；
 2. `repolens/server.py`：HTTP 路由、SSE、`/api/analyze` 如何创建 Run；
