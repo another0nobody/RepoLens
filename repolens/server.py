@@ -52,6 +52,7 @@ from .scanner import MAX_FILES
 from .sources import SourceError, looks_like_github, parse_github, validate_local_path
 
 STATIC_DIR = config.PROJECT_ROOT / "static"
+DIST_DIR = STATIC_DIR / "dist"
 MAX_ACTIVE_RUNS = 2
 
 
@@ -286,11 +287,26 @@ class RepoLensHandler(BaseHTTPRequestHandler):
         elif path == "/api/concepts":
             self._json({"concepts": CONCEPTS})
         elif path in {"/", "/index.html"}:
-            self._static("index.html")
+            if not (DIST_DIR / "index.html").is_file():
+                self._json(
+                    {
+                        "error": "前端尚未构建。请在 frontend/ 目录运行 npm install && npm run build，"
+                        "或者直接使用已经提交的 static/dist。"
+                    },
+                    HTTPStatus.SERVICE_UNAVAILABLE,
+                )
+                return
+            self._static("dist/index.html")
+        elif path.startswith("/assets/"):
+            # Vite 构建产物：/assets/index-xxxx.js -> static/dist/assets/index-xxxx.js
+            self._static("dist" + path)
+        elif path == "/favicon.svg":
+            self._static("dist/favicon.svg")
         elif path.startswith("/static/"):
+            # 兼容旧链接，例如 /static/favicon.svg
             self._static(path[len("/static/") :])
         elif path == "/favicon.ico":
-            self._static("favicon.svg")
+            self._static("dist/favicon.svg")
         else:
             self._json({"error": "页面不存在"}, HTTPStatus.NOT_FOUND)
 
@@ -368,7 +384,11 @@ class RepoLensHandler(BaseHTTPRequestHandler):
         self.send_response(HTTPStatus.OK)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
-        self.send_header("Cache-Control", "no-cache")
+        # Vite 的 assets 文件名带 hash，可以长时间缓存；index.html 必须每次校验。
+        if relative.startswith("dist/assets/"):
+            self.send_header("Cache-Control", "public, max-age=31536000, immutable")
+        else:
+            self.send_header("Cache-Control", "no-cache")
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header(
             "Content-Security-Policy",

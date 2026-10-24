@@ -3,6 +3,8 @@
 > 输入一个本地代码仓路径或 GitHub 地址，得到一份看得懂、可核对、能追问的技术栈报告。
 >
 > 这是 **你的第一个 LangChain Agent 项目**：不要求你事先懂 Agent，README 会把用到的每个概念讲清楚。
+>
+> 前端：**Vue 3 + Vite + Less**；后端 / Agent：**Python + LangChain**。前端构建产物已提交，只装 Python 也能直接运行。
 
 <details>
 <summary><b>界面预览（点开看截图）</b></summary>
@@ -27,11 +29,15 @@
 
 ![架构解读](docs/architecture.png)
 
+**追问：基于报告继续对话（流式输出 + 记忆）**
+
+![追问](docs/chat.png)
+
 **人工审批：克隆 GitHub 前必须由你确认**
 
 ![人工审批](docs/hitl.png)
 
-> 截图使用内置示例仓库 `examples/demo_shop`，报告来源已处理为相对路径，不包含本机用户名与真实项目路径；运行页使用通用示例路径。
+> 截图使用内置示例仓库 `examples/demo_shop`；报告来源与运行页都使用相对路径，不包含本机用户名与真实项目路径。界面支持深色 / 浅色主题切换。
 
 </details>
 
@@ -68,6 +74,7 @@
   - OpenAI
 - 运行依赖：`langchain`、`langgraph`、`langchain-openai`、`pydantic`、`python-dotenv`
 - **不需要 FastAPI / Flask**：网页服务器用的是 Python 标准库 `http.server`，下载即跑
+- **Node.js 20+（可选）**：只有修改 Vue 前端源码时需要；项目已提交 `static/dist` 构建产物，平时运行只需要 Python
 
 ### 2.2 安装依赖
 
@@ -163,15 +170,41 @@ git status --short
 
 > 注意：自动扫描无法识别图片里的文字。重新截图时，请确认页面中没有 Key、Token 或本机绝对路径。
 
+### 2.7 前端开发（Vue 3 + Vite + Less）
+
+日常运行 Python 不需要 Node.js。只有修改界面时才需要：
+
+```powershell
+cd frontend
+npm install
+npm run dev      # http://127.0.0.1:5173，/api 自动代理到 8765
+```
+
+开发完成后生成生产构建，交给 Python 静态服务器托管：
+
+```powershell
+npm run build    # 输出到 ../static/dist
+```
+
+然后刷新 <http://127.0.0.1:8765> 即可。Vite 配置在 `frontend/vite.config.js`：
+
+- `@` 别名指向 `frontend/src`；
+- 每个 `<style lang="less">` 自动注入 `tokens.less` 和 `mixins.less`；
+- 生产构建输出到 `static/dist`，`index.html` 引用 `/assets/*`。
+
+> `static/dist` 已提交，所以只装 Python 的机器也能直接运行；修改前端后记得重新 `npm run build` 并提交构建产物。
+
 ---
 
 ## 3. 界面怎么用
 
 ### 3.1 首页
 
-- 输入框自动识别「本地路径」还是「GitHub 地址」；
+- 输入框自动识别「本地路径」还是「GitHub 地址 / 相对路径」；
+- 回车直接开始，也支持点击「开始分析」；
 - 示例按钮只是帮你填入路径，不会自动开始；
-- 右上角显示当前模型；没有配置 Key 时会显示「仅规则扫描」。
+- 右上角显示当前模型；没有配置 Key 时会显示「仅规则扫描」；
+- 右上角还可以切换深色 / 浅色主题（会记住你的选择）。
 
 ### 3.2 运行页
 
@@ -188,11 +221,12 @@ git status --short
 ### 3.3 报告页
 
 - **技术栈**：按分类分组；卡片显示版本、置信度、职责、模块数、证据数；点击卡片看详情；
-- **模块地图**：按技术展开文件:行号、模块角色、import 片段；
+- **模块地图**：按技术展开文件:行号、模块角色、import 片段；支持全部展开 / 收起、复制路径、搜索；
 - **架构解读**：摘要、亮点、架构分层、风险建议、学习路径、关键文件与目录规模；
-- **追问**：多轮对话，有记忆；回答前会先查报告（工具调用）；
-- **分析过程**：把本次 SSE 事件流按时间回放，方便理解 Agent 为什么这么判断；
-- **导出**：JSON / Markdown；**分享链接**形如 `http://127.0.0.1:8765/?report=<run_id>`。
+- **追问**：多轮对话，有记忆；回答前会先查报告（工具调用），逐字流式输出；
+- **分析过程**：把本次 SSE 事件流按时间回放，可按「工具 / 阶段 / 异常」筛选；
+- **导出**：JSON / Markdown；**分享链接**形如 `http://127.0.0.1:8765/?report=<run_id>`；
+- **小交互**：技术卡片可点击查看详情、卡片与抽屉有过渡动画、顶部有阅读进度条、`/` 聚焦搜索框、`Esc` 关闭抽屉。
 
 > 历史报告同样支持追问：服务器会从磁盘重建一个轻量上下文（见 `ensure_run_for_report`），但**跨进程的对话记忆不会保留**（短期记忆在 `InMemorySaver` 里）。
 
@@ -531,6 +565,18 @@ repolens/
 ├── requirements.txt
 ├── .env.example              # 复制为 .env 填 Key
 ├── .github/workflows/        # CI：secret-check
+├── frontend/                 # Vue 3 + Vite + Less 源码
+│   ├── index.html
+│   ├── vite.config.js        # 构建到 static/dist，dev 代理 /api
+│   ├── package.json
+│   ├── public/favicon.svg
+│   └── src/
+│       ├── main.js
+│       ├── App.vue
+│       ├── api.js / store.js / utils.js
+│       ├── styles/           # tokens.less / mixins.less / global.less
+│       ├── views/            # HomeView / RunView / ReportView
+│       └── components/       # 头栏、时间线、技术卡片、抽屉、审批弹窗…
 ├── repolens/
 │   ├── config.py             # 模型/端口/克隆限制配置
 │   ├── events.py             # 进程内事件总线（线程安全）
@@ -546,11 +592,10 @@ repolens/
 │   ├── pipeline.py           # 编排：流式运行、HITL、降级
 │   ├── report.py             # 事实 + AI 合并、持久化
 │   └── server.py             # 标准库 HTTP 服务 + SSE API
-├── static/
-│   ├── index.html            # 单页界面
-│   ├── style.css             # 深色视觉（无 CDN）
-│   ├── app.js                # 原生 JS：SSE、渲染、追问、导出
-│   └── favicon.svg
+├── static/dist/              # Vite 构建产物（已提交，Python 直接托管）
+│   ├── index.html
+│   ├── favicon.svg
+│   └── assets/               # 带 hash 的 JS / CSS
 ├── examples/demo_shop/       # 自带演示仓库（FastAPI + React + Docker）
 └── data/
     ├── repos/                # GitHub 克隆缓存（gitignore）
@@ -568,7 +613,10 @@ repolens/
 5. `repolens/tools.py`：6 个工具分别做什么、为什么这样写 docstring；
 6. `repolens/scanner.py`：依赖清单和 import 是怎么被精确解析的；
 7. `repolens/middleware.py`、`report.py`：进度事件如何产生、事实与 AI 如何合并；
-8. `static/app.js`：网页如何消费 SSE 并渲染报告。
+8. `frontend/src/main.js` → `App.vue`：Vue 应用如何挂载、切换三个视图；
+9. `frontend/src/store.js`：前端状态、SSE 重连、深链路、追问和 HITL 决策；
+10. `frontend/src/views/` 与 `components/`：首页、运行页、报告页和各个交互组件；
+11. `frontend/src/styles/`：Less 变量、mixin 与深浅主题。
 
 ---
 
@@ -585,6 +633,9 @@ repolens/
 | 允许扫描的目录 | `.env` | `REPOLENS_ALLOWED_ROOTS` |
 | HITL 等待时长 | `repolens/pipeline.py` | `HITL_TIMEOUT = 300` |
 | 端口 | `.env` / 命令行 | `REPOLENS_PORT` / `--port` |
+| 前端构建/代理 | `frontend/vite.config.js` | `build.outDir`、`server.proxy` |
+| 前后端地址 | `frontend/src/api.js`、`store.js` | 全部使用相对路径 `/api/*` |
+| 主题颜色/间距 | `frontend/src/styles/tokens.less`、`global.less` | CSS 变量与 Less 变量 |
 
 ### 给技术词典加一项
 
@@ -607,6 +658,12 @@ A：401 多半是 Key 错了；404 多半是模型名不对（例如 GLM 的可�
 **Q：运行 `pip install` 很慢 / 公司网络装不上？**
 A：可以复用已有的 LangChain 环境（本项目只额外需要 `langchain-openai`、`python-dotenv`），或用国内镜像：
 `pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple`。
+
+**Q：改了前端界面但刷新页面没变化？**
+A：前端是编译后由 Python 托管的。在 `frontend/` 执行 `npm run build`，生成新的 `static/dist` 后刷新。开发时可以用 `npm run dev`（5173）并让 Vite 代理 `/api` 到 8765。
+
+**Q：`npm run dev` 打开 5173 后接口 404？**
+A：先确认 Python 服务在 8765 运行；`vite.config.js` 已配置 `/api` 代理。生产模式直接用 8765 的 Python 服务即可。
 
 **Q：GitHub 克隆失败？**
 A：先确认 `git clone https://github.com/owner/repo` 在命令行能成功。公司网络可能需要代理：
@@ -642,7 +699,7 @@ A：不会上传整个仓库。发往模型的是扫描事实摘要、工具按�
 3. **加 RAG 技术知识库**：把技术文档切片入库，让 Agent 解释「这个框架通常怎么用」（教程第 10 章）；
 4. **多 Agent 分工**：一个分析前端、一个分析后端、一个汇总（`create_agent` + 子图 / subagent）；
 5. **接入更多生态**：Gradle、Bazel、GitLab CI、Kubernetes Helm values 的解析；
-6. **前端换成 React/Vue**：当前是原生 JS，正好可以练手组件化；
+6. **继续扩展 Vue 前端**：加 Vue Router、组件库、报告对比 / diff、虚拟滚动；
 7. **加依赖漏洞检测**：读取 lock 文件，对接 OSV 数据库；
 8. **加 LangSmith 追踪**：在 `.env` 填 `LANGCHAIN_TRACING_V2=true` + `LANGCHAIN_API_KEY`，观察每一步的 token 与耗时（教程第 3 章）。
 

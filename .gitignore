@@ -17,6 +17,10 @@ venv/
 .coverage
 htmlcov/
 
+# Vue / Vite 开发依赖（构建产物 static/dist 会提交，方便只装 Python 也能运行）
+frontend/node_modules/
+frontend/.vite/
+
 # 运行时产生的数据（克隆的仓库、生成的报告）
 # 注意：即使这里忽略了，也不要用 git add -f 强行提交
 data/

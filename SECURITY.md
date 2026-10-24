@@ -28,6 +28,7 @@ data/
 *.key
 *.log
 docs/.chrome-*/
+frontend/node_modules/
 ```
 
 其中 `data/` 保存克隆下来的仓库和生成的报告，属于运行时数据，不应该进入版本库。
