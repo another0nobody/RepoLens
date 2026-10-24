@@ -164,17 +164,15 @@ def _run_agent(agent: Any, ctx: AnalysisContext) -> Any:
             break
 
         decision = _wait_human_decision(ctx)
-        if decision is None:
-            payload = Command(
-                resume={
-                    "decisions": [
-                        {"type": "reject", "message": "等待用户批准超时，已自动拒绝克隆"}
-                    ]
-                }
-            )
-        else:
-            payload = Command(resume={"decisions": [decision]})
         ctx.interrupt_payload = None
+        if decision is None:
+            ctx.error = "等待克隆批准超时，本次分析已停止"
+            break
+        if decision.get("type") != "approve":
+            # 拒绝克隆后立即结束，不再让模型反复重试同一个被拒绝的工具。
+            ctx.error = decision.get("message") or "你拒绝了克隆操作，本次分析已停止"
+            break
+        payload = Command(resume={"decisions": [decision]})
 
     snapshot = agent.get_state(config_)
     values = snapshot.values or {}
