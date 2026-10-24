@@ -1,0 +1,15 @@
+# RepoLens 的运行依赖
+#
+# 安装：pip install -r requirements.txt
+# 本项目不需要 FastAPI / Flask，网页服务器用的是 Python 标准库。
+
+langchain>=1.2,<2
+langgraph>=1.0,<2
+langchain-openai>=1.0,<2
+pydantic>=2.7,<3
+python-dotenv>=1.0
+
+# 说明：
+# - DeepSeek、智谱 GLM 都能通过 langchain-openai 的 OpenAI 兼容接口调用，
+#   所以不需要额外安装 langchain-deepseek。
+# - 如果你想用教程里的 langchain_deepseek.ChatDeepSeek，再额外安装 langchain-deepseek。

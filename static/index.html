@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="RepoLens：输入本地路径或 GitHub 地址，用 LangChain Agent 解析代码仓技术栈与使用模块。">
+  <title>RepoLens · 代码仓技术栈侦探</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow glow-a" aria-hidden="true"></div>
+  <div class="bg-glow glow-b" aria-hidden="true"></div>
+  <div class="bg-glow glow-c" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <a class="brand" href="/" id="brand-home" aria-label="RepoLens 首页">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" width="26" height="26" fill="none">
+          <path d="M5 8.5 16 3l11 5.5v15L16 29 5 23.5v-15Z" stroke="currentColor" stroke-width="1.6"/>
+          <path d="M5 8.5 16 14l11-5.5M16 14v15" stroke="currentColor" stroke-width="1.2" opacity=".7"/>
+          <circle cx="16" cy="14" r="2.6" fill="currentColor"/>
+        </svg>
+      </span>
+      <span class="brand-text"><strong>RepoLens</strong><small>技术栈侦探</small></span>
+    </a>
+    <div class="topbar-right">
+      <span id="model-badge" class="model-pill" title="当前使用的大模型">
+        <span class="dot"></span><span id="model-badge-text">检测环境中…</span>
+      </span>
+      <button class="ghost-btn" id="btn-history" type="button">历史记录</button>
+      <button class="ghost-btn" id="btn-concepts" type="button">知识点讲解</button>
+    </div>
+  </header>
+
+  <main class="shell">
+    <!-- ============================================================ 首页 -->
+    <section id="view-home" class="view">
+      <div class="hero">
+        <p class="eyebrow"><span class="eyebrow-dot"></span> 你的第一个 LangChain Agent 项目</p>
+        <h1>输入一个仓库，<br><span class="grad">看清它的技术栈</span></h1>
+        <p class="lede">
+          本地目录或 GitHub 地址都可以。Agent 会扫描依赖与 import，核实每一项技术被哪些模块使用，
+          再生成一份可以继续追问的中文报告。
+        </p>
+      </div>
+
+      <div class="input-card">
+        <div class="input-row">
+          <span class="input-icon" aria-hidden="true">⌘</span>
+          <input
+            id="source-input"
+            type="text"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="C:\code\my-project   或   https://github.com/owner/repo"
+            aria-label="代码仓库路径或 GitHub 地址"
+          >
+          <button id="btn-analyze" class="primary-btn" type="button">开始分析 <span class="arrow">→</span></button>
+        </div>
+        <div class="examples" id="example-chips"></div>
+        <div class="input-meta">
+          <span>✓ 只读扫描，不修改代码</span>
+          <span>✓ 自动识别本地 / GitHub</span>
+          <span>✓ 密钥自动脱敏</span>
+        </div>
+      </div>
+
+      <div class="step-strip">
+        <article class="step-card">
+          <span class="step-no">01</span>
+          <h3>扫描事实</h3>
+          <p>遍历目录、统计语言、解析 requirements.txt / package.json / pom.xml，提取 import 语句。</p>
+        </article>
+        <article class="step-card">
+          <span class="step-no">02</span>
+          <h3>Agent 核实</h3>
+          <p>大模型拿着事实清单，逐项核实技术，定位每个技术被哪些模块使用。</p>
+        </article>
+        <article class="step-card">
+          <span class="step-no">03</span>
+          <h3>生成报告</h3>
+          <p>合并成技术栈全景、模块地图、架构解读、风险与学习路径，并支持继续追问。</p>
+        </article>
+      </div>
+
+      <div class="feature-grid">
+        <article class="feature-card">
+          <span class="feature-icon">◈</span>
+          <h3>技术栈全景</h3>
+          <p>按前后端、数据库、AI、基础设施等分类展示，标注版本、证据和置信度。</p>
+        </article>
+        <article class="feature-card">
+          <span class="feature-icon">⌗</span>
+          <h3>模块级定位</h3>
+          <p>精确到文件与行号：哪个模块 import 了它、在项目里承担什么角色。</p>
+        </article>
+        <article class="feature-card">
+          <span class="feature-icon">✳</span>
+          <h3>报告追问</h3>
+          <p>基于这份报告继续问「Redis 用在哪里」「先读哪个文件」，带多轮记忆。</p>
+        </article>
+        <article class="feature-card">
+          <span class="feature-icon">◎</span>
+          <h3>知识点透明</h3>
+          <p>Tool、结构化输出、中间件、人机协同、记忆，每个能力都标注对应教程章节。</p>
+        </article>
+      </div>
+
+      <p class="home-foot">
+        这个项目把教程第 5~9 章的 Agent 知识点串了起来。
+        <button class="link-btn" id="btn-concepts-2" type="button">看看每个功能用了什么 →</button>
+      </p>
+    </section>
+
+    <!-- ============================================================ 运行中 -->
+    <section id="view-run" class="view hidden">
+      <div class="run-head">
+        <button class="back-btn" id="btn-run-back" type="button">← 返回</button>
+        <div class="run-title">
+          <h2 id="run-repo">正在分析…</h2>
+          <p id="run-source" class="mono"></p>
+        </div>
+        <div class="run-status" id="run-status">
+          <span class="spinner" aria-hidden="true"></span>
+          <span id="run-status-text">准备中</span>
+          <span class="run-timer" id="run-timer">00:00</span>
+        </div>
+      </div>
+
+      <div class="run-layout">
+        <aside class="rail">
+          <div class="rail-block">
+            <h3>分析进度</h3>
+            <ol class="timeline" id="timeline"></ol>
+          </div>
+          <div class="rail-block">
+            <h4>Agent 的待办清单</h4>
+            <ul class="todos" id="todos"><li class="muted">等待模型制定计划…</li></ul>
+          </div>
+          <div class="rail-block token-box">
+            <h4>Token 用量</h4>
+            <div class="token-row"><span>输入</span><b id="tok-in">0</b></div>
+            <div class="token-row"><span>输出</span><b id="tok-out">0</b></div>
+            <p class="rail-note">由 ProgressMiddleware 从每次模型响应中读取</p>
+          </div>
+        </aside>
+
+        <div class="live">
+          <div class="live-head">
+            <span class="live-dot"></span>
+            <span id="live-stage">正在初始化…</span>
+            <span class="live-hint">Agent 的每一步都会实时显示</span>
+          </div>
+          <div class="live-feed" id="live-feed"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ 报告 -->
+    <section id="view-report" class="view hidden">
+      <div class="report-head">
+        <div class="report-head-main">
+          <div class="report-kicker">
+            <button class="back-btn" id="btn-report-back" type="button">← 新分析</button>
+            <span id="report-ai-badge" class="tag"></span>
+          </div>
+          <h2 id="report-repo"></h2>
+          <p id="report-source" class="report-source mono"></p>
+        </div>
+        <div class="report-actions">
+          <button class="ghost-btn" id="btn-reanalyze" type="button">重新分析</button>
+          <button class="ghost-btn" id="btn-export-md" type="button">导出 Markdown</button>
+          <button class="ghost-btn" id="btn-export-json" type="button">导出 JSON</button>
+        </div>
+      </div>
+
+      <div class="stat-row" id="stat-row"></div>
+
+      <div class="summary-card">
+        <div class="summary-top">
+          <h3>一句话看懂</h3>
+          <span id="summary-note" class="muted"></span>
+        </div>
+        <p id="summary-text"></p>
+        <div class="highlight-chips" id="highlights"></div>
+      </div>
+
+      <div class="warnings hidden" id="report-warnings"></div>
+
+      <nav class="tabs" id="report-tabs" aria-label="报告分区">
+        <button class="tab active" data-tab="stack" type="button">技术栈</button>
+        <button class="tab" data-tab="modules" type="button">模块地图</button>
+        <button class="tab" data-tab="architecture" type="button">架构解读</button>
+        <button class="tab" data-tab="chat" type="button">追问</button>
+        <button class="tab" data-tab="process" type="button">分析过程</button>
+      </nav>
+
+      <div class="tab-panels">
+        <section id="tab-stack" class="tab-panel">
+          <div class="stack-toolbar">
+            <div class="chips" id="category-chips"></div>
+            <input id="tech-search" class="search-input" type="search" placeholder="搜索技术 / 分类…" autocomplete="off">
+          </div>
+          <div class="tech-groups" id="tech-groups"></div>
+        </section>
+
+        <section id="tab-modules" class="tab-panel hidden">
+          <div id="module-map"></div>
+        </section>
+
+        <section id="tab-architecture" class="tab-panel hidden">
+          <div class="two-col">
+            <div class="card">
+              <h3>架构解读</h3>
+              <ol id="architecture-list" class="numbered"></ol>
+            </div>
+            <div class="card">
+              <h3>风险与建议</h3>
+              <ul id="risk-list" class="risk-list"></ul>
+            </div>
+          </div>
+          <div class="two-col">
+            <div class="card">
+              <h3>学习路径</h3>
+              <ol id="learning-list" class="numbered"></ol>
+            </div>
+            <div class="card">
+              <h3>关键文件与目录</h3>
+              <div id="key-files"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="tab-chat" class="tab-panel hidden">
+          <div class="chat-card">
+            <div class="chat-head">
+              <div>
+                <h3>追问这份报告</h3>
+                <p class="muted">回答基于报告与仓库文件，不会凭空编造；多轮对话有记忆。</p>
+              </div>
+              <span id="chat-status" class="chat-status"></span>
+            </div>
+            <div id="chat-messages" class="chat-messages"></div>
+            <div class="chat-suggestions" id="chat-suggestions"></div>
+            <form id="chat-form" class="chat-form">
+              <input id="chat-input" type="text" placeholder="例如：数据库和缓存分别用在哪里？" autocomplete="off" aria-label="追问内容">
+              <button class="primary-btn" id="chat-send" type="submit">发送</button>
+            </form>
+          </div>
+        </section>
+
+        <section id="tab-process" class="tab-panel hidden">
+          <div class="card">
+            <h3>分析过程回放</h3>
+            <p class="muted">这是 Agent 本次运行产生的事件流，可以用来理解它「为什么这么判断」。</p>
+            <ol id="process-log" class="process-log"></ol>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <span>RepoLens · 一个用来学习 LangChain Agent 的小项目</span>
+    <span>扫描在本地完成 · 只有必要的事实会发送给模型</span>
+  </footer>
+
+  <!-- ============================================================ 历史记录 -->
+  <div class="overlay hidden" id="history-overlay" role="dialog" aria-modal="true" aria-labelledby="history-title">
+    <div class="drawer">
+      <div class="drawer-head">
+        <div>
+          <h2 id="history-title">历史分析</h2>
+          <p class="muted">报告保存在 data/reports，刷新页面也不会丢。</p>
+        </div>
+        <button class="icon-btn" data-close="history-overlay" type="button" aria-label="关闭">✕</button>
+      </div>
+      <div id="history-list" class="history-list"></div>
+    </div>
+  </div>
+
+  <!-- ============================================================ 知识点 -->
+  <div class="overlay hidden" id="concepts-overlay" role="dialog" aria-modal="true" aria-labelledby="concepts-title">
+    <div class="drawer drawer-wide">
+      <div class="drawer-head">
+        <div>
+          <h2 id="concepts-title">知识点讲解</h2>
+          <p class="muted">每个卡片对应教程里的一个章节，说明本项目的哪个功能用了它。</p>
+        </div>
+        <button class="icon-btn" data-close="concepts-overlay" type="button" aria-label="关闭">✕</button>
+      </div>
+      <div id="concepts-list" class="concepts-list"></div>
+    </div>
+  </div>
+
+  <!-- ============================================================ 技术详情 -->
+  <div class="overlay hidden" id="tech-overlay" role="dialog" aria-modal="true" aria-labelledby="tech-title">
+    <div class="drawer drawer-wide">
+      <div class="drawer-head">
+        <div>
+          <span id="tech-category" class="tag"></span>
+          <h2 id="tech-title">技术详情</h2>
+          <p id="tech-meta" class="muted"></p>
+        </div>
+        <button class="icon-btn" data-close="tech-overlay" type="button" aria-label="关闭">✕</button>
+      </div>
+      <div id="tech-body" class="tech-body"></div>
+    </div>
+  </div>
+
+  <!-- ============================================================ 人工审批 -->
+  <div class="modal-wrap hidden" id="hitl-modal" role="dialog" aria-modal="true" aria-labelledby="hitl-title">
+    <div class="modal">
+      <div class="modal-icon">⚠</div>
+      <h2 id="hitl-title">Agent 需要你的批准</h2>
+      <p id="hitl-desc">Agent 想要从 GitHub 克隆仓库到本地缓存目录，然后只读扫描。是否允许？</p>
+      <div class="hitl-detail" id="hitl-detail"></div>
+      <p class="muted" id="hitl-countdown">等待超时会自动拒绝。</p>
+      <div class="modal-actions">
+        <button class="ghost-btn" id="btn-hitl-reject" type="button">拒绝</button>
+        <button class="primary-btn" id="btn-hitl-approve" type="button">允许克隆并继续</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
