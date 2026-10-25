@@ -2,6 +2,13 @@ import { computed, reactive } from "vue";
 
 import { fetchJSON, streamChatRequest } from "./api";
 import {
+  DEFAULT_STYLE,
+  STYLE_KEYS,
+  STYLE_META,
+  normalizeStyle,
+  styleLabel,
+} from "./theme";
+import {
   argsPreview,
   basename,
   categoryColor,
@@ -17,8 +24,10 @@ import {
 } from "./utils";
 
 const THEME_KEY = "repolens-theme";
+const STYLE_KEY = "repolens-style";
 const savedTheme = localStorage.getItem(THEME_KEY);
 const initialTheme = savedTheme === "light" || savedTheme === "dark" ? savedTheme : "dark";
+const initialStyle = normalizeStyle(localStorage.getItem(STYLE_KEY));
 
 let eventSource = null;
 let runTimer = null;
@@ -56,7 +65,7 @@ export const state = reactive({
 
   chat: { messages: [], streaming: false, status: "" },
 
-  drawers: { history: false, concepts: false, techKey: null },
+  drawers: { history: false, concepts: false, styles: false, techKey: null },
   history: [],
   historyLoading: false,
   concepts: [],
@@ -68,6 +77,7 @@ export const state = reactive({
 
   toasts: [],
   theme: initialTheme,
+  style: initialStyle,
   scrollProgress: 0,
 });
 
@@ -91,16 +101,36 @@ export const filteredFeed = computed(() => {
 // ---------------------------------------------------------------------------
 // 主题 / Toast / URL
 // ---------------------------------------------------------------------------
+function syncMetaColor() {
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (!meta) return;
+  const color = STYLE_META[state.style]?.[state.theme] || STYLE_META[DEFAULT_STYLE][state.theme];
+  meta.setAttribute("content", color);
+}
+
 export function applyTheme(theme) {
   state.theme = theme === "light" ? "light" : "dark";
   document.documentElement.dataset.theme = state.theme;
   localStorage.setItem(THEME_KEY, state.theme);
-  const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute("content", state.theme === "light" ? "#f4f7fc" : "#05070e");
+  syncMetaColor();
 }
 
 export function toggleTheme() {
   applyTheme(state.theme === "dark" ? "light" : "dark");
+}
+
+export function applyStyle(style) {
+  const next = normalizeStyle(style);
+  state.style = next;
+  document.documentElement.dataset.style = next;
+  localStorage.setItem(STYLE_KEY, next);
+  syncMetaColor();
+}
+
+export function setStyle(style) {
+  if (!STYLE_KEYS.includes(style) || style === state.style) return;
+  applyStyle(style);
+  toast(`已切换到「${styleLabel(style)}」风格`, "ok", 2200);
 }
 
 export function toast(message, kind = "info", timeout = 4200) {
@@ -137,6 +167,7 @@ function urlWithTab(tab) {
 // ---------------------------------------------------------------------------
 export async function initApp() {
   applyTheme(state.theme);
+  applyStyle(state.style);
   try {
     const [health, examples] = await Promise.all([fetchJSON("/api/health"), fetchJSON("/api/examples")]);
     state.health = health;
@@ -584,6 +615,14 @@ export function closeHistory() {
   state.drawers.history = false;
 }
 
+export function openStyles() {
+  state.drawers.styles = true;
+}
+
+export function closeStyles() {
+  state.drawers.styles = false;
+}
+
 export async function loadHistory() {
   state.historyLoading = true;
   try {
@@ -633,6 +672,7 @@ export async function loadConcepts() {
 export function closeOverlays() {
   if (state.drawers.history) state.drawers.history = false;
   if (state.drawers.concepts) state.drawers.concepts = false;
+  if (state.drawers.styles) state.drawers.styles = false;
   if (state.drawers.techKey) state.drawers.techKey = null;
 }
 

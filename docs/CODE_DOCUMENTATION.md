@@ -101,6 +101,7 @@ run_analysis(ctx)
 | 技术对象字段 | `scanner.TechHit.to_dict()` + `report.build_report()` | 技术卡片、抽屉、模块地图依赖 |
 | HITL 决策只允许 `approve` / `reject` | `server._handle_hitl()` | 多一个值会导致 Agent 挂起或行为不确定 |
 | 克隆被拒绝后立即结束 | `pipeline._run_agent()` | 防止模型反复重试被拒绝的工具 |
+| 视觉状态 `data-theme` / `data-style` + localStorage | `store.js`、`theme.js`、`global.less` | 5 套风格 × 深浅、刷新保持、全站生效 |
 | 只读扫描、敏感文件拒绝 | `tools.py`、`security.py` | 安全承诺 |
 | `static/dist` 可被 Python 直接托管 | `server.py`、`vite.config.js` | 只装 Python 的用户必须能运行 |
 | 默认只监听 `127.0.0.1` | `config.py` | 项目没有登录鉴权 |
@@ -135,12 +136,13 @@ run_analysis(ctx)
 | 路径 | 职责 |
 | --- | --- |
 | `frontend/vite.config.js` | Vue 插件、`@` 别名、Less 自动注入、构建到 `../static/dist`、`/api` 代理到 8765 |
-| `frontend/index.html` | 单页挂载点 `#app`、favicon、默认深色 `data-theme` |
-| `frontend/src/main.js` | 挂载 Vue、挂载前恢复主题、加载全局 Less |
+| `frontend/index.html` | 单页挂载点 `#app`、favicon、默认 `data-theme="dark"` + `data-style="aurora"` |
+| `frontend/src/main.js` | 挂载 Vue、挂载前恢复主题与风格、加载全局 Less |
 | `frontend/src/App.vue` | 应用外壳、三视图切换、Header/Footer、抽屉/弹窗/Toast、全局快捷键 |
 | `frontend/src/api.js` | `fetchJSON`、POST `/api/chat` 的 SSE 解析 |
 | `frontend/src/store.js` | 单一响应式状态、所有业务动作、SSE 重连、URL 深链路 |
 | `frontend/src/utils.js` | 分类颜色/图标、阶段、Tab、格式化、Markdown 导出、下载/复制 |
+| `frontend/src/theme.js` | 5 套风格元数据（标签、描述、预览色、theme-color、localStorage 规范化） |
 | `frontend/src/views/HomeView.vue` | 首页 hero、输入、示例、步骤/能力介绍、鼠标光晕 |
 | `frontend/src/views/RunView.vue` | 分析页布局、状态胶囊、计时、错误/完成操作 |
 | `frontend/src/views/ReportView.vue` | 报告头、统计、摘要、警告、Tab、分类筛选、搜索、技术卡片 |
@@ -156,8 +158,9 @@ run_analysis(ctx)
 | `frontend/src/components/HistoryDrawer.vue` | 历史报告列表 |
 | `frontend/src/components/ConceptsDrawer.vue` | 教程知识点手风琴 |
 | `frontend/src/components/BaseDrawer.vue` | 抽屉基础组件 |
+| `frontend/src/components/StylePicker.vue` | 5 套风格预览与切换、当前风格标记、深浅切换 |
 | `frontend/src/components/HitlModal.vue` | 克隆审批、倒计时圆环 |
-| `frontend/src/components/AppHeader.vue` | 品牌、模型状态、历史、知识点、主题 |
+| `frontend/src/components/AppHeader.vue` | 品牌、模型状态、风格、历史、知识点、主题 |
 | `frontend/src/components/ToastHost.vue` | 全局 Toast |
 | `frontend/src/components/Icon.vue` / `BrandLogo.vue` | 内联 SVG 图标/品牌 |
 | `frontend/src/styles/tokens.less` | 间距、圆角、字体、断点、颜色变量 |
@@ -689,10 +692,10 @@ Agent 调 clone_github_repository
 | `todos`, `tokens`, `elapsed`, `stage` | 运行页 |
 | `tab`, `category`, `search`, `pendingTab` | 报告筛选/深链路 |
 | `chat` | `{messages,streaming,status}` |
-| `drawers` | `{history,concepts,techKey}` |
+| `drawers` | `{history,concepts,styles,techKey}` |
 | `history`, `concepts` | 抽屉数据 |
 | `hitl`, `hitlRemaining`, `hitlPending` | 审批 |
-| `toasts`, `theme`, `scrollProgress` | 全局 UI |
+| `toasts`, `theme`, `style`, `scrollProgress` | 全局 UI |
 
 ### 11.3 主要动作
 
@@ -712,6 +715,8 @@ Agent 调 clone_github_repository
 | `submitHitl()` | 提交 approve/reject |
 | `exportJSON()` / `exportMarkdown()` / `copy()` | 导出/复制 |
 | `applyTheme/toggleTheme` | localStorage `repolens-theme` |
+| `applyStyle/setStyle` | 设置 `data-style`、localStorage `repolens-style`、meta theme-color；`setStyle` 额外 Toast |
+| `openStyles/closeStyles` | 打开/关闭风格选择器 |
 
 ### 11.4 URL 深链路
 
@@ -723,12 +728,53 @@ Agent 调 clone_github_repository
 
 ### 11.5 交互与可访问性
 
-- 主题：默认深色，切换写入 `localStorage`；`main.js` 在挂载前恢复，减少闪烁；
+- 主题：默认深色，切换写入 `localStorage`；`main.js` 在挂载前恢复 `data-theme` 与 `data-style`，减少闪烁；
 - 键盘：首页 Enter 开始；报告技术栈页 `/` 聚焦搜索；`Esc` 关闭抽屉（HITL 弹窗必须显式选择，不允许 Esc 关闭）；
 - 焦点：按钮/卡片有 `:focus-visible`/focus ring；
 - 响应式：媒体查询 `@bp-md`/`@bp-lg`/`@bp-xl`；390px 已验证无横向溢出；
 - 动画：页面/卡片/抽屉/Toast；`LiveFeed` 使用 `TransitionGroup`；
 - 主题变量集中在 `tokens.less`/`global.less`，组件不要硬编码颜色。
+
+### 11.6 页面风格系统
+
+前端有两层正交的视觉状态：
+
+| 属性 | 值 | 位置 | 作用 |
+| --- | --- | --- | --- |
+| `data-theme` | `dark` / `light` | `<html>` | 深色 / 浅色；`repolens-theme` |
+| `data-style` | `aurora` / `paper` / `terminal` / `neon` / `sakura` | `<html>` | 视觉语言；`repolens-style` |
+
+风格不是简单换主色：
+
+- 每套风格在 `global.less` 中有**独立的 dark 与 light 变量块**，覆盖背景、面板、文字、强调色、阴影、网格、字体、页面渐变和纹理；
+- `paper` 使用衬线字体、米白纸张、细边框、方角；
+- `terminal` 使用等宽字体、磷光绿、扫描线、直角；
+- `neon` 使用紫粉霓虹、强辉光、大圆角；
+- `sakura` 使用樱粉、柔光、大圆角；
+- `aurora` 维持原来的冷色玻璃光晕。
+
+元数据在 `theme.js`：
+
+- `STYLE_OPTIONS`：标签、英文名、描述、当前深浅下的预览色；
+- `STYLE_META`：每套风格的 `theme-color` 元信息；
+- `STYLE_KEYS` / `DEFAULT_STYLE` / `normalizeStyle()` / `styleLabel()`。
+
+`StylePicker.vue`：
+
+- 从 Header「风格」打开；
+- 5 张卡片用真实背景/主色/字体做迷你预览；
+- 当前风格显示“当前使用”；
+- 点击即时调用 `setStyle()`，并保留深/浅模式；
+- 抽屉底部可切换深浅，预览会同步更新。
+
+**新增一套风格**：
+
+1. 在 `theme.js` 的 `STYLE_OPTIONS` 和 `STYLE_META` 增加 key；
+2. 在 `global.less` 写 `[data-style="<key>"][data-theme="dark"]` 和 `[data-theme="light"]` 两套完整变量（不要只覆盖主色）；
+3. 如果新风格需要不同字体/轮廓，补对应的 `[data-style="<key>"]` 细节规则；
+4. 在 `StylePicker` 的 `previewFonts` 加字体预览；
+5. 重新构建并逐页检查首页/运行页/报告页/抽屉/弹窗/移动端；
+6. 更新需求文档 UI-13/14 和本节的风格清单。
 
 ---
 
@@ -903,12 +949,13 @@ git status --short
 4. 新建/复用组件；
 5. 更新本文与需求文档。
 
-### 15.5 改主题
+### 15.5 改主题 / 风格
 
-1. 只改 `styles/tokens.less` 的浅/深变量；
+1. 深/浅色变量在 `styles/global.less` 的 `[data-theme="..."]`；风格在 `[data-style="..."][data-theme="..."]`；
 2. 组件使用 `var(--...)`，不要硬编码；
-3. 检查 `main.js` 的首屏主题；
-4. 截图检查对比度。
+3. 检查 `main.js` 的首屏 `data-theme` / `data-style`；
+4. 新增风格按 §11.6 的步骤补 `theme.js` 元数据 + 两套变量；
+5. 逐套截图检查对比度、轮廓、字体与移动端。
 
 ### 15.6 改构建/托管
 
@@ -953,7 +1000,7 @@ git status --short
 10. **报告文件历史无索引数据库**；每次 `/api/history` glob + 读 JSON，报告多时会变慢（当前上限 40 条展示）。
 11. **HITL 只有克隆一个工具**；新增有副作用工具需要显式加入 `interrupt_on`。
 12. **前端 CSS 使用 `color-mix` 等现代特性**；旧浏览器可能显示异常。
-13. **没有实现 `prefers-reduced-motion` 的 CSS 降级**；动画在低性能设备上可能较重。
+13. **风格主要靠 CSS 变量与全局覆盖实现**；新增风格必须同时补 dark/light 两套变量，不能只改一个主色。
 14. **`local_path` 绝对路径会写入本地报告**；公开分享报告时需删除/改用相对路径。
 15. **`data/repos` 缓存不会自动清理**；长期使用需手动删除。
 
@@ -967,6 +1014,7 @@ git status --short
 - [ ] 前端改动后 `npm run build`，提交 `static/dist`；
 - [ ] 本地示例完整跑通：首页 → 运行 → 报告 → 模块 → 架构 → 追问 → 历史；
 - [ ] 检查 390px 移动端没有横向溢出；
+- [ ] 逐套检查 5 种风格 × 深/浅（至少首页 + 报告 + 抽屉），确认选择持久化；
 - [ ] 检查 HITL approve/reject 路径；
 - [ ] `check_secrets.py` 通过，`git diff --cached --check` 通过；
 - [ ] 更新代码文档与需求文档；

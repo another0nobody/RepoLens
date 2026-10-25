@@ -43,6 +43,11 @@
   --overlay: rgba(3, 6, 14, 0.74);
   --toast-bg: #0e1525;
   --input-bg: rgba(148, 163, 184, 0.05);
+  --font-ui: @font-sans;
+  --font-display: @font-sans;
+  --page-bg: radial-gradient(ellipse 90% 55% at 50% -10%, rgba(103, 232, 249, 0.07), transparent 64%), #05070e;
+  --texture-color: rgba(103, 232, 249, 0.1);
+  --texture-opacity: 0;
 }
 
 [data-theme="light"] {
@@ -85,6 +90,382 @@
   --overlay: rgba(15, 23, 42, 0.32);
   --toast-bg: #ffffff;
   --input-bg: rgba(255, 255, 255, 0.8);
+  --font-ui: @font-sans;
+  --font-display: @font-sans;
+  --page-bg: radial-gradient(ellipse 90% 55% at 50% -10%, rgba(8, 145, 178, 0.06), transparent 64%), #f4f7fc;
+  --texture-color: rgba(15, 23, 42, 0.09);
+  --texture-opacity: 0;
+}
+
+// ============================================================================
+// 页面风格（style × theme）
+//
+// 五套风格共用同一套组件与功能，只改变颜色、字体、背景纹理和局部形状。
+// data-theme 继续负责深/浅色，data-style 负责视觉语言，二者可以自由组合。
+// ============================================================================
+
+// --------------------------------------------------------------- 纸境 Paper
+[data-style="paper"][data-theme="dark"] {
+  --bg: #17130e;
+  --bg-2: #211a12;
+  --panel: rgba(40, 33, 24, 0.84);
+  --panel-solid: #241e16;
+  --panel-soft: rgba(245, 230, 200, 0.06);
+  --panel-hover: rgba(245, 230, 200, 0.1);
+  --line: rgba(245, 230, 200, 0.15);
+  --line-strong: rgba(245, 230, 200, 0.3);
+  --text: #f4ead6;
+  --muted: #c2b095;
+  --faint: #8f7b61;
+  --accent: #f59e0b;
+  --accent-2: #5eead4;
+  --accent-3: #f472b6;
+  --accent-soft: rgba(245, 158, 11, 0.11);
+  --accent-line: rgba(245, 158, 11, 0.34);
+  --good: #86efac;
+  --good-soft: rgba(134, 239, 172, 0.1);
+  --warn: #fbbf24;
+  --warn-soft: rgba(251, 191, 36, 0.1);
+  --bad: #fda4af;
+  --bad-soft: rgba(253, 164, 175, 0.1);
+  --grad-a: #fcd34d;
+  --grad-b: #f59e0b;
+  --grad-c: #5eead4;
+  --grad-d: #f472b6;
+  --shadow: 0 30px 70px -45px rgba(0, 0, 0, 0.9);
+  --shadow-soft: 0 16px 36px -30px rgba(0, 0, 0, 0.8);
+  --scroll-thumb: rgba(245, 230, 200, 0.22);
+  --grid-line: rgba(245, 230, 200, 0.05);
+  --topbar-bg: rgba(23, 19, 14, 0.88);
+  --drawer-bg: linear-gradient(180deg, #241e16, #17130e);
+  --code-bg: rgba(245, 230, 200, 0.06);
+  --hero-glow: rgba(245, 158, 11, 0.14);
+  --overlay: rgba(10, 8, 5, 0.76);
+  --toast-bg: #241e16;
+  --input-bg: rgba(245, 230, 200, 0.05);
+  --font-ui: "Iowan Old Style", "Palatino Linotype", "Songti SC", "Noto Serif SC", Georgia, serif;
+  --font-display: "Songti SC", "Noto Serif SC", "Iowan Old Style", Georgia, serif;
+  --page-bg: radial-gradient(ellipse 90% 55% at 20% 0%, rgba(245, 158, 11, 0.1), transparent 60%), #17130e;
+  --texture-color: rgba(255, 240, 210, 0.07);
+  --texture-opacity: 0.35;
+}
+
+[data-style="paper"][data-theme="light"] {
+  --bg: #f3ecdd;
+  --bg-2: #ece1cc;
+  --panel: rgba(255, 250, 240, 0.88);
+  --panel-solid: #fffaf0;
+  --panel-soft: rgba(90, 60, 30, 0.05);
+  --panel-hover: rgba(90, 60, 30, 0.08);
+  --line: rgba(90, 60, 30, 0.14);
+  --line-strong: rgba(90, 60, 30, 0.28);
+  --text: #2d251a;
+  --muted: #6f5f4b;
+  --faint: #94826a;
+  --accent: #b45309;
+  --accent-2: #0f766e;
+  --accent-3: #9d174d;
+  --accent-soft: rgba(180, 83, 9, 0.08);
+  --accent-line: rgba(180, 83, 9, 0.28);
+  --good: #15803d;
+  --good-soft: rgba(21, 128, 61, 0.08);
+  --warn: #b45309;
+  --warn-soft: rgba(180, 83, 9, 0.08);
+  --bad: #b91c1c;
+  --bad-soft: rgba(185, 28, 28, 0.08);
+  --grad-a: #d97706;
+  --grad-b: #b45309;
+  --grad-c: #0f766e;
+  --grad-d: #9d174d;
+  --shadow: 0 24px 50px -38px rgba(80, 50, 20, 0.4);
+  --shadow-soft: 0 14px 30px -26px rgba(80, 50, 20, 0.3);
+  --scroll-thumb: rgba(90, 60, 30, 0.2);
+  --grid-line: rgba(90, 60, 30, 0.05);
+  --topbar-bg: rgba(243, 236, 221, 0.88);
+  --drawer-bg: linear-gradient(180deg, #fffaf0, #f3ecdd);
+  --code-bg: rgba(90, 60, 30, 0.06);
+  --hero-glow: rgba(180, 83, 9, 0.12);
+  --overlay: rgba(50, 35, 20, 0.34);
+  --toast-bg: #fffaf0;
+  --input-bg: rgba(255, 255, 255, 0.7);
+  --font-ui: "Iowan Old Style", "Palatino Linotype", "Songti SC", "Noto Serif SC", Georgia, serif;
+  --font-display: "Songti SC", "Noto Serif SC", "Iowan Old Style", Georgia, serif;
+  --page-bg: radial-gradient(ellipse 90% 55% at 20% 0%, rgba(180, 83, 9, 0.08), transparent 60%), #f3ecdd;
+  --texture-color: rgba(90, 60, 30, 0.1);
+  --texture-opacity: 0.4;
+}
+
+// --------------------------------------------------------------- 终端 Terminal
+[data-style="terminal"][data-theme="dark"] {
+  --bg: #020604;
+  --bg-2: #04130a;
+  --panel: rgba(4, 25, 13, 0.8);
+  --panel-solid: #03150b;
+  --panel-soft: rgba(74, 222, 128, 0.05);
+  --panel-hover: rgba(74, 222, 128, 0.09);
+  --line: rgba(74, 222, 128, 0.18);
+  --line-strong: rgba(74, 222, 128, 0.36);
+  --text: #c8ffd9;
+  --muted: #7ee2a0;
+  --faint: #3f8f63;
+  --accent: #4ade80;
+  --accent-2: #facc15;
+  --accent-3: #22d3ee;
+  --accent-soft: rgba(74, 222, 128, 0.1);
+  --accent-line: rgba(74, 222, 128, 0.35);
+  --good: #4ade80;
+  --good-soft: rgba(74, 222, 128, 0.1);
+  --warn: #facc15;
+  --warn-soft: rgba(250, 204, 21, 0.1);
+  --bad: #fb7185;
+  --bad-soft: rgba(251, 113, 133, 0.1);
+  --grad-a: #bbf7d0;
+  --grad-b: #4ade80;
+  --grad-c: #facc15;
+  --grad-d: #22d3ee;
+  --shadow: 0 0 0 1px rgba(74, 222, 128, 0.08), 0 24px 60px -30px #000;
+  --shadow-soft: 0 0 0 1px rgba(74, 222, 128, 0.06), 0 14px 30px -24px #000;
+  --scroll-thumb: rgba(74, 222, 128, 0.25);
+  --grid-line: rgba(74, 222, 128, 0.06);
+  --topbar-bg: rgba(2, 6, 4, 0.9);
+  --drawer-bg: linear-gradient(180deg, #04190c, #020604);
+  --code-bg: rgba(74, 222, 128, 0.05);
+  --hero-glow: rgba(74, 222, 128, 0.14);
+  --overlay: rgba(0, 0, 0, 0.8);
+  --toast-bg: #03150b;
+  --input-bg: rgba(74, 222, 128, 0.04);
+  --font-ui: @font-mono;
+  --font-display: @font-mono;
+  --page-bg: radial-gradient(ellipse 90% 55% at 50% -10%, rgba(74, 222, 128, 0.08), transparent 62%), #020604;
+  --texture-color: rgba(74, 222, 128, 0.1);
+  --texture-opacity: 0;
+}
+
+[data-style="terminal"][data-theme="light"] {
+  --bg: #edf6ea;
+  --bg-2: #e3f0df;
+  --panel: rgba(248, 255, 246, 0.9);
+  --panel-solid: #f8fff6;
+  --panel-soft: rgba(21, 128, 61, 0.04);
+  --panel-hover: rgba(21, 128, 61, 0.07);
+  --line: rgba(21, 128, 61, 0.16);
+  --line-strong: rgba(21, 128, 61, 0.32);
+  --text: #0d2a16;
+  --muted: #3f6b4b;
+  --faint: #6e967a;
+  --accent: #15803d;
+  --accent-2: #a16207;
+  --accent-3: #0e7490;
+  --accent-soft: rgba(21, 128, 61, 0.07);
+  --accent-line: rgba(21, 128, 61, 0.28);
+  --good: #15803d;
+  --good-soft: rgba(21, 128, 61, 0.08);
+  --warn: #a16207;
+  --warn-soft: rgba(161, 98, 7, 0.08);
+  --bad: #be123c;
+  --bad-soft: rgba(190, 18, 60, 0.08);
+  --grad-a: #86efac;
+  --grad-b: #15803d;
+  --grad-c: #a16207;
+  --grad-d: #0e7490;
+  --shadow: 0 18px 40px -34px rgba(13, 42, 22, 0.35);
+  --shadow-soft: 0 12px 26px -24px rgba(13, 42, 22, 0.3);
+  --scroll-thumb: rgba(21, 128, 61, 0.2);
+  --grid-line: rgba(21, 128, 61, 0.05);
+  --topbar-bg: rgba(237, 246, 234, 0.9);
+  --drawer-bg: linear-gradient(180deg, #f8fff6, #edf6ea);
+  --code-bg: rgba(21, 128, 61, 0.05);
+  --hero-glow: rgba(21, 128, 61, 0.1);
+  --overlay: rgba(10, 30, 18, 0.34);
+  --toast-bg: #f8fff6;
+  --input-bg: rgba(255, 255, 255, 0.72);
+  --font-ui: @font-mono;
+  --font-display: @font-mono;
+  --page-bg: radial-gradient(ellipse 90% 55% at 50% -10%, rgba(21, 128, 61, 0.06), transparent 62%), #edf6ea;
+  --texture-color: rgba(21, 128, 61, 0.08);
+  --texture-opacity: 0;
+}
+
+// --------------------------------------------------------------- 霓虹 Neon
+[data-style="neon"][data-theme="dark"] {
+  --bg: #0a0018;
+  --bg-2: #16002e;
+  --panel: rgba(32, 8, 54, 0.72);
+  --panel-solid: #1a0730;
+  --panel-soft: rgba(232, 121, 249, 0.06);
+  --panel-hover: rgba(232, 121, 249, 0.1);
+  --line: rgba(232, 121, 249, 0.16);
+  --line-strong: rgba(232, 121, 249, 0.32);
+  --text: #faedff;
+  --muted: #c9a7e8;
+  --faint: #8b6aa8;
+  --accent: #22d3ee;
+  --accent-2: #e879f9;
+  --accent-3: #f472b6;
+  --accent-soft: rgba(34, 211, 238, 0.1);
+  --accent-line: rgba(34, 211, 238, 0.32);
+  --good: #34d399;
+  --good-soft: rgba(52, 211, 153, 0.1);
+  --warn: #fbbf24;
+  --warn-soft: rgba(251, 191, 36, 0.1);
+  --bad: #fb7185;
+  --bad-soft: rgba(251, 113, 133, 0.1);
+  --grad-a: #67e8f9;
+  --grad-b: #e879f9;
+  --grad-c: #f472b6;
+  --grad-d: #facc15;
+  --shadow: 0 30px 90px -35px rgba(232, 121, 249, 0.45);
+  --shadow-soft: 0 20px 54px -32px rgba(232, 121, 249, 0.4);
+  --scroll-thumb: rgba(232, 121, 249, 0.28);
+  --grid-line: rgba(232, 121, 249, 0.06);
+  --topbar-bg: rgba(10, 0, 24, 0.82);
+  --drawer-bg: linear-gradient(180deg, #1a0730, #0a0018);
+  --code-bg: rgba(232, 121, 249, 0.06);
+  --hero-glow: rgba(232, 121, 249, 0.2);
+  --overlay: rgba(5, 0, 14, 0.76);
+  --toast-bg: #1a0730;
+  --input-bg: rgba(232, 121, 249, 0.06);
+  --font-ui: "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-display: "Arial Black", "Segoe UI", "PingFang SC", sans-serif;
+  --page-bg: radial-gradient(circle at 15% 0%, rgba(232, 121, 249, 0.16), transparent 42%), radial-gradient(circle at 85% 20%, rgba(34, 211, 238, 0.12), transparent 40%), #0a0018;
+  --texture-color: rgba(232, 121, 249, 0.12);
+  --texture-opacity: 0;
+}
+
+[data-style="neon"][data-theme="light"] {
+  --bg: #fbf5ff;
+  --bg-2: #f4e8ff;
+  --panel: rgba(255, 255, 255, 0.82);
+  --panel-solid: #ffffff;
+  --panel-soft: rgba(124, 58, 237, 0.05);
+  --panel-hover: rgba(124, 58, 237, 0.08);
+  --line: rgba(124, 58, 237, 0.13);
+  --line-strong: rgba(124, 58, 237, 0.28);
+  --text: #241133;
+  --muted: #6e5683;
+  --faint: #9a82ad;
+  --accent: #7c3aed;
+  --accent-2: #db2777;
+  --accent-3: #0891b2;
+  --accent-soft: rgba(124, 58, 237, 0.08);
+  --accent-line: rgba(124, 58, 237, 0.28);
+  --good: #059669;
+  --good-soft: rgba(5, 150, 105, 0.08);
+  --warn: #b45309;
+  --warn-soft: rgba(180, 83, 9, 0.08);
+  --bad: #e11d48;
+  --bad-soft: rgba(225, 29, 72, 0.08);
+  --grad-a: #a78bfa;
+  --grad-b: #7c3aed;
+  --grad-c: #db2777;
+  --grad-d: #0891b2;
+  --shadow: 0 26px 60px -44px rgba(124, 58, 237, 0.4);
+  --shadow-soft: 0 16px 36px -30px rgba(124, 58, 237, 0.34);
+  --scroll-thumb: rgba(124, 58, 237, 0.2);
+  --grid-line: rgba(124, 58, 237, 0.05);
+  --topbar-bg: rgba(251, 245, 255, 0.86);
+  --drawer-bg: linear-gradient(180deg, #ffffff, #fbf5ff);
+  --code-bg: rgba(124, 58, 237, 0.05);
+  --hero-glow: rgba(124, 58, 237, 0.12);
+  --overlay: rgba(36, 17, 51, 0.32);
+  --toast-bg: #ffffff;
+  --input-bg: rgba(255, 255, 255, 0.78);
+  --font-ui: "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-display: "Arial Black", "Segoe UI", "PingFang SC", sans-serif;
+  --page-bg: radial-gradient(circle at 15% 0%, rgba(124, 58, 237, 0.09), transparent 42%), radial-gradient(circle at 85% 20%, rgba(219, 39, 119, 0.06), transparent 40%), #fbf5ff;
+  --texture-color: rgba(124, 58, 237, 0.1);
+  --texture-opacity: 0;
+}
+
+// --------------------------------------------------------------- 樱 Sakura
+[data-style="sakura"][data-theme="dark"] {
+  --bg: #1b0e15;
+  --bg-2: #2a1420;
+  --panel: rgba(48, 22, 34, 0.76);
+  --panel-solid: #2a1420;
+  --panel-soft: rgba(249, 168, 212, 0.06);
+  --panel-hover: rgba(249, 168, 212, 0.1);
+  --line: rgba(249, 168, 212, 0.16);
+  --line-strong: rgba(249, 168, 212, 0.3);
+  --text: #ffeaf3;
+  --muted: #d1a5b6;
+  --faint: #966f80;
+  --accent: #f9a8d4;
+  --accent-2: #c4b5fd;
+  --accent-3: #fcd34d;
+  --accent-soft: rgba(249, 168, 212, 0.1);
+  --accent-line: rgba(249, 168, 212, 0.32);
+  --good: #86efac;
+  --good-soft: rgba(134, 239, 172, 0.1);
+  --warn: #fcd34d;
+  --warn-soft: rgba(252, 211, 77, 0.1);
+  --bad: #fda4af;
+  --bad-soft: rgba(253, 164, 175, 0.1);
+  --grad-a: #f9a8d4;
+  --grad-b: #ec4899;
+  --grad-c: #c4b5fd;
+  --grad-d: #fcd34d;
+  --shadow: 0 30px 80px -44px rgba(249, 168, 212, 0.28);
+  --shadow-soft: 0 18px 40px -32px rgba(249, 168, 212, 0.24);
+  --scroll-thumb: rgba(249, 168, 212, 0.24);
+  --grid-line: rgba(249, 168, 212, 0.05);
+  --topbar-bg: rgba(27, 14, 21, 0.84);
+  --drawer-bg: linear-gradient(180deg, #2a1420, #1b0e15);
+  --code-bg: rgba(249, 168, 212, 0.06);
+  --hero-glow: rgba(249, 168, 212, 0.16);
+  --overlay: rgba(15, 5, 10, 0.72);
+  --toast-bg: #2a1420;
+  --input-bg: rgba(249, 168, 212, 0.05);
+  --font-ui: "Avenir Next", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-display: "Avenir Next", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --page-bg: radial-gradient(ellipse 90% 55% at 20% 0%, rgba(249, 168, 212, 0.12), transparent 60%), #1b0e15;
+  --texture-color: rgba(249, 168, 212, 0.1);
+  --texture-opacity: 0.25;
+}
+
+[data-style="sakura"][data-theme="light"] {
+  --bg: #fff6f8;
+  --bg-2: #ffeaf1;
+  --panel: rgba(255, 255, 255, 0.84);
+  --panel-solid: #ffffff;
+  --panel-soft: rgba(219, 39, 119, 0.045);
+  --panel-hover: rgba(219, 39, 119, 0.075);
+  --line: rgba(190, 24, 93, 0.12);
+  --line-strong: rgba(190, 24, 93, 0.26);
+  --text: #3b2430;
+  --muted: #8a6172;
+  --faint: #b08a9a;
+  --accent: #db2777;
+  --accent-2: #7c3aed;
+  --accent-3: #f59e0b;
+  --accent-soft: rgba(219, 39, 119, 0.08);
+  --accent-line: rgba(219, 39, 119, 0.26);
+  --good: #059669;
+  --good-soft: rgba(5, 150, 105, 0.08);
+  --warn: #b45309;
+  --warn-soft: rgba(180, 83, 9, 0.08);
+  --bad: #e11d48;
+  --bad-soft: rgba(225, 29, 72, 0.08);
+  --grad-a: #f9a8d4;
+  --grad-b: #ec4899;
+  --grad-c: #a78bfa;
+  --grad-d: #fcd34d;
+  --shadow: 0 28px 70px -46px rgba(219, 39, 119, 0.35);
+  --shadow-soft: 0 16px 38px -30px rgba(219, 39, 119, 0.3);
+  --scroll-thumb: rgba(190, 24, 93, 0.18);
+  --grid-line: rgba(190, 24, 93, 0.04);
+  --topbar-bg: rgba(255, 246, 248, 0.88);
+  --drawer-bg: linear-gradient(180deg, #ffffff, #fff6f8);
+  --code-bg: rgba(190, 24, 93, 0.05);
+  --hero-glow: rgba(236, 72, 153, 0.12);
+  --overlay: rgba(59, 36, 48, 0.3);
+  --toast-bg: #ffffff;
+  --input-bg: rgba(255, 255, 255, 0.76);
+  --font-ui: "Avenir Next", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-display: "Avenir Next", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --page-bg: radial-gradient(ellipse 90% 55% at 20% 0%, rgba(236, 72, 153, 0.08), transparent 60%), #fff6f8;
+  --texture-color: rgba(190, 24, 93, 0.09);
+  --texture-opacity: 0.3;
 }
 
 *,
@@ -102,8 +483,9 @@ body {
   margin: 0;
   min-height: 100vh;
   color: var(--text);
-  background: var(--bg);
-  font-family: @font-sans;
+  background: var(--page-bg);
+  background-attachment: fixed;
+  font-family: var(--font-ui);
   font-size: 15px;
   line-height: 1.6;
   overflow-x: hidden;
@@ -113,6 +495,15 @@ body {
   &.no-scroll {
     overflow: hidden;
   }
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-display);
 }
 
 #app {
@@ -228,10 +619,10 @@ p {
 
   &:disabled {
     opacity: 1;
-    border: 1px solid var(--line);
-    background: var(--panel-soft);
+    border: 1px solid var(--line-strong);
+    background: var(--panel-hover);
     box-shadow: none;
-    color: var(--faint);
+    color: var(--muted);
   }
 }
 
@@ -415,6 +806,73 @@ p {
   animation-delay: -13s;
 }
 
+// 纸纹 / 颗粒 / 扫描线：不同风格共用这个叠层，只替换背景和透明度。
+.app-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(var(--texture-color) 0.6px, transparent 0.6px);
+  background-size: 4px 4px;
+  opacity: var(--texture-opacity, 0);
+}
+
+[data-style="paper"] .bg-glow,
+[data-style="paper"] .hero-glow {
+  display: none;
+}
+
+[data-style="paper"] .bg-grid {
+  background-image: linear-gradient(var(--grid-line) 1px, transparent 1px);
+  background-size: 100% 32px;
+  mask-image: none;
+  opacity: 0.45;
+}
+
+[data-style="terminal"] .bg-grid {
+  opacity: 0.72;
+  background-size: 32px 32px;
+}
+
+[data-style="terminal"] .bg-glow {
+  opacity: 0.18;
+  filter: blur(90px);
+}
+
+[data-style="terminal"] .app-bg::after {
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.22) 0,
+    rgba(0, 0, 0, 0.22) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  background-size: auto;
+  opacity: 0.5;
+}
+
+[data-style="neon"] .bg-grid {
+  display: none;
+}
+
+[data-style="neon"] .bg-glow {
+  opacity: 0.52;
+  filter: blur(84px);
+}
+
+[data-style="neon"] .glow-b {
+  animation-duration: 14s;
+}
+
+[data-style="sakura"] .bg-grid {
+  opacity: 0.2;
+}
+
+[data-style="sakura"] .bg-glow {
+  opacity: 0.3;
+  filter: blur(100px);
+}
+
 @keyframes float {
   from {
     transform: translate3d(0, 0, 0) scale(1);
@@ -475,6 +933,242 @@ p {
   100% {
     background-position: 200% 0;
   }
+}
+
+// --------------------------------------------------------------- 风格细节
+// 只覆盖“轮廓/字体/阴影”这类变量表达不了的细节，颜色仍由 CSS 变量驱动。
+
+[data-style="paper"] h1,
+[data-style="paper"] h2,
+[data-style="paper"] h3 {
+  font-weight: 600 !important;
+  letter-spacing: -0.8px !important;
+}
+
+[data-style="paper"] .brand-text strong {
+  letter-spacing: 0.2px;
+}
+
+[data-style="paper"] .btn,
+[data-style="paper"] .icon-btn,
+[data-style="paper"] .tag,
+[data-style="paper"] .chip,
+[data-style="paper"] .kind-pill,
+[data-style="paper"] .search-wrap,
+[data-style="paper"] .chat-form input {
+  border-radius: 4px !important;
+}
+
+[data-style="paper"] .input-card,
+[data-style="paper"] .step-card,
+[data-style="paper"] .feature-card,
+[data-style="paper"] .tech-card,
+[data-style="paper"] .stat-card,
+[data-style="paper"] .summary-card,
+[data-style="paper"] .rail-card,
+[data-style="paper"] .live-panel,
+[data-style="paper"] .module-group,
+[data-style="paper"] .chat-card,
+[data-style="paper"] .process,
+[data-style="paper"] .drawer,
+[data-style="paper"] .modal,
+[data-style="paper"] .toast {
+  border-radius: 3px !important;
+  box-shadow: none !important;
+  border-color: var(--line-strong) !important;
+}
+
+[data-style="paper"] .tech-card::before {
+  top: 0;
+  bottom: 0;
+  width: 1px;
+}
+
+[data-style="paper"] .btn-primary:not(:disabled) {
+  color: #2d251a;
+  box-shadow: none !important;
+  border: 1px solid color-mix(in srgb, var(--text) 18%, transparent);
+}
+
+[data-style="paper"] .chip.active {
+  color: #2d251a;
+}
+
+[data-style="terminal"] h1,
+[data-style="terminal"] h2,
+[data-style="terminal"] h3 {
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+}
+
+[data-style="terminal"] .btn,
+[data-style="terminal"] .icon-btn,
+[data-style="terminal"] .tag,
+[data-style="terminal"] .chip,
+[data-style="terminal"] .kind-pill,
+[data-style="terminal"] .search-wrap,
+[data-style="terminal"] .chat-form input,
+[data-style="terminal"] .input-card,
+[data-style="terminal"] .step-card,
+[data-style="terminal"] .feature-card,
+[data-style="terminal"] .tech-card,
+[data-style="terminal"] .stat-card,
+[data-style="terminal"] .summary-card,
+[data-style="terminal"] .rail-card,
+[data-style="terminal"] .live-panel,
+[data-style="terminal"] .module-group,
+[data-style="terminal"] .chat-card,
+[data-style="terminal"] .process,
+[data-style="terminal"] .drawer,
+[data-style="terminal"] .modal,
+[data-style="terminal"] .toast {
+  border-radius: 2px !important;
+  box-shadow: none !important;
+}
+
+[data-style="terminal"] .btn-primary:not(:disabled) {
+  box-shadow: 0 0 22px -5px var(--accent) !important;
+}
+
+[data-style="terminal"] .tech-card::before {
+  top: 0;
+  bottom: 0;
+  width: 3px;
+}
+
+[data-style="terminal"] .tag,
+[data-style="terminal"] .chip,
+[data-style="terminal"] .eyebrow {
+  letter-spacing: 0.7px;
+}
+
+[data-style="neon"] h1,
+[data-style="neon"] h2 {
+  letter-spacing: -1.2px !important;
+  text-shadow: 0 0 32px color-mix(in srgb, var(--accent-2) 30%, transparent);
+}
+
+[data-style="neon"] .input-card,
+[data-style="neon"] .step-card,
+[data-style="neon"] .feature-card,
+[data-style="neon"] .tech-card,
+[data-style="neon"] .stat-card,
+[data-style="neon"] .summary-card,
+[data-style="neon"] .rail-card,
+[data-style="neon"] .live-panel,
+[data-style="neon"] .module-group,
+[data-style="neon"] .chat-card,
+[data-style="neon"] .process,
+[data-style="neon"] .drawer,
+[data-style="neon"] .modal,
+[data-style="neon"] .toast {
+  border-radius: 20px !important;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-2) 12%, transparent),
+    0 24px 60px -36px color-mix(in srgb, var(--accent-2) 50%, transparent) !important;
+}
+
+[data-style="neon"] .btn,
+[data-style="neon"] .icon-btn,
+[data-style="neon"] .search-wrap,
+[data-style="neon"] .chat-form input {
+  border-radius: 12px !important;
+}
+
+[data-style="neon"] .btn-primary:not(:disabled) {
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.55);
+}
+
+[data-style="neon"] .tech-card::before {
+  width: 3px;
+  box-shadow: 0 0 18px var(--c);
+}
+
+[data-style="sakura"] h1 {
+  font-weight: 800 !important;
+  letter-spacing: -1.8px !important;
+}
+
+[data-style="sakura"] .input-card,
+[data-style="sakura"] .step-card,
+[data-style="sakura"] .feature-card,
+[data-style="sakura"] .tech-card,
+[data-style="sakura"] .stat-card,
+[data-style="sakura"] .summary-card,
+[data-style="sakura"] .rail-card,
+[data-style="sakura"] .live-panel,
+[data-style="sakura"] .module-group,
+[data-style="sakura"] .chat-card,
+[data-style="sakura"] .process,
+[data-style="sakura"] .drawer,
+[data-style="sakura"] .modal,
+[data-style="sakura"] .toast {
+  border-radius: 26px !important;
+  box-shadow: 0 24px 54px -44px color-mix(in srgb, var(--accent) 40%, transparent) !important;
+}
+
+[data-style="sakura"] .btn,
+[data-style="sakura"] .icon-btn,
+[data-style="sakura"] .search-wrap,
+[data-style="sakura"] .chat-form input {
+  border-radius: 14px !important;
+}
+
+[data-style="sakura"] .tech-card::before {
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 3px;
+}
+
+// 次级容器也跟随轮廓，避免一个页面里混用圆角和直角。
+[data-style="paper"] .card,
+[data-style="paper"] .history-item,
+[data-style="paper"] .concept,
+[data-style="paper"] .bubble {
+  border-radius: 3px !important;
+  box-shadow: none !important;
+}
+
+[data-style="paper"] .model-pill,
+[data-style="paper"] .example-chip {
+  border-radius: 4px !important;
+}
+
+[data-style="terminal"] .card,
+[data-style="terminal"] .history-item,
+[data-style="terminal"] .concept,
+[data-style="terminal"] .bubble {
+  border-radius: 2px !important;
+  box-shadow: none !important;
+}
+
+[data-style="terminal"] .model-pill,
+[data-style="terminal"] .example-chip {
+  border-radius: 2px !important;
+}
+
+[data-style="neon"] .card,
+[data-style="neon"] .history-item,
+[data-style="neon"] .concept,
+[data-style="neon"] .bubble {
+  border-radius: 20px !important;
+}
+
+[data-style="neon"] .model-pill,
+[data-style="neon"] .example-chip {
+  border-radius: 12px !important;
+}
+
+[data-style="sakura"] .card,
+[data-style="sakura"] .history-item,
+[data-style="sakura"] .concept,
+[data-style="sakura"] .bubble {
+  border-radius: 22px !important;
+}
+
+[data-style="sakura"] .model-pill,
+[data-style="sakura"] .example-chip {
+  border-radius: 14px !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

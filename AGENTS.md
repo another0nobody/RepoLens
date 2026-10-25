@@ -37,7 +37,7 @@ repolens/
 │   ├── events.py / context.py  # 事件总线 / 单次运行上下文
 │   └── config.py              # .env、模型、端口、克隆限制
 ├── frontend/                  # Vue 3 + Vite + Less 源码
-│   └── src/{views,components,store.js,api.js,styles}
+│   └── src/{views,components,store.js,api.js,theme.js,styles}
 ├── static/dist/               # 已提交的构建产物（Python 直接托管）
 ├── examples/demo_shop/        # 内置演示仓库
 ├── docs/                      # 截图 + 本套文档
@@ -75,7 +75,8 @@ repolens/
 - 报告页技术卡/详情抽屉/模块地图/架构/风险/学习路径/警告；
 - 历史、JSON/Markdown 导出、分享链接；
 - 追问流式输出、报告依据、多轮记忆；
-- 深/浅主题、响应式、Toast、抽屉、HITL 弹窗；
+- **5 套页面风格（极光 / 纸境 / 终端 / 霓虹 / 樱）× 深/浅模式**；风格选择器、持久化、全站生效；
+- 响应式、Toast、抽屉、HITL 弹窗；
 - API/SSE/报告 JSON 字段契约；
 - `static/dist` 静态托管；
 - 安全扫描与不上传整仓。
@@ -150,7 +151,8 @@ Invoke-RestMethod "http://127.0.0.1:8765/api/report?run_id=$($run.run_id)"
 - **把 `local_path` 放进截图/公开文件**：泄露本机路径；
 - **把 `.env` 或 `data/` 加入 Git**：泄露密钥/仓库内容；
 - **在文档里承诺未实现功能**：先实现再写“已实现”；
-- **以为追问工具次数有硬限制**：目前只有提示词约束，硬限制是模型 40 次。
+- **以为追问工具次数有硬限制**：目前只有提示词约束，硬限制是模型 40 次；
+- **新增风格只改主色**：每套风格必须在 `global.less` 同时补 dark/light 两套完整变量，并检查 `theme.js` 预览与字体。
 
 ---
 
@@ -161,7 +163,7 @@ Invoke-RestMethod "http://127.0.0.1:8765/api/report?run_id=$($run.run_id)"
 - [ ] 本地示例完整走通：首页 → 运行 → 报告 → 模块 → 架构 → 追问 → 历史；
 - [ ] 无 Key 时本地规则报告仍可生成；
 - [ ] HITL 批准/拒绝路径正确；拒绝立即结束；
-- [ ] 390px 无横向溢出；深/浅主题正常；
+- [ ] 390px 无横向溢出；5 套风格 × 深/浅主题正常且刷新保持；
 - [ ] `check_secrets.py` 通过；
 - [ ] 没有提交 `.env`、`data/`、`node_modules`、`docs/.chrome-*`；
 - [ ] 已更新需求文档/代码文档（如有契约变化）。

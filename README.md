@@ -4,7 +4,7 @@
 >
 > 这是 **你的第一个 LangChain Agent 项目**：不要求你事先懂 Agent，README 会把用到的每个概念讲清楚。
 >
-> 前端：**Vue 3 + Vite + Less**；后端 / Agent：**Python + LangChain**。前端构建产物已提交，只装 Python 也能直接运行。
+> 前端：**Vue 3 + Vite + Less**，内置 **5 套页面风格 × 深/浅模式**；后端 / Agent：**Python + LangChain**。前端构建产物已提交，只装 Python 也能直接运行。
 
 <details>
 <summary><b>界面预览（点开看截图）</b></summary>
@@ -37,7 +37,7 @@
 
 ![人工审批](docs/hitl.png)
 
-> 截图使用内置示例仓库 `examples/demo_shop`；报告来源与运行页都使用相对路径，不包含本机用户名与真实项目路径。界面支持深色 / 浅色主题切换。
+> 截图使用内置示例仓库 `examples/demo_shop`；报告来源与运行页都使用相对路径，不包含本机用户名与真实项目路径。界面支持 5 套页面风格，每套都有深色 / 浅色模式。
 
 </details>
 
@@ -55,6 +55,37 @@
 
 ---
 
+## 5 套页面风格
+
+点击右上角「风格」即可切换。每套风格都会同时改变**配色、字体、背景纹理、卡片轮廓和光效**，不是简单换一个主色；深色 / 浅色可以独立切换，选择会保存在本地。
+
+| 风格 | 关键词 | 适合 |
+| --- | --- | --- |
+| **极光 Aurora** | 深空蓝黑、青紫光晕、玻璃感 | 默认，长时间阅读报告 |
+| **纸境 Paper** | 米白纸张、衬线标题、暖橙 | 技术刊物 / 文档感 |
+| **终端 Terminal** | 磷光绿、等宽字体、扫描线 | 极客 / CLI / CRT |
+| **霓虹 Neon** | 深紫夜色、青粉霓虹、强辉光 | 演示 / 展示 |
+| **樱 Sakura** | 樱花粉、奶油白、柔光圆角 | 轻松 / 友好 |
+
+![风格选择器](docs/style-picker.png)
+
+<details>
+<summary><b>展开 5 套完整首页截图</b></summary>
+
+| 极光 | 纸境 | 终端 |
+| --- | --- | --- |
+| ![极光](docs/home.png) | ![纸境](docs/style-paper.png) | ![终端](docs/style-terminal.png) |
+| **霓虹** | **樱** | **纸境 · 浅色** |
+| ![霓虹](docs/style-neon.png) | ![樱](docs/style-sakura.png) | ![纸境浅色](docs/style-paper-light.png) |
+
+**移动端（纸境 · 浅色）**
+
+<img src="docs/style-mobile.png" width="280" alt="移动端纸境浅色风格" />
+
+</details>
+
+---
+
 ## 1. 它能做什么
 
 | 能力 | 说明 |
@@ -68,6 +99,7 @@
 | 报告追问 | 基于这份报告继续问「Redis 用在哪里」「先读哪个文件」，带多轮记忆 |
 | 人工审批（HITL） | Agent 克隆 GitHub 仓库前会真的暂停，等你在网页上点「允许」 |
 | 历史与导出 | 报告保存在 `data/reports/`，支持历史列表、JSON / Markdown 导出、报告分享链接 |
+| 页面风格 | 极光 / 纸境 / 终端 / 霓虹 / 樱，5 套视觉语言 × 深/浅模式，选择会被记住 |
 | 安全 | 只读扫描、密钥脱敏、拒绝 `.env`/私钥、默认只监听 127.0.0.1 |
 
 > 说明：报告里的「模块」来自**直接 import**（以及 Docker/Compose 等配置）。如果某个库只由框架间接使用，它可能显示「仅依赖声明，未找到直接 import」，这是正常的。
@@ -216,7 +248,7 @@ npm run build    # 输出到 ../static/dist
 - 回车直接开始，也支持点击「开始分析」；
 - 示例按钮只是帮你填入路径，不会自动开始；
 - 右上角显示当前模型；没有配置 Key 时会显示「仅规则扫描」；
-- 右上角还可以切换深色 / 浅色主题（会记住你的选择）。
+- 右上角「风格」可切换 5 套页面风格，右侧太阳/月亮切换深色与浅色；两项选择都会记住。
 
 ### 3.2 运行页
 
@@ -238,7 +270,8 @@ npm run build    # 输出到 ../static/dist
 - **追问**：多轮对话，有记忆；回答前会先查报告（工具调用），逐字流式输出；
 - **分析过程**：把本次 SSE 事件流按时间回放，可按「工具 / 阶段 / 异常」筛选；
 - **导出**：JSON / Markdown；**分享链接**形如 `http://127.0.0.1:8765/?report=<run_id>`；
-- **小交互**：技术卡片可点击查看详情、卡片与抽屉有过渡动画、顶部有阅读进度条、`/` 聚焦搜索框、`Esc` 关闭抽屉。
+- **小交互**：技术卡片可点击查看详情、卡片与抽屉有过渡动画、顶部有阅读进度条、`/` 聚焦搜索框、`Esc` 关闭抽屉；
+- **风格贯穿全站**：首页、运行页、报告页、抽屉、弹窗和 Toast 都会使用当前风格与深浅模式。
 
 > 历史报告同样支持追问：服务器会从磁盘重建一个轻量上下文（见 `ensure_run_for_report`），但**跨进程的对话记忆不会保留**（短期记忆在 `InMemorySaver` 里）。
 
@@ -591,9 +624,10 @@ repolens/
 │       ├── main.js
 │       ├── App.vue
 │       ├── api.js / store.js / utils.js
-│       ├── styles/           # tokens.less / mixins.less / global.less
+│       ├── theme.js          # 5 套风格元数据、预览色、theme-color
+│       ├── styles/           # tokens.less / mixins.less / global.less（风格变量）
 │       ├── views/            # HomeView / RunView / ReportView
-│       └── components/       # 头栏、时间线、技术卡片、抽屉、审批弹窗…
+│       └── components/       # 头栏、时间线、技术卡片、风格选择器、抽屉、审批弹窗…
 ├── repolens/
 │   ├── config.py             # 模型/端口/克隆限制配置
 │   ├── events.py             # 进程内事件总线（线程安全）
@@ -632,8 +666,8 @@ repolens/
 7. `repolens/middleware.py`、`report.py`：进度事件如何产生、事实与 AI 如何合并；
 8. `frontend/src/main.js` → `App.vue`：Vue 应用如何挂载、切换三个视图；
 9. `frontend/src/store.js`：前端状态、SSE 重连、深链路、追问和 HITL 决策；
-10. `frontend/src/views/` 与 `components/`：首页、运行页、报告页和各个交互组件；
-11. `frontend/src/styles/`：Less 变量、mixin 与深浅主题。
+10. `frontend/src/views/` 与 `components/`：首页、运行页、报告页、风格选择器和各个交互组件；
+11. `frontend/src/theme.js` 与 `styles/`：5 套风格的元数据、CSS 变量、字体、纹理和深浅模式。
 
 ---
 
@@ -652,7 +686,9 @@ repolens/
 | 端口 | `.env` / 命令行 | `REPOLENS_PORT` / `--port` |
 | 前端构建/代理 | `frontend/vite.config.js` | `build.outDir`、`server.proxy` |
 | 前后端地址 | `frontend/src/api.js`、`store.js` | 全部使用相对路径 `/api/*` |
+| 页面风格 | `frontend/src/theme.js`、`styles/global.less` | `STYLE_OPTIONS`、`[data-style]` 变量块 |
 | 主题颜色/间距 | `frontend/src/styles/tokens.less`、`global.less` | CSS 变量与 Less 变量 |
+| 记住的选择 | 浏览器 localStorage | `repolens-style` / `repolens-theme` |
 
 ### 给技术词典加一项
 

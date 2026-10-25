@@ -8,7 +8,7 @@ const props = defineProps({
   health: { type: Object, default: null },
   theme: { type: String, default: "dark" },
 });
-const emit = defineEmits(["brand", "history", "concepts", "toggle-theme"]);
+const emit = defineEmits(["brand", "styles", "history", "concepts", "toggle-theme"]);
 
 const modelLabel = computed(() => {
   if (!props.health) return "检测环境中…";
@@ -34,11 +34,15 @@ const modelClass = computed(() => (!props.health ? "" : props.health.ai_availabl
           <span class="dot"></span>
           <span class="model-text">{{ modelLabel }}</span>
         </span>
-        <button class="btn btn-ghost nav-btn" type="button" @click="emit('history')">
+        <button class="btn btn-ghost nav-btn" type="button" title="切换页面风格" @click="emit('styles')">
+          <Icon name="palette" :size="16" />
+          <span>风格</span>
+        </button>
+        <button class="btn btn-ghost nav-btn" type="button" title="查看历史分析" @click="emit('history')">
           <Icon name="history" :size="16" />
           <span>历史</span>
         </button>
-        <button class="btn btn-ghost nav-btn" type="button" @click="emit('concepts')">
+        <button class="btn btn-ghost nav-btn" type="button" title="查看知识点讲解" @click="emit('concepts')">
           <Icon name="book" :size="16" />
           <span>知识点</span>
         </button>

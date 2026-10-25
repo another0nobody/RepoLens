@@ -6,6 +6,7 @@ import ConceptsDrawer from "./components/ConceptsDrawer.vue";
 import HistoryDrawer from "./components/HistoryDrawer.vue";
 import HitlModal from "./components/HitlModal.vue";
 import Icon from "./components/Icon.vue";
+import StylePicker from "./components/StylePicker.vue";
 import TechDrawer from "./components/TechDrawer.vue";
 import ToastHost from "./components/ToastHost.vue";
 import HomeView from "./views/HomeView.vue";
@@ -17,12 +18,18 @@ import {
   initApp,
   openConcepts,
   openHistory,
+  openStyles,
   state,
   toggleTheme,
 } from "./store";
 
 const overlayOpen = computed(
-  () => Boolean(state.hitl) || state.drawers.history || state.drawers.concepts || Boolean(state.drawers.techKey)
+  () =>
+    Boolean(state.hitl) ||
+    state.drawers.history ||
+    state.drawers.concepts ||
+    state.drawers.styles ||
+    Boolean(state.drawers.techKey)
 );
 
 watch(overlayOpen, (open) => document.body.classList.toggle("no-scroll", Boolean(open)));
@@ -33,7 +40,7 @@ function onKeydown(event) {
 
   if (event.key === "Escape") {
     if (state.hitl) return; // 审批必须明确选择
-    if (state.drawers.history || state.drawers.concepts || state.drawers.techKey) {
+    if (state.drawers.history || state.drawers.concepts || state.drawers.styles || state.drawers.techKey) {
       closeOverlays();
     }
     return;
@@ -71,6 +78,7 @@ onBeforeUnmount(() => {
       :health="state.health"
       :theme="state.theme"
       @brand="goHome"
+      @styles="openStyles"
       @history="openHistory"
       @concepts="openConcepts"
       @toggle-theme="toggleTheme"
@@ -97,6 +105,7 @@ onBeforeUnmount(() => {
     <TechDrawer />
     <HistoryDrawer />
     <ConceptsDrawer />
+    <StylePicker />
     <HitlModal />
     <ToastHost />
   </div>
