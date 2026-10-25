@@ -220,8 +220,9 @@ def build_tools(ctx: AnalysisContext) -> list:
             if tech.modules:
                 lines.append(f"使用它的模块（{len(tech.modules)} 个，展示前 10 个）：")
                 for module in list(tech.modules.values())[:10]:
+                    summary = f"｜{module['summary']}" if module.get("summary") else ""
                     lines.append(
-                        f"- {module['path']}:{module['line']}｜{module['role']}｜{module['snippet']}"
+                        f"- {module['path']}:{module['line']}｜{module['role']}{summary}｜{module['snippet']}"
                     )
             else:
                 lines.append("使用它的模块：没有找到直接 import（可能仅由配置/框架间接使用）。")

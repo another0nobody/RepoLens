@@ -68,6 +68,7 @@ const color = computed(() => categoryColor(tech.value?.category || ""));
             </button>
             <span class="role-tag">{{ module.role || "源码" }}</span>
           </div>
+          <p v-if="module.summary" class="module-summary">{{ module.summary }}</p>
           <code class="snippet">{{ module.snippet || "（无代码片段）" }}</code>
         </div>
       </div>
@@ -211,6 +212,13 @@ const color = computed(() => categoryColor(tech.value?.category || ""));
     flex: none;
     color: var(--faint);
     font-size: 10px;
+  }
+
+  .module-summary {
+    margin: 6px 0 0;
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.6;
   }
 
   .snippet {

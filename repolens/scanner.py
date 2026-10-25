@@ -272,7 +272,7 @@ class TechHit:
             }
         )
 
-    def add_module(self, path: str, line: int, snippet: str, kind: str = "导入") -> None:
+    def add_module(self, path: str, line: int, snippet: str, kind: str = "导入", summary: str = "") -> None:
         if path in self.modules:
             return
         if len(self.modules) >= MAX_MODULES_PER_TECH:
@@ -283,6 +283,7 @@ class TechHit:
             "snippet": (snippet or "").strip()[:200],
             "kind": kind,
             "role": guess_module_role(path),
+            "summary": (summary or "").strip()[:120],
         }
 
     def to_dict(self) -> dict:
@@ -407,6 +408,134 @@ def _count_loc(text: str) -> int:
 
 def _clean_snippet(line: str) -> str:
     return line.strip()[:200]
+
+
+_FILE_ROUTE = re.compile(
+    r"@(?:app|router|api|bp|blueprint)\.(get|post|put|patch|delete)\(\s*[\"']([^\"']+)",
+    re.IGNORECASE,
+)
+_FILE_FLASK_ROUTE = re.compile(r"@\w+\.route\(\s*[\"']([^\"']+)", re.IGNORECASE)
+_FILE_CLASS = re.compile(r"^(?:export\s+)?class\s+([A-Za-z_]\w*)", re.MULTILINE)
+_FILE_TEST = re.compile(r"^\s*def\s+test_\w+|^\s*(?:it|test)\(\s*[\"']", re.MULTILINE)
+_FILE_VUE = re.compile(r"<template[\s>]", re.IGNORECASE)
+_FILE_REACT = re.compile(r"\b(?:useState|useEffect|useMemo|createRoot|ReactDOM)\b|from\s+[\"']react[\"']")
+_FILE_HTTP = re.compile(r"\b(?:axios|fetch|httpx|requests)\.", re.IGNORECASE)
+_FILE_REDIS = re.compile(r"\bredis\b", re.IGNORECASE)
+
+
+def _short_names(names: list[str], limit: int = 3) -> str:
+    unique = []
+    for name in names:
+        if name and name not in unique:
+            unique.append(name)
+    if not unique:
+        return ""
+    shown = "、".join(unique[:limit])
+    return shown + (" 等" if len(unique) > limit else "")
+
+
+def describe_file(relative: str, text: str, language: str = "") -> str:
+    """根据路径和少量语法特征，给文件写一句"大概功能"。
+
+    这不是语义分析：只提取路由、类、测试、引擎/模型等强信号，用于网页展示。
+    读不到内容时调用方会退化为 guess_module_role()。
+    """
+    lowered = relative.lower().replace("\\", "/")
+    filename = lowered.rsplit("/", 1)[-1]
+    facts: list[str] = []
+
+    routes = _FILE_ROUTE.findall(text or "")
+    if routes:
+        first_method, first_path = routes[0]
+        more = f" 等 {len(routes)} 个接口" if len(routes) > 1 else ""
+        facts.append(f"注册 {first_method.upper()} {first_path}{more}")
+    flask_routes = _FILE_FLASK_ROUTE.findall(text or "")
+    if flask_routes and not routes:
+        facts.append(f"注册路由 {flask_routes[0]} 等 {len(flask_routes)} 个接口")
+
+    if re.search(r"\bFastAPI\s*\(", text or ""):
+        facts.append("创建 FastAPI 应用")
+    if "include_router" in (text or ""):
+        facts.append("挂载子路由")
+    if re.search(r"on_event\(\s*[\"']startup|@app\.on_event", text or ""):
+        facts.append("启动时初始化资源")
+
+    classes = _FILE_CLASS.findall(text or "")
+    if classes and re.search(r"\bColumn\(|\bMapped\[|relationship\(", text or ""):
+        facts.append(f"定义 {_short_names(classes)} 数据模型/表字段")
+    elif classes and re.search(r"\bBaseModel\b", text or ""):
+        facts.append(f"定义 {_short_names(classes)} 请求/响应模型")
+
+    has_db = bool(re.search(r"\bcreate_engine\b|\bsessionmaker\b|\bDeclarativeBase\b|\bSessionLocal\b", text or ""))
+    if has_db:
+        facts.append("创建数据库引擎/会话")
+    if re.search(r"\bget_db\b|\bdepends\s*\(\s*get_db", text or "", re.IGNORECASE):
+        facts.append("提供数据库依赖注入")
+
+    is_service = "/service" in lowered or filename.startswith("service") or "service" in filename
+    if is_service and not routes and re.search(r"\bdef\s+(?:create|update|delete|get|list|save|find)\w*\(", text or ""):
+        facts.append("实现业务读写逻辑")
+    code_languages = {
+        "Python", "JavaScript", "TypeScript", "Java", "Kotlin", "Go", "Rust", "PHP", "Ruby",
+        "C", "C++", "C#", "Swift", "Scala", "Dart", "Lua",
+    }
+    if language in code_languages and _FILE_REDIS.search(text or "") and "redis" not in filename:
+        facts.append("使用 Redis 缓存")
+    if _FILE_TEST.search(text or ""):
+        count = len(re.findall(r"^\s*def\s+test_\w+", text or "", re.MULTILINE))
+        facts.append(f"测试用例{f'（{count} 个）' if count else ''}")
+    if "TestClient" in (text or ""):
+        facts.append("通过 TestClient 调用接口")
+
+    if _FILE_VUE.search(text or ""):
+        facts.append("Vue 单文件组件")
+    elif _FILE_REACT.search(text or "") or language in {"JavaScript", "TypeScript"} and re.search(
+        r"\breturn\s*\(", text or ""
+    ):
+        facts.append("React 组件/页面逻辑")
+    component_match = re.search(r"export\s+(?:default\s+)?function\s+(\w+)", text or "")
+    if component_match and ("/components/" in lowered or filename.startswith("app.")):
+        facts.append(f"定义 {component_match.group(1)} 组件")
+    if _FILE_HTTP.search(text or ""):
+        facts.append("封装/调用 HTTP API")
+    if re.search(r"\bcreateRoot\b", text or ""):
+        facts.append("React 应用挂载入口")
+
+    if filename == "package.json":
+        facts.append("前端依赖与脚本配置")
+    elif filename.startswith("requirements") or filename in {"pyproject.toml", "setup.py", "pipfile", "pom.xml", "go.mod", "cargo.toml"}:
+        facts.append("声明项目依赖")
+    elif filename in {"dockerfile"} or filename.startswith("dockerfile."):
+        facts.append("构建运行镜像")
+    elif filename.startswith("docker-compose") or (filename.startswith("compose") and lowered.endswith((".yml", ".yaml"))):
+        facts.append("编排多服务容器")
+    elif filename == "readme.md" or filename.startswith("readme."):
+        facts.append("项目说明与启动指南")
+    elif filename == ".env.example":
+        facts.append("环境变量配置示例")
+    elif lowered.startswith(".github/workflows/"):
+        facts.append("CI 自动测试/构建流水线")
+    elif filename.endswith(".css") or filename.endswith(".scss") or filename.endswith(".less"):
+        facts.append("全局/组件样式")
+
+    if not facts:
+        role = guess_module_role(relative)
+        facts.append(f"{role}相关实现" if role != "源码" else "项目源码")
+
+    # 路径能提供额外上下文时补一个前缀，避免所有文件都只写“注册接口”。
+    if lowered.startswith("tests/") or "/tests/" in lowered or filename.startswith("test_"):
+        prefix = "测试"
+    elif lowered.startswith("backend/") or "/backend/" in lowered:
+        prefix = "后端"
+    elif lowered.startswith("frontend/") or "/frontend/" in lowered:
+        prefix = "前端"
+    else:
+        prefix = ""
+
+    summary = "；".join(dict.fromkeys(facts))
+    if prefix and not summary.startswith(prefix):
+        summary = f"{prefix}：{summary}"
+    return summary[:120]
 
 
 def guess_module_role(path: str) -> str:
@@ -1074,6 +1203,7 @@ def scan_repository(
     language_stats: dict[str, dict] = {}
     manifests: list[Manifest] = []
     imports: dict[str, list[ImportRef]] = {}
+    file_summaries: dict[str, str] = {}
     total_size = 0
     total_loc = 0
     code_file_count = 0
@@ -1122,6 +1252,7 @@ def scan_repository(
             text = _read_text_file(full_path)
             if not text:
                 continue
+            file_summaries[relative] = describe_file(relative, text, language)
 
             if is_code and language != "Jupyter Notebook":
                 file_loc = _count_loc(text)
@@ -1169,7 +1300,7 @@ def scan_repository(
     languages = _build_language_stats(language_stats, total_loc)
     top_dirs = _build_top_dirs(files)
     entry_points = _find_entry_points(files)
-    techs, omitted_dependencies = _build_techs(languages, manifests, imports, progress)
+    techs, omitted_dependencies = _build_techs(languages, manifests, imports, file_summaries, progress)
 
     snapshot = Snapshot(
         root=root,
@@ -1277,6 +1408,7 @@ def _build_techs(
     languages: list[dict],
     manifests: list[Manifest],
     imports: dict[str, list[ImportRef]],
+    file_summaries: dict[str, str],
     progress: Progress,
 ) -> tuple[list[TechHit], int]:
     """把语言、依赖、import 汇总成技术命中列表。
@@ -1361,7 +1493,7 @@ def _build_techs(
                     hit.version_score = score
             hit.add_evidence(dep.path, dep.line, dep.text, "依赖声明")
             if manifest.kind in {"dockerfile", "compose", "kubernetes", "terraform", "nginx", "github-actions", "gitlab-ci"}:
-                hit.add_module(dep.path, dep.line, dep.text, "配置")
+                hit.add_module(dep.path, dep.line, dep.text, "配置", file_summaries.get(dep.path, ""))
 
     # 3) import：找出每个文件用了什么
     if progress:
@@ -1376,7 +1508,7 @@ def _build_techs(
             if hit.confidence != "高":
                 hit.confidence = "中"
             hit.add_evidence(path, ref.line, ref.text, "import")
-            hit.add_module(path, ref.line, ref.text, "导入")
+            hit.add_module(path, ref.line, ref.text, "导入", file_summaries.get(path, ""))
 
     # 4) 排序：分类顺序 -> 置信度 -> 模块数 -> 名字
     category_order = {name: index for index, name in enumerate(catalog.CATEGORIES)}

@@ -351,6 +351,7 @@ def build_report_tools(ctx: AnalysisContext) -> list:
             if wanted == str(tech.get("name", "")).lower() or wanted in str(tech.get("name", "")).lower():
                 modules = [
                     f"- {module.get('path')}:{module.get('line')}（{module.get('role')}）"
+                    + (f"：{module.get('summary')}" if module.get("summary") else "")
                     for module in (tech.get("modules") or [])[:12]
                 ]
                 evidence = [
@@ -427,6 +428,7 @@ def build_report_tools(ctx: AnalysisContext) -> list:
                         "path": item.get("path"),
                         "line": item.get("line"),
                         "role": item.get("role"),
+                        "summary": str(item.get("summary", ""))[:120],
                         "snippet": str(item.get("snippet", ""))[:160],
                     }
                     for item in modules

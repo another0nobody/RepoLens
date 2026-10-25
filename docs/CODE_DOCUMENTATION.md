@@ -151,7 +151,7 @@ run_analysis(ctx)
 | `frontend/src/components/TodoList.vue` | Agent 待办状态 |
 | `frontend/src/components/TechCard.vue` | 技术卡片与置信度/模块/证据数 |
 | `frontend/src/components/TechDrawer.vue` | 技术详情抽屉 |
-| `frontend/src/components/ModuleMap.vue` | 模块地图、展开/收起、搜索、复制路径 |
+| `frontend/src/components/ModuleMap.vue` | 模块地图、展开/收起、搜索、复制路径；展示文件角色与「大概功能」 |
 | `frontend/src/components/ArchitectureTab.vue` | 架构、风险、学习路径、关键文件/目录/语言条 |
 | `frontend/src/components/ChatTab.vue` | 追问、流式光标、技术深挖模板（技术选择 + 优势/难点/对比/选型）、项目级推荐问题 |
 | `frontend/src/components/ProcessTab.vue` | 当前会话事件回放与筛选 |
@@ -356,7 +356,7 @@ Agent 调 clone_github_repository
 | `confidence` | `高/中/低`：语言/清单=高，import=中，AI 推断=低 |
 | `sources` | `language` / `manifest` / `config` / `import` / `ai` |
 | `evidence` | 最多 8 条 `{path,line,text,kind}` |
-| `modules` | 最多 20 个 `{path,line,snippet,kind,role}`（按 path 去重） |
+| `modules` | 最多 20 个 `{path,line,snippet,kind,role,summary}`（按 path 去重；`summary` 是文件级大概功能） |
 
 ### 6.2 `RepoInsight` 结构化输出
 
@@ -412,7 +412,7 @@ Agent 调 clone_github_repository
       "confidence": "高",
       "sources": ["manifest", "import"],
       "evidence": [{"path": "requirements.txt", "line": 3, "text": "fastapi==0.115.6", "kind": "依赖声明"}],
-      "modules": [{"path": "backend/app/main.py", "line": 7, "snippet": "from fastapi import FastAPI", "kind": "导入", "role": "入口"}],
+      "modules": [{"path": "backend/app/main.py", "line": 7, "snippet": "from fastapi import FastAPI", "kind": "导入", "role": "入口", "summary": "后端：注册 GET /health；创建 FastAPI 应用；挂载子路由"}],
       "module_count": 1,
       "role": "在本仓库中提供 REST API...",
       "key_modules": ["backend/app/main.py"],
@@ -494,7 +494,22 @@ Agent 调 clone_github_repository
 
 匹配顺序：先查 `catalog.lookup(module)` 精确/别名/前缀；未知模块忽略，避免把标准库和第三方包误报。
 
-### 7.5 技术聚合
+### 7.5 文件级功能摘要
+
+`scanner.describe_file(relative, text, language)` 在读取文本文件时生成一句「大概功能」，随模块一起进入报告：
+
+- 路由：提取 `@router.get/post...` 或 Flask `@app.route`，写成“注册 GET /orders 等 2 个接口”；
+- 应用：`FastAPI(...)`、`include_router`、`on_event("startup")`；
+- 数据层：`create_engine`/`sessionmaker`/`DeclarativeBase`/`SessionLocal`；
+- 模型：类名 + `Column`/`Mapped`/`relationship`，或 Pydantic `BaseModel`；
+- 服务：`services/` 下的 create/get/update 等函数 + Redis；
+- 测试：`test_` 函数、`TestClient`；
+- 前端：React hooks/`createRoot`、Vue `<template>`、Axios/fetch、组件名；
+- 配置：package.json、requirements、Dockerfile、compose、CI、README、CSS。
+
+这是**启发式摘要**，不是 AST/语义分析；读不到内容时回退到 `guess_module_role(path)`。摘要用于网页展示与 AI 上下文，不替代人工判断。
+
+### 7.6 技术聚合
 
 1. 语言命中：代码语言 → `sources.add("language")`，置信度“高”；
 2. 清单命中：依赖 → `sources.add("manifest")` 或配置类 `sources.add("config")`，置信度“高”；
@@ -1022,15 +1037,16 @@ git status --short
 4. **SSE 使用 HTTP/1.0 短连接**，靠 `EventSource` 重连；没有 WebSocket。
 5. **`log` 事件未在前端渲染**；UI 主要消费 `phase/progress/tool/warning`。
 6. **追问工具次数是提示词约束**，没有 `ToolCallLimitMiddleware` 硬限制；只有模型调用 40 次上限。
-7. **GitHub 分析依赖 Agent**：没有模型 Key 时无法克隆，不能只靠规则分析 GitHub。
-8. **扫描是语法/正则级**：不构建 AST、不做跨文件类型推断；模块角色来自路径关键词。
-9. **词典静态维护**（252 项）；未知依赖最多展示 24 个。
-10. **报告文件历史无索引数据库**；每次 `/api/history` glob + 读 JSON，报告多时会变慢（当前上限 40 条展示）。
-11. **HITL 只有克隆一个工具**；新增有副作用工具需要显式加入 `interrupt_on`。
-12. **前端 CSS 使用 `color-mix` 等现代特性**；旧浏览器可能显示异常。
-13. **风格主要靠 CSS 变量与全局覆盖实现**；新增风格必须同时补 dark/light 两套变量，不能只改一个主色。
-14. **`local_path` 绝对路径会写入本地报告**；公开分享报告时需删除/改用相对路径。
-15. **`data/repos` 缓存不会自动清理**；长期使用需手动删除。
+7. **文件功能摘要是启发式的**：基于路径、路由、类/函数等强信号，不是完整语义分析；复杂文件需要人工确认。
+8. **GitHub 分析依赖 Agent**：没有模型 Key 时无法克隆，不能只靠规则分析 GitHub。
+9. **扫描是语法/正则级**：不构建 AST、不做跨文件类型推断；模块角色来自路径关键词。
+10. **词典静态维护**（252 项）；未知依赖最多展示 24 个。
+11. **报告文件历史无索引数据库**；每次 `/api/history` glob + 读 JSON，报告多时会变慢（当前上限 40 条展示）。
+12. **HITL 只有克隆一个工具**；新增有副作用工具需要显式加入 `interrupt_on`。
+13. **前端 CSS 使用 `color-mix` 等现代特性**；旧浏览器可能显示异常。
+14. **风格主要靠 CSS 变量与全局覆盖实现**；新增风格必须同时补 dark/light 两套变量，不能只改一个主色。
+15. **`local_path` 绝对路径会写入本地报告**；公开分享报告时需删除/改用相对路径。
+16. **`data/repos` 缓存不会自动清理**；长期使用需手动删除。
 
 ---
 

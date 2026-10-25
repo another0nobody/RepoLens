@@ -100,6 +100,7 @@ function toggleAll() {
                   <th>文件</th>
                   <th>行</th>
                   <th>角色</th>
+                  <th>大概功能</th>
                   <th>代码片段 / 导入语句</th>
                 </tr>
               </thead>
@@ -112,6 +113,7 @@ function toggleAll() {
                   </td>
                   <td class="line mono">:{{ module.line }}</td>
                   <td class="role">{{ module.role || "源码" }}</td>
+                  <td class="summary">{{ module.summary || module.role || "暂无说明" }}</td>
                   <td class="snippet mono">{{ truncate(module.snippet, 160) }}</td>
                 </tr>
               </tbody>
@@ -266,7 +268,7 @@ function toggleAll() {
   }
 
   .path {
-    width: 36%;
+    width: 27%;
     .mono();
     color: var(--accent);
     word-break: break-all;
@@ -275,15 +277,25 @@ function toggleAll() {
   .line {
     color: var(--faint);
     white-space: nowrap;
-    width: 54px;
+    width: 50px;
   }
 
   .role {
     color: var(--muted);
     white-space: nowrap;
+    width: 74px;
+  }
+
+  .summary {
+    width: 28%;
+    color: var(--text);
+    font-size: 11px;
+    line-height: 1.65;
+    word-break: break-word;
   }
 
   .snippet {
+    width: 26%;
     color: var(--muted);
     font-size: 10.5px;
     word-break: break-all;
@@ -358,8 +370,52 @@ function toggleAll() {
   }
 
   .module-table {
-    th:nth-child(3),
-    td:nth-child(3) {
+    thead {
+      display: none;
+    }
+
+    &,
+    tbody {
+      display: block;
+    }
+
+    tbody tr {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 2px 10px;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    tbody tr:last-child {
+      border-bottom: 0;
+    }
+
+    td {
+      display: block;
+      padding: 0;
+      border: 0;
+    }
+
+    .path {
+      width: auto;
+      grid-column: 1;
+    }
+
+    .line {
+      grid-column: 2;
+      width: auto;
+      text-align: right;
+    }
+
+    .summary {
+      grid-column: 1 / -1;
+      width: auto;
+      margin-top: 3px;
+    }
+
+    .role,
+    .snippet {
       display: none;
     }
   }
