@@ -128,8 +128,23 @@ export function applyStyle(style) {
 }
 
 export function setStyle(style) {
-  if (!STYLE_KEYS.includes(style) || style === state.style) return;
+  if (!STYLE_KEYS.includes(style)) return;
+  if (style === state.style) {
+    // 已经处于晴空深色时，再点一次晴空卡片 = 回到白天。
+    if (style === "sky" && state.theme === "dark") {
+      applyTheme("light");
+      toast("晴空已切换到浅色模式", "ok", 2400);
+    }
+    return;
+  }
   applyStyle(style);
+  // 晴空是明确的「白天」风格：第一次选中时如果还在深色，自动切到浅色，
+  // 避免用户看到的是深蓝夜空而不是蓝天白云。之后仍可手动切回深色。
+  if (style === "sky" && state.theme === "dark") {
+    applyTheme("light");
+    toast("已切换到「晴空」并开启浅色模式", "ok", 2800);
+    return;
+  }
   toast(`已切换到「${styleLabel(style)}」风格`, "ok", 2200);
 }
 

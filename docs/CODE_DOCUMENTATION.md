@@ -101,7 +101,7 @@ run_analysis(ctx)
 | 技术对象字段 | `scanner.TechHit.to_dict()` + `report.build_report()` | 技术卡片、抽屉、模块地图依赖 |
 | HITL 决策只允许 `approve` / `reject` | `server._handle_hitl()` | 多一个值会导致 Agent 挂起或行为不确定 |
 | 克隆被拒绝后立即结束 | `pipeline._run_agent()` | 防止模型反复重试被拒绝的工具 |
-| 视觉状态 `data-theme` / `data-style` + localStorage | `store.js`、`theme.js`、`global.less` | 5 套风格 × 深浅、刷新保持、全站生效 |
+| 视觉状态 `data-theme` / `data-style` + localStorage | `store.js`、`theme.js`、`global.less` | 6 套风格 × 深浅、刷新保持、全站生效 |
 | 只读扫描、敏感文件拒绝 | `tools.py`、`security.py` | 安全承诺 |
 | `static/dist` 可被 Python 直接托管 | `server.py`、`vite.config.js` | 只装 Python 的用户必须能运行 |
 | 默认只监听 `127.0.0.1` | `config.py` | 项目没有登录鉴权 |
@@ -142,7 +142,7 @@ run_analysis(ctx)
 | `frontend/src/api.js` | `fetchJSON`、POST `/api/chat` 的 SSE 解析 |
 | `frontend/src/store.js` | 单一响应式状态、所有业务动作、SSE 重连、URL 深链路 |
 | `frontend/src/utils.js` | 分类颜色/图标、阶段、Tab、格式化、Markdown 导出、下载/复制 |
-| `frontend/src/theme.js` | 5 套风格元数据（标签、描述、预览色、theme-color、localStorage 规范化） |
+| `frontend/src/theme.js` | 6 套风格元数据（标签、描述、预览色、theme-color、localStorage 规范化） |
 | `frontend/src/views/HomeView.vue` | 首页 hero、输入、示例、步骤/能力介绍、鼠标光晕 |
 | `frontend/src/views/RunView.vue` | 分析页布局、状态胶囊、计时、错误/完成操作 |
 | `frontend/src/views/ReportView.vue` | 报告头、统计、摘要、警告、Tab、分类筛选、搜索、技术卡片 |
@@ -158,7 +158,7 @@ run_analysis(ctx)
 | `frontend/src/components/HistoryDrawer.vue` | 历史报告列表 |
 | `frontend/src/components/ConceptsDrawer.vue` | 教程知识点手风琴 |
 | `frontend/src/components/BaseDrawer.vue` | 抽屉基础组件 |
-| `frontend/src/components/StylePicker.vue` | 5 套风格预览与切换、当前风格标记、深浅切换 |
+| `frontend/src/components/StylePicker.vue` | 6 套风格预览与切换、当前风格标记、深浅切换、晴空推荐浅色 |
 | `frontend/src/components/HitlModal.vue` | 克隆审批、倒计时圆环 |
 | `frontend/src/components/AppHeader.vue` | 品牌、模型状态、风格、历史、知识点、主题 |
 | `frontend/src/components/ToastHost.vue` | 全局 Toast |
@@ -742,7 +742,7 @@ Agent 调 clone_github_repository
 | 属性 | 值 | 位置 | 作用 |
 | --- | --- | --- | --- |
 | `data-theme` | `dark` / `light` | `<html>` | 深色 / 浅色；`repolens-theme` |
-| `data-style` | `aurora` / `paper` / `terminal` / `neon` / `sakura` | `<html>` | 视觉语言；`repolens-style` |
+| `data-style` | `aurora` / `paper` / `terminal` / `neon` / `sakura` / `sky` | `<html>` | 视觉语言；`repolens-style` |
 
 风格不是简单换主色：
 
@@ -751,6 +751,7 @@ Agent 调 clone_github_repository
 - `terminal` 使用等宽字体、磷光绿、扫描线、直角；
 - `neon` 使用紫粉霓虹、强辉光、大圆角；
 - `sakura` 使用樱粉、柔光、大圆角；
+- `sky` 使用蓝天渐变、白色云朵、阳光和柔和圆角；云朵画在 `body` 背景上（`app-bg` 可能被不透明页面底色遮住），晴空首次选中时若当前是深色会自动切浅色，但之后仍可手动切回深色；
 - `aurora` 维持原来的冷色玻璃光晕。
 
 元数据在 `theme.js`：
@@ -762,7 +763,7 @@ Agent 调 clone_github_repository
 `StylePicker.vue`：
 
 - 从 Header「风格」打开；
-- 5 张卡片用真实背景/主色/字体做迷你预览；
+- 6 张卡片用真实背景/主色/字体做迷你预览；晴空预览固定使用浅色天空，避免在深色模式下看起来像夜空；
 - 当前风格显示“当前使用”；
 - 点击即时调用 `setStyle()`，并保留深/浅模式；
 - 抽屉底部可切换深浅，预览会同步更新。
@@ -1014,7 +1015,7 @@ git status --short
 - [ ] 前端改动后 `npm run build`，提交 `static/dist`；
 - [ ] 本地示例完整跑通：首页 → 运行 → 报告 → 模块 → 架构 → 追问 → 历史；
 - [ ] 检查 390px 移动端没有横向溢出；
-- [ ] 逐套检查 5 种风格 × 深/浅（至少首页 + 报告 + 抽屉），确认选择持久化；
+- [ ] 逐套检查 6 种风格 × 深/浅（至少首页 + 报告 + 抽屉），确认晴空自动浅色与选择持久化；
 - [ ] 检查 HITL approve/reject 路径；
 - [ ] `check_secrets.py` 通过，`git diff --cached --check` 通过；
 - [ ] 更新代码文档与需求文档；

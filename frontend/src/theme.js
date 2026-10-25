@@ -59,6 +59,17 @@ export const STYLE_OPTIONS = [
       light: { bg: "#fff6f8", panel: "#ffffff", text: "#3b2430", accent: "#db2777", accent2: "#7c3aed" },
     },
   },
+  {
+    key: "sky",
+    label: "晴空",
+    en: "Sky",
+    tagline: "蓝天 · 白云 · 日光",
+    description: "晴空蓝、云朵白与阳光金，柔和圆角和轻盈云层，最不“科技味”；选择时自动切到浅色。",
+    colors: {
+      dark: { bg: "#071b33", panel: "#0e2a47", text: "#e7f6ff", accent: "#7dd3fc", accent2: "#38bdf8" },
+      light: { bg: "#eaf7ff", panel: "#ffffff", text: "#10344d", accent: "#0284c7", accent2: "#38bdf8" },
+    },
+  },
 ];
 
 export const STYLE_KEYS = STYLE_OPTIONS.map((item) => item.key);
@@ -70,6 +81,7 @@ export const STYLE_META = {
   terminal: { dark: "#020604", light: "#edf6ea" },
   neon: { dark: "#0a0018", light: "#fbf5ff" },
   sakura: { dark: "#1b0e15", light: "#fff6f8" },
+  sky: { dark: "#071b33", light: "#eaf7ff" },
 };
 
 export function normalizeStyle(style) {

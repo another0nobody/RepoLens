@@ -468,6 +468,99 @@
   --texture-opacity: 0.3;
 }
 
+// --------------------------------------------------------------- 晴空 Sky
+[data-style="sky"][data-theme="dark"] {
+  --bg: #071b33;
+  --bg-2: #0b2545;
+  --panel: rgba(14, 42, 71, 0.74);
+  --panel-solid: #0e2a47;
+  --panel-soft: rgba(125, 211, 252, 0.06);
+  --panel-hover: rgba(125, 211, 252, 0.1);
+  --line: rgba(125, 211, 252, 0.16);
+  --line-strong: rgba(125, 211, 252, 0.32);
+  --text: #e7f6ff;
+  --muted: #a9c9dd;
+  --faint: #6f95ad;
+  --accent: #7dd3fc;
+  --accent-2: #38bdf8;
+  --accent-3: #fbbf24;
+  --accent-soft: rgba(125, 211, 252, 0.1);
+  --accent-line: rgba(125, 211, 252, 0.32);
+  --good: #86efac;
+  --good-soft: rgba(134, 239, 172, 0.1);
+  --warn: #fbbf24;
+  --warn-soft: rgba(251, 191, 36, 0.1);
+  --bad: #fda4af;
+  --bad-soft: rgba(253, 164, 175, 0.1);
+  --grad-a: #bae6fd;
+  --grad-b: #7dd3fc;
+  --grad-c: #38bdf8;
+  --grad-d: #fbbf24;
+  --shadow: 0 30px 80px -46px rgba(2, 132, 199, 0.5);
+  --shadow-soft: 0 18px 42px -34px rgba(2, 132, 199, 0.45);
+  --scroll-thumb: rgba(125, 211, 252, 0.25);
+  --grid-line: rgba(125, 211, 252, 0.05);
+  --topbar-bg: rgba(7, 27, 51, 0.84);
+  --drawer-bg: linear-gradient(180deg, #0e2a47, #071b33);
+  --code-bg: rgba(125, 211, 252, 0.06);
+  --hero-glow: rgba(56, 189, 248, 0.16);
+  --overlay: rgba(3, 10, 20, 0.75);
+  --toast-bg: #0e2a47;
+  --input-bg: rgba(125, 211, 252, 0.05);
+  --font-ui: "Avenir Next", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-display: "Avenir Next", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --page-bg: radial-gradient(ellipse 70% 45% at 20% 0%, rgba(56, 189, 248, 0.14), transparent 64%),
+    linear-gradient(180deg, #071b33, #0b2545 55%, #071b33);
+  --texture-color: rgba(186, 230, 253, 0.09);
+  --texture-opacity: 0.2;
+}
+
+[data-style="sky"][data-theme="light"] {
+  --bg: #eaf7ff;
+  --bg-2: #dff2ff;
+  --panel: rgba(255, 255, 255, 0.88);
+  --panel-solid: #ffffff;
+  --panel-soft: rgba(2, 132, 199, 0.05);
+  --panel-hover: rgba(2, 132, 199, 0.08);
+  --line: rgba(2, 132, 199, 0.13);
+  --line-strong: rgba(2, 132, 199, 0.26);
+  --text: #10344d;
+  --muted: #4e7188;
+  --faint: #7f9db1;
+  --accent: #0284c7;
+  --accent-2: #38bdf8;
+  --accent-3: #f59e0b;
+  --accent-soft: rgba(2, 132, 199, 0.07);
+  --accent-line: rgba(2, 132, 199, 0.26);
+  --good: #059669;
+  --good-soft: rgba(5, 150, 105, 0.08);
+  --warn: #b45309;
+  --warn-soft: rgba(180, 83, 9, 0.08);
+  --bad: #e11d48;
+  --bad-soft: rgba(225, 29, 72, 0.08);
+  --grad-a: #7dd3fc;
+  --grad-b: #38bdf8;
+  --grad-c: #0ea5e9;
+  --grad-d: #bae6fd;
+  --shadow: 0 24px 60px -44px rgba(2, 132, 199, 0.35);
+  --shadow-soft: 0 16px 36px -30px rgba(2, 132, 199, 0.3);
+  --scroll-thumb: rgba(2, 132, 199, 0.2);
+  --grid-line: rgba(2, 132, 199, 0.05);
+  --topbar-bg: rgba(223, 242, 255, 0.82);
+  --drawer-bg: linear-gradient(180deg, #ffffff, #dff2ff);
+  --code-bg: rgba(2, 132, 199, 0.05);
+  --hero-glow: rgba(56, 189, 248, 0.14);
+  --overlay: rgba(16, 52, 77, 0.28);
+  --toast-bg: #ffffff;
+  --input-bg: rgba(255, 255, 255, 0.78);
+  --font-ui: "Avenir Next", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-display: "Avenir Next", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --page-bg: radial-gradient(ellipse 85% 48% at 18% -8%, rgba(255, 255, 255, 0.96), transparent 66%),
+    linear-gradient(180deg, #bfe6ff 0%, #dff2ff 40%, #f4fbff 100%);
+  --texture-color: rgba(2, 132, 199, 0.08);
+  --texture-opacity: 0.18;
+}
+
 *,
 *::before,
 *::after {
@@ -873,6 +966,87 @@ p {
   filter: blur(100px);
 }
 
+// 晴空：用多层柔焦白色椭圆做出云朵，右上角留一团暖色太阳光。
+[data-style="sky"] .bg-grid {
+  display: none;
+}
+
+[data-style="sky"] .bg-glow {
+  opacity: 0.16;
+  filter: blur(110px);
+}
+
+// 云朵直接画在 body 背景上，避免被不透明的页面底色盖住。
+[data-style="sky"] body {
+  background:
+    radial-gradient(ellipse 270px 92px at 10% 9%, #ffffff 0%, #ffffff 56%, transparent 74%),
+    radial-gradient(ellipse 180px 70px at 19% 7%, #ffffff 0%, #ffffff 54%, transparent 74%),
+    radial-gradient(ellipse 310px 100px at 80% 8%, #ffffff 0%, #ffffff 54%, transparent 74%),
+    radial-gradient(ellipse 210px 76px at 70% 14%, #ffffff 0%, #ffffff 52%, transparent 74%),
+    radial-gradient(ellipse 230px 80px at 55% 4%, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.8) 45%, transparent 72%),
+    radial-gradient(circle at 92% 6%, #fff4b8 0%, #ffe27a 2.2%, rgba(255, 226, 122, 0.45) 4.5%, transparent 8%),
+    linear-gradient(180deg, #bfe6ff 0%, #dff2ff 42%, #f4fbff 100%);
+  background-attachment: fixed;
+}
+
+[data-style="sky"][data-theme="dark"] body {
+  background:
+    radial-gradient(ellipse 270px 92px at 10% 9%, rgba(186, 230, 253, 0.09) 0%, rgba(186, 230, 253, 0.09) 56%, transparent 74%),
+    radial-gradient(ellipse 180px 70px at 19% 7%, rgba(186, 230, 253, 0.07) 0%, rgba(186, 230, 253, 0.07) 54%, transparent 74%),
+    radial-gradient(ellipse 310px 100px at 80% 8%, rgba(186, 230, 253, 0.06) 0%, rgba(186, 230, 253, 0.06) 54%, transparent 74%),
+    radial-gradient(circle at 92% 6%, rgba(226, 244, 255, 0.9) 0%, rgba(186, 230, 253, 0.28) 4%, transparent 9%),
+    linear-gradient(180deg, #071b33 0%, #0b2545 55%, #071b33 100%);
+  background-attachment: fixed;
+}
+
+[data-style="sky"] .app-bg::before {
+  content: "";
+  position: absolute;
+  left: -4%;
+  right: -4%;
+  top: -8%;
+  height: 66%;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 27% 15% at 11% 24%, #ffffff 0%, #ffffff 54%, transparent 73%),
+    radial-gradient(ellipse 20% 11% at 23% 21%, #ffffff 0%, #ffffff 53%, transparent 73%),
+    radial-gradient(ellipse 31% 15% at 81% 18%, #ffffff 0%, #ffffff 52%, transparent 73%),
+    radial-gradient(ellipse 18% 9% at 70% 28%, #ffffff 0%, #ffffff 50%, transparent 73%),
+    radial-gradient(ellipse 38% 15% at 48% 7%, rgba(255, 255, 255, 0.78) 0%, rgba(255, 255, 255, 0.78) 45%, transparent 72%);
+  filter: blur(1.5px);
+  opacity: 0.98;
+  animation: cloud-drift 30s ease-in-out infinite alternate;
+}
+
+[data-style="sky"] .app-bg::after {
+  background:
+    radial-gradient(circle at 88% 8%, rgba(255, 219, 100, 0.78) 0%, rgba(255, 219, 100, 0.22) 9%, transparent 18%),
+    radial-gradient(ellipse 32% 12% at 15% 88%, rgba(255, 255, 255, 0.55), transparent 70%);
+  background-size: auto;
+  opacity: 1;
+}
+
+[data-style="sky"][data-theme="dark"] .app-bg::before {
+  opacity: 0.13;
+  filter: blur(18px);
+}
+
+[data-style="sky"][data-theme="dark"] .app-bg::after {
+  background:
+    radial-gradient(circle at 88% 8%, rgba(251, 191, 36, 0.24), transparent 18%),
+    radial-gradient(ellipse 32% 13% at 15% 86%, rgba(186, 230, 253, 0.08), transparent 70%);
+  opacity: 0.7;
+}
+
+@keyframes cloud-drift {
+  from {
+    transform: translate3d(-1.4%, 0, 0);
+  }
+  to {
+    transform: translate3d(1.4%, 1.2%, 0);
+  }
+}
+
 @keyframes float {
   from {
     transform: translate3d(0, 0, 0) scale(1);
@@ -1169,6 +1343,57 @@ p {
 [data-style="sakura"] .model-pill,
 [data-style="sakura"] .example-chip {
   border-radius: 14px !important;
+}
+
+[data-style="sky"] h1 {
+  letter-spacing: -2px !important;
+}
+
+[data-style="sky"] .input-card,
+[data-style="sky"] .step-card,
+[data-style="sky"] .feature-card,
+[data-style="sky"] .tech-card,
+[data-style="sky"] .stat-card,
+[data-style="sky"] .summary-card,
+[data-style="sky"] .rail-card,
+[data-style="sky"] .live-panel,
+[data-style="sky"] .module-group,
+[data-style="sky"] .chat-card,
+[data-style="sky"] .process,
+[data-style="sky"] .drawer,
+[data-style="sky"] .modal,
+[data-style="sky"] .toast {
+  border-radius: 26px !important;
+  box-shadow: var(--shadow-soft) !important;
+}
+
+[data-style="sky"] .btn,
+[data-style="sky"] .icon-btn {
+  border-radius: 12px !important;
+}
+
+[data-style="sky"] .search-wrap,
+[data-style="sky"] .chat-form input {
+  border-radius: 16px !important;
+}
+
+[data-style="sky"] .model-pill,
+[data-style="sky"] .example-chip {
+  border-radius: 999px !important;
+}
+
+[data-style="sky"] .card,
+[data-style="sky"] .history-item,
+[data-style="sky"] .concept,
+[data-style="sky"] .bubble {
+  border-radius: 24px !important;
+}
+
+[data-style="sky"] .tech-card::before {
+  top: 12px;
+  bottom: 12px;
+  width: 3px;
+  border-radius: 3px;
 }
 
 @media (prefers-reduced-motion: reduce) {

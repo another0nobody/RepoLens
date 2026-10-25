@@ -4,7 +4,7 @@
 >
 > 这是 **你的第一个 LangChain Agent 项目**：不要求你事先懂 Agent，README 会把用到的每个概念讲清楚。
 >
-> 前端：**Vue 3 + Vite + Less**，内置 **5 套页面风格 × 深/浅模式**；后端 / Agent：**Python + LangChain**。前端构建产物已提交，只装 Python 也能直接运行。
+> 前端：**Vue 3 + Vite + Less**，内置 **6 套页面风格 × 深/浅模式**；后端 / Agent：**Python + LangChain**。前端构建产物已提交，只装 Python 也能直接运行。
 
 <details>
 <summary><b>界面预览（点开看截图）</b></summary>
@@ -37,7 +37,7 @@
 
 ![人工审批](docs/hitl.png)
 
-> 截图使用内置示例仓库 `examples/demo_shop`；报告来源与运行页都使用相对路径，不包含本机用户名与真实项目路径。界面支持 5 套页面风格，每套都有深色 / 浅色模式。
+> 截图使用内置示例仓库 `examples/demo_shop`；报告来源与运行页都使用相对路径，不包含本机用户名与真实项目路径。界面支持 6 套页面风格，每套都有深色 / 浅色模式。
 
 </details>
 
@@ -55,7 +55,7 @@
 
 ---
 
-## 5 套页面风格
+## 6 套页面风格
 
 点击右上角「风格」即可切换。每套风格都会同时改变**配色、字体、背景纹理、卡片轮廓和光效**，不是简单换一个主色；深色 / 浅色可以独立切换，选择会保存在本地。
 
@@ -66,21 +66,30 @@
 | **终端 Terminal** | 磷光绿、等宽字体、扫描线 | 极客 / CLI / CRT |
 | **霓虹 Neon** | 深紫夜色、青粉霓虹、强辉光 | 演示 / 展示 |
 | **樱 Sakura** | 樱花粉、奶油白、柔光圆角 | 轻松 / 友好 |
+| **晴空 Sky** | 蓝天、白云、阳光金 | 不想看科技风的时候；选择时自动切浅色 |
+
+**新增：晴空 Sky（蓝天白云）**
+
+![晴空风格](docs/style-sky.png)
 
 ![风格选择器](docs/style-picker.png)
 
 <details>
-<summary><b>展开 5 套完整首页截图</b></summary>
+<summary><b>展开 6 套完整首页截图</b></summary>
 
 | 极光 | 纸境 | 终端 |
 | --- | --- | --- |
 | ![极光](docs/home.png) | ![纸境](docs/style-paper.png) | ![终端](docs/style-terminal.png) |
-| **霓虹** | **樱** | **纸境 · 浅色** |
-| ![霓虹](docs/style-neon.png) | ![樱](docs/style-sakura.png) | ![纸境浅色](docs/style-paper-light.png) |
+| **霓虹** | **樱** | **晴空** |
+| ![霓虹](docs/style-neon.png) | ![樱](docs/style-sakura.png) | ![晴空](docs/style-sky.png) |
 
-**移动端（纸境 · 浅色）**
+**纸境 · 浅色**：[查看截图](docs/style-paper-light.png)
 
-<img src="docs/style-mobile.png" width="280" alt="移动端纸境浅色风格" />
+**晴空 · 深色**：[查看截图](docs/style-sky-dark.png)
+
+**移动端（晴空 · 浅色）**
+
+<img src="docs/style-mobile.png" width="280" alt="移动端晴空浅色风格" />
 
 </details>
 
@@ -99,7 +108,7 @@
 | 报告追问 | 基于这份报告继续问「Redis 用在哪里」「先读哪个文件」，带多轮记忆 |
 | 人工审批（HITL） | Agent 克隆 GitHub 仓库前会真的暂停，等你在网页上点「允许」 |
 | 历史与导出 | 报告保存在 `data/reports/`，支持历史列表、JSON / Markdown 导出、报告分享链接 |
-| 页面风格 | 极光 / 纸境 / 终端 / 霓虹 / 樱，5 套视觉语言 × 深/浅模式，选择会被记住 |
+| 页面风格 | 极光 / 纸境 / 终端 / 霓虹 / 樱 / 晴空，6 套视觉语言 × 深/浅模式，选择会被记住 |
 | 安全 | 只读扫描、密钥脱敏、拒绝 `.env`/私钥、默认只监听 127.0.0.1 |
 
 > 说明：报告里的「模块」来自**直接 import**（以及 Docker/Compose 等配置）。如果某个库只由框架间接使用，它可能显示「仅依赖声明，未找到直接 import」，这是正常的。
@@ -248,7 +257,7 @@ npm run build    # 输出到 ../static/dist
 - 回车直接开始，也支持点击「开始分析」；
 - 示例按钮只是帮你填入路径，不会自动开始；
 - 右上角显示当前模型；没有配置 Key 时会显示「仅规则扫描」；
-- 右上角「风格」可切换 5 套页面风格，右侧太阳/月亮切换深色与浅色；两项选择都会记住。
+- 右上角「风格」可切换 6 套页面风格，右侧太阳/月亮切换深色与浅色；两项选择都会记住；晴空首次选择会自动切浅色。
 
 ### 3.2 运行页
 
@@ -624,7 +633,7 @@ repolens/
 │       ├── main.js
 │       ├── App.vue
 │       ├── api.js / store.js / utils.js
-│       ├── theme.js          # 5 套风格元数据、预览色、theme-color
+│       ├── theme.js          # 6 套风格元数据、预览色、theme-color
 │       ├── styles/           # tokens.less / mixins.less / global.less（风格变量）
 │       ├── views/            # HomeView / RunView / ReportView
 │       └── components/       # 头栏、时间线、技术卡片、风格选择器、抽屉、审批弹窗…
@@ -667,7 +676,7 @@ repolens/
 8. `frontend/src/main.js` → `App.vue`：Vue 应用如何挂载、切换三个视图；
 9. `frontend/src/store.js`：前端状态、SSE 重连、深链路、追问和 HITL 决策；
 10. `frontend/src/views/` 与 `components/`：首页、运行页、报告页、风格选择器和各个交互组件；
-11. `frontend/src/theme.js` 与 `styles/`：5 套风格的元数据、CSS 变量、字体、纹理和深浅模式。
+11. `frontend/src/theme.js` 与 `styles/`：6 套风格的元数据、CSS 变量、字体、纹理和深浅模式。
 
 ---
 

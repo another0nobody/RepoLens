@@ -14,10 +14,12 @@ const previewFonts = {
   terminal: '"Cascadia Code", "JetBrains Mono", Consolas, monospace',
   neon: '"Arial Black", "Segoe UI", "PingFang SC", sans-serif',
   sakura: '"Avenir Next", "PingFang SC", sans-serif',
+  sky: '"Avenir Next", "PingFang SC", sans-serif',
 };
 
 function previewVars(option) {
-  const palette = option.colors[state.theme] || option.colors.dark;
+  // 晴空主推浅色，预览固定用蓝天版，避免在深色模式下看起来像“夜空”。
+  const palette = option.key === "sky" ? option.colors.light : option.colors[state.theme] || option.colors.dark;
   return {
     "--pv-bg": palette.bg,
     "--pv-panel": palette.panel,
@@ -74,7 +76,8 @@ function previewVars(option) {
           <div class="card-title">
             <b>{{ option.label }}</b>
             <em>{{ option.en }}</em>
-            <span class="mode-mini">{{ state.theme === "dark" ? "深色" : "浅色" }}</span>
+            <span v-if="option.key === 'sky'" class="mode-mini">推荐浅色</span>
+            <span v-else class="mode-mini">{{ state.theme === "dark" ? "深色" : "浅色" }}</span>
           </div>
           <span class="card-tagline">{{ option.tagline }}</span>
         </div>
