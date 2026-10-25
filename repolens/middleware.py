@@ -196,6 +196,7 @@ TOOL_LABELS = {
     "report_overview": "读取报告摘要",
     "search_report": "检索报告",
     "explain_technology": "查看技术详情",
+    "technology_deep_dive": "技术深挖",
 }
 
 

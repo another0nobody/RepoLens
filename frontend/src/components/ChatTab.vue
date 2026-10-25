@@ -13,8 +13,75 @@ const suggestions = [
   "我应该先读哪些文件？",
   "有没有测试，覆盖了什么？",
 ];
+
+const DEEP_DIVE_LENSES = [
+  {
+    key: "advantages",
+    label: "优势与场景",
+    hint: "它擅长什么，在本项目解决了什么",
+  },
+  {
+    key: "pitfalls",
+    label: "难点与易错点",
+    hint: "常见坑、边界与规避方式",
+  },
+  {
+    key: "compare",
+    label: "相似方案差异",
+    hint: "和 2–3 个同类技术比，差在哪",
+  },
+  {
+    key: "why",
+    label: "为什么选它",
+    hint: "选型理由、代价与替代方案",
+  },
+];
+
+const techOptions = computed(() => {
+  const techs = (state.report?.techs || []).filter((tech) => tech?.name);
+  const score = (tech) => {
+    const modules = (tech.modules || []).length;
+    const confidence = tech.confidence === "高" ? 2 : tech.confidence === "中" ? 1 : 0;
+    const languagePenalty = tech.category === "编程语言" ? 2 : 0;
+    return modules * 3 + confidence - languagePenalty;
+  };
+  return [...techs].sort((a, b) => score(b) - score(a) || String(a.name).localeCompare(String(b.name))).slice(0, 12);
+});
+const selectedTechKey = ref("");
+const selectedTech = computed(() => techOptions.value.find((tech) => tech.key === selectedTechKey.value) || null);
 const busy = computed(() => state.chat.streaming);
 const lastIndex = computed(() => state.chat.messages.length - 1);
+
+watch(
+  () => techOptions.value.map((tech) => tech.key).join("|"),
+  () => {
+    if (!techOptions.value.some((tech) => tech.key === selectedTechKey.value)) {
+      selectedTechKey.value = techOptions.value[0]?.key || "";
+    }
+  },
+  { immediate: true }
+);
+
+function deepDivePrompt(lens) {
+  const tech = selectedTech.value;
+  if (!tech) return "";
+  const name = `${tech.name}（${tech.category}）`;
+  if (lens.key === "advantages") {
+    return `请从项目实际出发，深入分析 ${name} 的优势、适用场景，以及它在这个仓库里具体解决了什么问题。`;
+  }
+  if (lens.key === "pitfalls") {
+    return `围绕 ${name}，分析在这个项目中使用它时最容易踩坑的难点、常见错误和规避方式。`;
+  }
+  if (lens.key === "compare") {
+    return `${name} 和功能相似的其他技术（请给出 2–3 个同类方案）有什么区别？请结合本项目说明什么时候该选谁。`;
+  }
+  return `这个项目为什么选择 ${name} 而不是功能相似的方案？请区分报告中能确认的事实与基于技术常识的推断，不要编造项目动机。`;
+}
+
+function askDeepDive(lens) {
+  if (busy.value || !selectedTech.value) return;
+  sendChat(deepDivePrompt(lens));
+}
 
 async function scrollToBottom() {
   await nextTick();
@@ -63,11 +130,42 @@ watch(
       </span>
     </header>
 
+    <section v-if="techOptions.length" class="deep-dive" aria-label="技术深挖模板">
+      <div class="dd-head">
+        <span class="dd-title"><Icon name="layers" :size="14" /> 技术深挖</span>
+        <label class="dd-picker">
+          <span class="sr-only">选择要深挖的技术</span>
+          <select v-model="selectedTechKey" class="dd-select" :disabled="busy">
+            <option v-for="tech in techOptions" :key="tech.key" :value="tech.key">
+              {{ tech.name }} · {{ tech.category }}
+            </option>
+          </select>
+        </label>
+      </div>
+
+      <div class="dd-grid">
+        <button
+          v-for="lens in DEEP_DIVE_LENSES"
+          :key="lens.key"
+          class="dd-card"
+          type="button"
+          :disabled="busy"
+          :title="`${lens.label}：${lens.hint}`"
+          @click="askDeepDive(lens)"
+        >
+          <b>{{ lens.label }}</b>
+          <span>{{ lens.hint }}</span>
+        </button>
+      </div>
+      <p class="dd-note">回答会区分「报告中的事实」与「通用技术判断」，不编造项目动机。</p>
+    </section>
+
     <div ref="messagesRef" class="chat-messages">
       <div v-if="!state.chat.messages.length" class="chat-empty">
         <div class="empty-icon"><Icon name="spark" :size="22" /></div>
         <b>报告已经生成，接下来可以继续问它。</b>
-        <span>回答会先查报告和仓库文件，再组织语言，不会凭空编造。</span>
+        <span v-if="techOptions.length">上方选择一项技术，可以从优势、难点、相似方案和选型理由四个方向深挖；也可以直接问下面的项目级问题。</span>
+        <span v-else>回答会先查报告和仓库文件，再组织语言，不会凭空编造。</span>
       </div>
 
       <div v-for="(message, index) in state.chat.messages" :key="index" class="msg" :class="message.role">
@@ -91,6 +189,7 @@ watch(
     </div>
 
     <div v-if="!state.chat.messages.length" class="chat-suggestions">
+      <span class="suggestions-label">项目级问题</span>
       <button v-for="text in suggestions" :key="text" class="chip" type="button" @click="useSuggestion(text)">
         {{ text }}
       </button>
@@ -169,6 +268,109 @@ watch(
   gap: 14px;
   max-height: 52vh;
   .scrollbar();
+}
+
+.deep-dive {
+  margin: 12px 18px 0;
+  padding: 11px 13px 10px;
+  border: 1px solid var(--line);
+  border-radius: @radius-md;
+  background: color-mix(in srgb, var(--panel-soft) 75%, transparent);
+}
+
+.dd-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.dd-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.2px;
+}
+
+.dd-picker {
+  margin-left: auto;
+}
+
+.dd-select {
+  max-width: 250px;
+  padding: 5px 9px;
+  border: 1px solid var(--line);
+  border-radius: @radius-sm;
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 11px;
+  outline: none;
+  cursor: pointer;
+
+  &:focus {
+    border-color: var(--accent-line);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+}
+
+.dd-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 9px;
+}
+
+.dd-card {
+  min-width: 0;
+  padding: 8px 9px;
+  border: 1px solid var(--line);
+  border-radius: @radius-sm;
+  background: var(--panel);
+  color: var(--text);
+  text-align: left;
+  transition: border-color 0.16s, background 0.16s, transform 0.16s;
+  .focus-ring();
+
+  b {
+    display: block;
+    font-size: 11px;
+    font-weight: 650;
+    line-height: 1.4;
+  }
+
+  span {
+    display: block;
+    margin-top: 2px;
+    color: var(--faint);
+    font-size: 9.5px;
+    line-height: 1.45;
+  }
+
+  &:hover:not(:disabled) {
+    border-color: var(--accent-line);
+    background: var(--accent-soft);
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+
+.dd-note {
+  margin: 7px 0 0;
+  color: var(--faint);
+  font-size: 9.5px;
+  line-height: 1.5;
 }
 
 .chat-empty {
@@ -283,8 +485,17 @@ watch(
 .chat-suggestions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 6px;
   padding: 0 20px 12px;
+}
+
+.suggestions-label {
+  width: 100%;
+  color: var(--faint);
+  font-size: 9.5px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
 }
 
 .chat-form {
@@ -335,6 +546,20 @@ watch(
 
   .chat-status {
     display: none;
+  }
+
+  .dd-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .dd-picker {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .dd-select {
+    width: 100%;
+    max-width: none;
   }
 }
 </style>

@@ -44,7 +44,7 @@ from langchain.chat_models import init_chat_model
 from langchain_core.tools import tool
 from langgraph.config import get_stream_writer
 
-from . import config
+from . import catalog, config
 from .context import AnalysisContext
 from .middleware import ProgressMiddleware, SecretMaskingMiddleware
 from .schemas import RepoInsight, structured_output_error_handler
@@ -231,16 +231,41 @@ def build_analysis_agent(ctx: AnalysisContext):
 # 追问 Agent
 # ============================================================================
 CHAT_SYSTEM_PROMPT = """你是 RepoLens 的报告讲解助手，负责回答用户关于"刚刚这份技术栈报告"的问题。
+你不仅要会查报告，还要能对具体技术做有深度的分析。
 
-规则：
+【总原则】
 1. 先调用工具获取报告内容，再回答；不要凭记忆编造技术、文件路径或版本号。
-2. 回答要具体：提到技术时，尽量说明它在哪个模块、哪一行被使用。
-3. 如果报告里没有相关信息，直接说"报告中没有这部分信息"，并建议用户查看哪个文件。
-4. 用户问"怎么学/从哪看起"时，结合报告里的 learning_path 和真实文件路径给出顺序。
-5. 工具调用要节制：通常先调用 1 次 search_report 或 report_overview 即可；
-   需要细节时再调用 explain_technology，总共不超过 3 次。不要对每个技术逐个查询。
-6. 用中文纯文本回答，不要使用 Markdown 表格、# 标题或代码块围栏；
-   可以用"1. 2. 3."或"- "列点，保持简洁。
+2. 必须区分三类信息：
+   - 报告/仓库中的事实：尽量引用模块路径与行号；
+   - 通用技术知识：用"从技术常识看""通常"等措辞；
+   - 推断：用"可能""更可能"等措辞，不能伪装成仓库事实。
+3. 报告里没有的信息，直接说"报告中没有这部分信息"，并建议用户看哪个文件。
+4. 用户问"怎么学/从哪看起"时，结合 learning_path 和真实文件路径给出顺序。
+5. 用中文纯文本回答，不要使用 Markdown 表格、# 标题或代码块围栏；
+   可以用"1. 2. 3."或"- "列点，保持简洁，通常不超过 600 字。
+
+【技术深挖模式】
+当用户问某项技术的优势、适用场景、使用难点、易错点、与相似技术的差异，
+或"项目为什么选它而不是别的"时：
+1. 先调用 technology_deep_dive(name)，拿到项目事实、同项目同类技术、词典同类候选；
+2. 按需组织为：
+   - 项目里怎么用（事实）
+   - 它的优势与代价
+   - 难点与易错点
+   - 相似方案差异（至少 2 个同类方案）
+   - 为什么这个项目可能选它（事实 + 推断）
+   用户只问一个维度时，不要机械地把所有维度都写一遍。
+3. 对比要落到维度：上手成本、生态/性能、类型支持、部署运维、团队熟悉度、
+   与现有代码的契合度等；不要只说"A 比 B 好"。
+4. 如果 README/报告没有明确记录选型理由，先说明"仓库没有直接说明选型动机"，
+   再给出 2~3 条基于项目事实的合理推断，并明确标注是推断。
+5. 不要编造版本号、基准测试、公司案例或"官方推荐"；不确定就说不确定。
+6. 不要假设自己读过没有调用工具读取的文件。
+
+【工具使用】
+- 普通问题：优先 report_overview 或 search_report，必要时 explain_technology。
+- 技术深挖：优先 technology_deep_dive；需要看入口/配置时再 read_project_file。
+- 总共不超过 3 次工具调用，不要对每个技术逐个查询。
 """
 
 
@@ -342,6 +367,96 @@ def build_report_tools(ctx: AnalysisContext) -> list:
         return f"报告中没有「{name}」。可选技术包括：{'、'.join(names)}"
 
     @tool(parse_docstring=True)
+    def technology_deep_dive(name: str) -> str:
+        """深挖一项技术：项目中的事实、同项目同类技术、词典中的同类候选与选型线索。
+
+        用户问某项技术的优势、难点易错点、与相似技术的差异、为什么项目选它时，
+        优先调用这个工具，而不是只调用 explain_technology。
+
+        Args:
+            name: 技术名称，例如 "FastAPI"、"React"、"PostgreSQL"
+        """
+        report = _report()
+        wanted = name.strip().lower()
+        tech = None
+        for item in report.get("techs") or []:
+            item_name = str(item.get("name", "")).lower()
+            if wanted == item_name or wanted in item_name:
+                tech = item
+                break
+        if tech is None:
+            names = [item.get("name") for item in (report.get("techs") or [])][:20]
+            return f"报告中没有「{name}」。可选技术包括：{'、'.join(names)}"
+
+        category = str(tech.get("category", ""))
+        same_project = [
+            {
+                "name": item.get("name"),
+                "role": str(item.get("role", ""))[:180],
+                "module_count": item.get("module_count", 0),
+            }
+            for item in (report.get("techs") or [])
+            if item is not tech and item.get("category") == category
+        ][:8]
+        peers = []
+        for spec in catalog.CATALOG:
+            if spec.category != category:
+                continue
+            if spec.name.lower() == str(tech.get("name", "")).lower():
+                continue
+            peers.append({"name": spec.name, "hint": spec.hint[:160]})
+            if len(peers) >= 10:
+                break
+
+        modules = (tech.get("modules") or [])[:10]
+        evidence = (tech.get("evidence") or [])[:6]
+        readme = (ctx.snapshot.readme if ctx.snapshot is not None else "") or ""
+        payload = {
+            "tech": {
+                "name": tech.get("name"),
+                "category": category,
+                "version": tech.get("version") or "未知",
+                "confidence": tech.get("confidence"),
+                "role": tech.get("role"),
+                "sources": tech.get("sources") or [],
+                "ai_inferred": bool(tech.get("ai_inferred")),
+            },
+            "project_facts": {
+                "modules": [
+                    {
+                        "path": item.get("path"),
+                        "line": item.get("line"),
+                        "role": item.get("role"),
+                        "snippet": str(item.get("snippet", ""))[:160],
+                    }
+                    for item in modules
+                ],
+                "evidence": [
+                    {
+                        "path": item.get("path"),
+                        "line": item.get("line"),
+                        "kind": item.get("kind"),
+                        "text": str(item.get("text", ""))[:160],
+                    }
+                    for item in evidence
+                ],
+                "readme_mentions_tech": bool(readme and str(tech.get("name", "")).lower() in readme.lower()),
+            },
+            "same_project_category": same_project,
+            "catalog_peers": peers,
+            "report_context": {
+                "summary": str(report.get("summary", ""))[:700],
+                "architecture": (report.get("architecture") or [])[:4],
+                "risks": (report.get("risks") or [])[:4],
+            },
+            "instructions": (
+                "项目事实必须引用 paths/lines；同类差异只能基于通用技术知识并明确标注；"
+                "如果 report_context 没有解释选型理由，先说明这一点，再给合理推断。"
+            ),
+        }
+        return json.dumps(payload, ensure_ascii=False)[:6500]
+
+    @tool(parse_docstring=True)
     def read_project_file(relative_path: str, max_chars: int = 1500) -> str:
         """读取被分析仓库中的一个文本文件片段（只读，自动隐藏密钥）。
 
@@ -371,7 +486,7 @@ def build_report_tools(ctx: AnalysisContext) -> list:
         note = f"（已隐藏 {hits} 处敏感信息）" if hits else ""
         return f"{relative_path}{note}\n```\n{content[:limit]}\n```"
 
-    return [report_overview, search_report, explain_technology, read_project_file]
+    return [report_overview, search_report, explain_technology, technology_deep_dive, read_project_file]
 
 
 def build_chat_agent(ctx: AnalysisContext):

@@ -153,7 +153,7 @@ run_analysis(ctx)
 | `frontend/src/components/TechDrawer.vue` | 技术详情抽屉 |
 | `frontend/src/components/ModuleMap.vue` | 模块地图、展开/收起、搜索、复制路径 |
 | `frontend/src/components/ArchitectureTab.vue` | 架构、风险、学习路径、关键文件/目录/语言条 |
-| `frontend/src/components/ChatTab.vue` | 追问、流式光标、推荐问题 |
+| `frontend/src/components/ChatTab.vue` | 追问、流式光标、技术深挖模板（技术选择 + 优势/难点/对比/选型）、项目级推荐问题 |
 | `frontend/src/components/ProcessTab.vue` | 当前会话事件回放与筛选 |
 | `frontend/src/components/HistoryDrawer.vue` | 历史报告列表 |
 | `frontend/src/components/ConceptsDrawer.vue` | 教程知识点手风琴 |
@@ -282,6 +282,33 @@ Agent 调 clone_github_repository
 - `ctx.report` 来自磁盘；
 - `source_note`、`local_path` 若仍存在则恢复 `repo_root`；
 - 这样可以追问历史报告，但**跨进程的 LangGraph 短期记忆不会恢复**。
+
+追问 Agent 的 5 个只读工具：
+
+| 工具 | 用途 |
+| --- | --- |
+| `report_overview()` | 摘要、亮点、架构、风险、学习路径、分类 |
+| `search_report(keyword)` | 在技术名/职责/模块路径/摘要中搜索 |
+| `explain_technology(name)` | 单技术详情：版本、职责、证据、模块 |
+| `technology_deep_dive(name)` | 深挖：项目事实 + 同项目同类技术 + 词典同类候选 + 报告上下文，供优势/难点/对比/选型回答 |
+| `read_project_file(path, max_chars)` | 只读读取仓库内文件（脱敏、防穿越） |
+
+`technology_deep_dive` 的返回重点：
+
+- `tech`：名称、分类、版本、置信度、职责、来源、是否 AI 推断；
+- `project_facts`：模块/证据（路径、行号、角色、片段）、README 是否提到该技术；
+- `same_project_category`：同项目同分类的其他技术；
+- `catalog_peers`：技术词典中同分类的候选（最多 10 个），用于“相似方案”；
+- `report_context`：摘要、架构、风险；
+- `instructions`：提醒模型区分事实、常识和推断。
+
+追问提示词 `CHAT_SYSTEM_PROMPT` 的深挖规则：
+
+- 先调用 `technology_deep_dive`；
+- 按“项目事实 → 优势与代价 → 难点/易错点 → 相似方案 → 选型推断”组织，按问题取舍；
+- 对比至少给 2–3 个同类方案，落到上手成本/生态/性能/部署等维度；
+- 项目没有记录选型理由时，先说明“仓库没有直接说明”，再给推断并标注；
+- 不编造版本、基准测试、公司案例，不假装读过未读取的文件。
 
 `stream_chat` 事件：
 
@@ -517,7 +544,7 @@ Agent 调 clone_github_repository
 4. `ModelCallLimitMiddleware(thread_limit=40, exit_behavior="end")`
 5. `ToolRetryMiddleware(max_retries=2, initial_delay=0.5, jitter=True, on_failure="continue")`
 
-> 注意：追问的“最多 3 次工具”只是系统提示词要求，**不是硬限制**；硬限制只有模型调用 40 次。
+> 注意：追问的“最多 3 次工具”只是系统提示词要求，**不是硬限制**；硬限制只有模型调用 40 次。深挖问题通常调用 1 次 `technology_deep_dive`，需要时再读一个入口文件。
 
 ### 8.3 状态与记忆
 
@@ -1013,7 +1040,8 @@ git status --short
 - [ ] 改动涉及 API/报告/事件字段时，前后端两处同步；
 - [ ] 新增/修改工具时，docstring、错误处理、脱敏、HITL 都考虑；
 - [ ] 前端改动后 `npm run build`，提交 `static/dist`；
-- [ ] 本地示例完整跑通：首页 → 运行 → 报告 → 模块 → 架构 → 追问 → 历史；
+- [ ] 本地示例完整跑通：首页 → 运行 → 报告 → 模块 → 架构 → 追问（含技术深挖 4 模板）→ 历史；
+- [ ] 检查深挖回答是否区分项目事实/通用知识/推断，并给出 2–3 个同类方案；
 - [ ] 检查 390px 移动端没有横向溢出；
 - [ ] 逐套检查 6 种风格 × 深/浅（至少首页 + 报告 + 抽屉），确认晴空自动浅色与选择持久化；
 - [ ] 检查 HITL approve/reject 路径；
