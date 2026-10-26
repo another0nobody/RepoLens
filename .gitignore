@@ -31,6 +31,9 @@ docs/.chrome-*/
 # 日志
 *.log
 
+# Impeccable 临时 seed 记录（设计 brief 会提交）
+.impeccable/seed.txt
+
 # 编辑器 / 系统
 .idea/
 .vscode/
