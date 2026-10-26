@@ -28,6 +28,19 @@ export const CATEGORY_ICONS = {
   其他依赖: "□",
 };
 
+export const SOURCE_LABELS = {
+  language: "语言",
+  manifest: "依赖清单",
+  config: "配置",
+  import: "import",
+  usage: "代码使用",
+  ai: "AI 推断",
+};
+
+export function sourceLabel(source) {
+  return SOURCE_LABELS[source] || source;
+}
+
 export const TOOL_LABELS = {
   clone_github_repository: "克隆 GitHub 仓库",
   inspect_local_repository: "扫描本地仓库",
