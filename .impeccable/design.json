@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-26T22:00:00+08:00",
+  "title": "Design System: RepoLens Field Map",
+  "extensions": {
+    "colorMeta": {
+      "course-purple": {
+        "role": "primary",
+        "displayName": "Course Purple",
+        "canonical": "#6b3fa0",
+        "tonalRamp": ["#2b173f", "#3b2355", "#4c2e6a", "#5d3680", "#6b3fa0", "#8d64bc", "#b18fd4", "#d7c6e9"]
+      },
+      "forest-green": {
+        "role": "secondary",
+        "displayName": "Forest Green",
+        "canonical": "#4f6f3a",
+        "tonalRamp": ["#1d2a15", "#293b1e", "#354c27", "#425e31", "#4f6f3a", "#719152", "#9ab37c", "#c6d5b1"]
+      },
+      "contour-brown": {
+        "role": "tertiary",
+        "displayName": "Contour Brown",
+        "canonical": "#9a6b43",
+        "tonalRamp": ["#2f1e12", "#4b311e", "#68442a", "#825637", "#9a6b43", "#b78b64", "#d0b092", "#e8d5c1"]
+      },
+      "paper-ground": {
+        "role": "neutral",
+        "displayName": "Paper Ground",
+        "canonical": "#f3eedf",
+        "tonalRamp": ["#4e493d", "#6b6555", "#88816e", "#a59e8b", "#c8c0ad", "#ddd6c7", "#f3eedf", "#fbf8f0"]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#2d2d27",
+        "tonalRamp": ["#171714", "#2d2d27", "#45443b", "#5b5a4f", "#777568", "#969283", "#b9b4a4", "#d8d3c5"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "RepoLens Map", "purpose": "Terrain names, report repository name, control headings only." },
+      "body": { "displayName": "Quiet UI Sans", "purpose": "Roles, report prose, controls." },
+      "label": { "displayName": "Coordinate Mono", "purpose": "Legend, control codes, counts, file data." }
+    },
+    "shadows": [],
+    "motion": [
+      { "name": "ease-out", "value": "cubic-bezier(0.2, 0.7, 0.2, 1)", "purpose": "Hover and tab state transitions only." }
+    ],
+    "breakpoints": [
+      { "name": "md", "value": "820px" },
+      { "name": "lg", "value": "1080px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The only filled action; starts analysis.",
+      "html": "<button class=\"ds-btn-primary\">开始分析</button>",
+      "css": ".ds-btn-primary { background: var(--accent); color: #fdfaef; border: 1px solid var(--accent); border-radius: 0; padding: 10px 15px; font: 500 11px/1 \"Segoe UI\", sans-serif; cursor: pointer; } .ds-btn-primary:hover { background: #522e7c; border-color: #522e7c; } .ds-btn-primary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }"
+    },
+    {
+      "name": "Source input",
+      "kind": "input",
+      "refersTo": "source-input",
+      "description": "The source path rule inside the start control.",
+      "html": "<input class=\"ds-input\" placeholder=\"本地路径或 GitHub 地址\" />",
+      "css": ".ds-input { background: var(--panel-solid); color: var(--text); border: 0; border-bottom: 2px solid var(--line-strong); border-radius: 0; padding: 9px 0; font: 400 16px/1.4 \"Cascadia Code\", monospace; outline: 0; } .ds-input:focus { border-bottom-color: var(--accent); }"
+    },
+    {
+      "name": "Report tab",
+      "kind": "nav",
+      "refersTo": "tab-active",
+      "description": "A leg in the report route rail.",
+      "html": "<button class=\"ds-tab is-active\">01 技术栈</button>",
+      "css": ".ds-tab { display: block; width: 100%; padding: 8px 0; background: transparent; border: 0; border-bottom: 1px solid var(--line); color: var(--muted); text-align: left; font: 400 11.5px/1.4 \"Segoe UI\", sans-serif; } .ds-tab.is-active { color: var(--accent); } .ds-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }"
+    },
+    {
+      "name": "Control row",
+      "kind": "custom",
+      "refersTo": "control-row",
+      "description": "One technology as an orienteering control description.",
+      "html": "<div class=\"ds-control\"><span class=\"ds-code\">C01</span><strong>Python</strong><span class=\"ds-count\">1M / 2E</span></div>",
+      "css": ".ds-control { display: grid; grid-template-columns: 44px 1fr auto; gap: 10px; align-items: center; padding: 13px 2px; border-bottom: 1px solid var(--line); background: transparent; color: var(--text); } .ds-code { color: var(--accent); font: 400 9px/1.2 \"Cascadia Code\", monospace; } .ds-control strong { font: 700 23px/1.05 \"RepoLens Map\", \"Arial Narrow\", sans-serif; letter-spacing: -0.03em; } .ds-count { color: var(--faint); font: 400 8px/1.2 \"Cascadia Code\", monospace; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Orienteering Sheet",
+    "overview": "RepoLens is a terrain, not a dashboard. The interface borrows the discipline of an orienteering map: a cream paper field, contour lines that describe the shape of the ground, a legend that names what the colours mean, and one course purple that belongs only to the active route. The report is read as a sequence of legs; each technology is a control description with a code, a name, a category, and the evidence count that lets a reader verify it.",
+    "keyCharacteristics": [
+      "Cream paper ground with flat forest, contour, and course colours.",
+      "One active route in purple; no glow, no glass, no gradient text.",
+      "A route rail with nodes in the report; rows read as control descriptions.",
+      "Authored contour lines only on the home surface.",
+      "No rounded cards, no lifted panels, no ambient shadow language."
+    ],
+    "rules": [
+      { "name": "The Purple Course Rule", "body": "Purple is the active route. A screen may use it for the current leg, the primary action, and selection; never for a heading, a decorative rule, or an inactive icon.", "section": "colors" },
+      { "name": "The Legend Rule", "body": "Every colour that carries meaning must be explainable in the header legend or the control description. If a colour cannot be named, remove it.", "section": "colors" },
+      { "name": "The Code Is Not a Kicker Rule", "body": "Control codes and route numbers are coordinates in the data, not labels above headings. Do not add codes to a heading that has no coordinate in the product.", "section": "typography" }
+    ],
+    "dos": [
+      "Do keep purple for the active route and primary action only.",
+      "Do use one-pixel rules, flat paper, and square geometry as the depth system.",
+      "Do keep control codes, evidence counts, and legend swatches explainable.",
+      "Do keep authored contour lines on the home surface only."
+    ],
+    "donts": [
+      "Don't introduce rounded cards, glass, gradient text, or glow.",
+      "Don't use purple as a decorative wash or inactive state.",
+      "Don't turn route nodes into chip ornaments; they mark actual report legs.",
+      "Don't add a second display face or a system display face.",
+      "Don't replace control rows with equal-sized card grids."
+    ]
+  }
+}
