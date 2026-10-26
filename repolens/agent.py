@@ -358,8 +358,10 @@ def build_report_tools(ctx: AnalysisContext) -> list:
                     f"- {item.get('path')}:{item.get('line')}｜{item.get('text')}"
                     for item in (tech.get("evidence") or [])[:5]
                 ]
+                tags = tech.get("usage_tags") or []
                 return (
                     f"{tech.get('name')}｜{tech.get('category')}｜版本 {tech.get('version') or '未知'}\n"
+                    f"用途：{'、'.join(tags) if tags else '未细分'}\n"
                     f"职责：{tech.get('role')}\n"
                     f"使用模块：\n" + ("\n".join(modules) or "（仅依赖声明，未找到直接 import）") + "\n"
                     f"证据：\n" + ("\n".join(evidence) or "（无）")
@@ -420,6 +422,7 @@ def build_report_tools(ctx: AnalysisContext) -> list:
                 "confidence": tech.get("confidence"),
                 "role": tech.get("role"),
                 "sources": tech.get("sources") or [],
+                "usage_tags": tech.get("usage_tags") or [],
                 "ai_inferred": bool(tech.get("ai_inferred")),
             },
             "project_facts": {

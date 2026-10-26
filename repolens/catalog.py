@@ -269,7 +269,7 @@ CATALOG: list[TechSpec] = [
     T("SQLx", "数据库", ("sqlx",), "Rust 异步 SQL 工具", "rust"),
 
     # ---------------------------------------------------------------- 缓存与消息
-    T("Redis", "缓存与消息", ("redis", "aioredis", "ioredis", "redis-py", "spring-boot-starter-data-redis", "github.com/redis/go-redis", "github.com/go-redis/redis"), "内存缓存，也常用作消息队列/会话存储", "any"),
+    T("Redis", "缓存与消息", ("redis", "aioredis", "ioredis", "redis-py", "redis.asyncio", "rediscache", "redisclient", "strictredis", "rediscluster", "redis-om", "redisjson", "redisearch", "redisvl", "spring-boot-starter-data-redis", "github.com/redis/go-redis", "github.com/go-redis/redis"), "内存缓存，也常用作消息队列/会话存储", "any"),
     T("Apache Kafka", "缓存与消息", ("kafka", "kafka-python", "confluent-kafka", "spring-kafka", "kafkajs"), "高吞吐分布式消息队列", "any"),
     T("RabbitMQ", "缓存与消息", ("pika", "amqp", "amqplib", "spring-boot-starter-amqp", "rabbitmq"), "老牌消息队列", "any"),
     T("Celery", "缓存与消息", ("celery",), "Python 分布式任务队列", "python"),
