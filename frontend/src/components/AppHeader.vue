@@ -1,14 +1,13 @@
 <script setup>
 import { computed } from "vue";
 
-import BrandLogo from "./BrandLogo.vue";
 import Icon from "./Icon.vue";
 
 const props = defineProps({
   health: { type: Object, default: null },
-  theme: { type: String, default: "dark" },
+  theme: { type: String, default: "light" },
 });
-const emit = defineEmits(["brand", "styles", "history", "concepts", "toggle-theme"]);
+const emit = defineEmits(["brand", "history", "concepts", "toggle-theme"]);
 
 const modelLabel = computed(() => {
   if (!props.health) return "检测环境中…";
@@ -19,173 +18,275 @@ const modelClass = computed(() => (!props.health ? "" : props.health.ai_availabl
 </script>
 
 <template>
-  <header class="topbar-wrap">
+  <header class="map-head">
     <div class="topbar">
       <button class="brand" type="button" aria-label="回到首页" @click="emit('brand')">
-        <BrandLogo :size="40" />
+        <span class="brand-mark" aria-hidden="true"></span>
         <span class="brand-text">
           <strong>RepoLens</strong>
-          <small>技术栈侦探</small>
+          <small>FIELD MAP / 001</small>
         </span>
       </button>
 
       <div class="topbar-right">
-        <span class="model-pill" :class="modelClass" :title="health ? '当前使用的大模型' : '正在连接后端'">
-          <span class="dot"></span>
-          <span class="model-text">{{ modelLabel }}</span>
+        <span class="model" :class="modelClass" :title="health ? '当前使用的大模型' : '正在连接后端'">
+          <i></i>{{ modelLabel }}
         </span>
-        <button class="btn btn-ghost nav-btn" type="button" title="切换页面风格" @click="emit('styles')">
-          <Icon name="palette" :size="16" />
-          <span>风格</span>
-        </button>
-        <button class="btn btn-ghost nav-btn" type="button" title="查看历史分析" @click="emit('history')">
-          <Icon name="history" :size="16" />
-          <span>历史</span>
-        </button>
-        <button class="btn btn-ghost nav-btn" type="button" title="查看知识点讲解" @click="emit('concepts')">
-          <Icon name="book" :size="16" />
-          <span>知识点</span>
-        </button>
+        <button class="nav-btn" type="button" @click="emit('history')">历史</button>
+        <button class="nav-btn" type="button" @click="emit('concepts')">知识点</button>
         <button
-          class="icon-btn"
+          class="theme-btn"
           type="button"
           :aria-label="theme === 'dark' ? '切换到浅色主题' : '切换到深色主题'"
           :title="theme === 'dark' ? '切换到浅色主题' : '切换到深色主题'"
           @click="emit('toggle-theme')"
         >
-          <Icon :name="theme === 'dark' ? 'sun' : 'moon'" :size="17" />
+          <Icon :name="theme === 'dark' ? 'sun' : 'moon'" :size="15" />
         </button>
       </div>
+    </div>
+
+    <div class="legend" aria-label="地图图例">
+      <span class="legend-label">LEGEND</span>
+      <span><i class="swatch scan"></i>扫描事实</span>
+      <span><i class="swatch agent"></i>Agent 核实</span>
+      <span><i class="swatch proof"></i>报告证据</span>
+      <span><i class="swatch ask"></i>追问 / 深挖</span>
+      <span class="legend-note">LOCAL / READ-ONLY</span>
     </div>
   </header>
 </template>
 
 <style scoped lang="less">
-.topbar-wrap {
+.map-head {
   position: sticky;
   top: 0;
   z-index: 40;
-  .glass();
-  background: var(--topbar-bg);
-  border-bottom: 1px solid var(--line);
-  transition: background 0.3s ease, border-color 0.3s ease;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line-strong);
 }
 
 .topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: @space-5;
-  max-width: 1280px;
+  gap: 20px;
+  max-width: 1320px;
   margin: 0 auto;
-  padding: 14px 26px;
+  padding: 13px 34px 11px;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 11px;
+  gap: 10px;
   border: 0;
   background: none;
   padding: 0;
+  color: var(--text);
   text-align: left;
   .focus-ring();
 
-  &:hover :deep(.brand-mark) {
-    transform: rotate(-4deg) scale(1.03);
+  &:hover .brand-mark {
+    border-color: var(--accent);
+  }
+
+  &:hover .brand-mark::after {
+    background: var(--accent);
+  }
+}
+
+.brand-mark {
+  position: relative;
+  width: 29px;
+  height: 29px;
+  flex: none;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  transition: border-color 0.16s;
+
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+  }
+
+  &::before {
+    left: 50%;
+    top: -4px;
+    bottom: -4px;
+    width: 1px;
+    background: var(--line-strong);
+  }
+
+  &::after {
+    left: 50%;
+    top: 50%;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    transform: translate(-50%, -50%);
+    transition: background 0.16s;
   }
 }
 
 .brand-text {
   display: flex;
   flex-direction: column;
-  line-height: 1.15;
+  line-height: 1.05;
 
   strong {
-    font-size: 17px;
-    letter-spacing: 0.4px;
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
   }
 
   small {
-    color: var(--muted);
-    font-size: 11px;
-    letter-spacing: 1.6px;
+    margin-top: 2px;
+    color: var(--faint);
+    .mono();
+    font-size: 7.5px;
+    letter-spacing: 0.1em;
   }
 }
 
 .topbar-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 14px;
 }
 
-.model-pill {
+.model {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  max-width: 300px;
-  padding: 7px 12px;
-  border-radius: @radius-pill;
-  border: 1px solid var(--line);
-  background: var(--panel-soft);
-  color: var(--muted);
-  font-size: 12px;
+  gap: 6px;
+  max-width: 250px;
+  color: var(--faint);
+  font-size: 9px;
   .truncate();
 
-  .dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: var(--faint);
+  i {
+    width: 5px;
+    height: 5px;
     flex: none;
+    background: var(--faint);
   }
 
-  &.ok .dot {
+  &.ok i {
     background: var(--good);
-    box-shadow: 0 0 12px var(--good);
-    animation: pulse 2.4s infinite;
   }
 
-  &.warn .dot {
+  &.warn i {
     background: var(--warn);
-    box-shadow: 0 0 12px var(--warn);
   }
 }
 
-.model-text {
-  .truncate();
+.nav-btn,
+.theme-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-family: var(--font-ui);
+  font-size: 10.5px;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--accent);
+  }
 }
 
-.nav-btn {
-  padding: 8px 11px;
-  font-size: 12.5px;
+.theme-btn {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 2px;
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 6px 34px;
+  border-top: 1px solid var(--line);
+  color: var(--faint);
+  font-size: 9px;
+  overflow-x: auto;
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+  }
+}
+
+.legend-label {
+  .mono();
+  font-size: 7.5px;
+  letter-spacing: 0.1em;
+}
+
+.legend-note {
+  margin-left: auto;
+  .mono();
+  font-size: 7.5px;
+  letter-spacing: 0.08em;
+}
+
+.swatch {
+  width: 9px;
+  height: 9px;
+  display: inline-block;
+
+  &.scan {
+    background: var(--accent-2);
+  }
+
+  &.agent {
+    background: #d3ad50;
+  }
+
+  &.proof {
+    background: var(--accent-3);
+  }
+
+  &.ask {
+    background: var(--accent);
+  }
 }
 
 @media (max-width: @bp-md) {
   .topbar {
-    padding: 11px 15px;
+    padding: 10px 16px 8px;
+  }
+
+  .brand-text strong {
+    font-size: 18px;
   }
 
   .brand-text small {
     display: none;
   }
 
-  .model-pill {
-    max-width: 160px;
-  }
-
-  .model-text {
-    font-size: 11px;
-  }
-
-  .nav-btn span {
+  .model {
     display: none;
   }
-}
 
-@media (max-width: @bp-sm) {
-  .model-pill {
-    display: none;
+  .topbar-right {
+    gap: 12px;
+  }
+
+  .legend {
+    padding: 6px 16px;
+    gap: 10px;
+  }
+
+  .legend-note {
+    display: none !important;
   }
 }
 </style>

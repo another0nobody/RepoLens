@@ -854,16 +854,6 @@ p {
   pointer-events: none;
 }
 
-.bg-grid {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(var(--grid-line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
-  background-size: 56px 56px;
-  mask-image: radial-gradient(ellipse 82% 62% at 50% 0%, #000 32%, transparent 100%);
-}
-
 .bg-glow {
   position: absolute;
   border-radius: 50%;
@@ -1405,4 +1395,259 @@ p {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+// ============================================================================
+// DESIGN BRANCH: Field Map
+// Orienteering materials: cream terrain, contour brown, forest green, and a
+// course purple reserved for the active leg and actions.
+// ============================================================================
+@font-face {
+  font-family: "RepoLens Map";
+  src: url("/fonts/map-regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "RepoLens Map";
+  src: url("/fonts/map-bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+html[data-theme="dark"],
+html[data-style][data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #171c16;
+  --bg-2: #1e251c;
+  --panel: #1d241b;
+  --panel-solid: #222a1f;
+  --panel-soft: rgba(241, 237, 220, 0.045);
+  --panel-hover: rgba(241, 237, 220, 0.08);
+  --line: rgba(241, 237, 220, 0.19);
+  --line-strong: rgba(241, 237, 220, 0.38);
+  --text: #f1eddc;
+  --muted: #b8b3a1;
+  --faint: #888271;
+  --accent: #c49bff;
+  --accent-2: #a7c477;
+  --accent-3: #c08f5f;
+  --accent-soft: rgba(196, 155, 255, 0.13);
+  --accent-line: rgba(196, 155, 255, 0.5);
+  --good: #a7c477;
+  --good-soft: rgba(167, 196, 119, 0.1);
+  --warn: #e3b35e;
+  --warn-soft: rgba(227, 179, 94, 0.1);
+  --bad: #ff8c7a;
+  --bad-soft: rgba(255, 140, 122, 0.12);
+  --grad-a: #f1eddc;
+  --grad-b: #b8b3a1;
+  --grad-c: #c49bff;
+  --grad-d: #a7c477;
+  --shadow: 0 30px 70px -50px #000;
+  --shadow-soft: 0 18px 40px -32px #000;
+  --scroll-thumb: rgba(241, 237, 220, 0.24);
+  --grid-line: transparent;
+  --topbar-bg: #171c16;
+  --drawer-bg: #1d241b;
+  --code-bg: rgba(241, 237, 220, 0.07);
+  --hero-glow: transparent;
+  --overlay: rgba(10, 15, 9, 0.78);
+  --toast-bg: #222a1f;
+  --input-bg: #1d241b;
+  --font-ui: "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-display: "RepoLens Map", "Arial Narrow", "PingFang SC", sans-serif;
+  --page-bg: #171c16;
+  --texture-color: transparent;
+  --texture-opacity: 0;
+}
+
+html[data-theme="light"],
+html[data-style][data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #f3eedf;
+  --bg-2: #ebe4d1;
+  --panel: #fbf7e9;
+  --panel-solid: #fdfaef;
+  --panel-soft: rgba(45, 45, 39, 0.045);
+  --panel-hover: rgba(45, 45, 39, 0.075);
+  --line: rgba(45, 45, 39, 0.2);
+  --line-strong: rgba(45, 45, 39, 0.4);
+  --text: #2d2d27;
+  --muted: #5b5a4f;
+  --faint: #888271;
+  --accent: #6b3fa0;
+  --accent-2: #4f6f3a;
+  --accent-3: #9a6b43;
+  --accent-soft: rgba(107, 63, 160, 0.08);
+  --accent-line: rgba(107, 63, 160, 0.42);
+  --good: #4f6f3a;
+  --good-soft: rgba(79, 111, 58, 0.08);
+  --warn: #a56a1e;
+  --warn-soft: rgba(165, 106, 30, 0.08);
+  --bad: #a63a2b;
+  --bad-soft: rgba(166, 58, 43, 0.08);
+  --grad-a: #2d2d27;
+  --grad-b: #5b5a4f;
+  --grad-c: #6b3fa0;
+  --grad-d: #4f6f3a;
+  --shadow: 0 24px 50px -42px rgba(45, 45, 39, 0.4);
+  --shadow-soft: 0 14px 30px -26px rgba(45, 45, 39, 0.26);
+  --scroll-thumb: rgba(45, 45, 39, 0.24);
+  --grid-line: transparent;
+  --topbar-bg: #f3eedf;
+  --drawer-bg: #fbf7e9;
+  --code-bg: rgba(45, 45, 39, 0.06);
+  --hero-glow: transparent;
+  --overlay: rgba(45, 45, 39, 0.34);
+  --toast-bg: #fdfaef;
+  --input-bg: #fdfaef;
+  --font-ui: "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-display: "RepoLens Map", "Arial Narrow", "PingFang SC", sans-serif;
+  --page-bg: #f3eedf;
+  --texture-color: transparent;
+  --texture-opacity: 0;
+}
+
+html[data-style] body {
+  background: var(--bg) !important;
+}
+
+html .app-bg {
+  display: none;
+}
+
+body {
+  font-family: var(--font-ui);
+}
+
+h1,
+h2,
+h3,
+.brand-text strong,
+.tech-name,
+.stat-card .v {
+  font-family: var(--font-display);
+  letter-spacing: -0.025em;
+}
+
+::selection {
+  background: var(--accent);
+  color: #fdfaef;
+}
+
+* {
+  scrollbar-color: var(--scroll-thumb) transparent;
+}
+
+.tech-card,
+.summary-card,
+.stat-card,
+.input-card,
+.rail-card,
+.live-panel,
+.tech-group,
+.module-group,
+.chat-card,
+.bubble,
+.drawer,
+.modal,
+.history-item,
+.concept,
+.feature-card,
+.step-card,
+.search-wrap,
+.btn,
+.icon-btn,
+.model-pill,
+.tag,
+.chip,
+.kind-pill,
+.example-chip,
+.tech-row,
+.architecture-card,
+.risk-card,
+.learning-card,
+.deep-dive,
+.dd-card,
+.dd-select,
+.chat-form input,
+.chat-suggestions .chip,
+.empty-icon,
+.info-grid .ig,
+.evidence li,
+.module,
+.notice,
+.hint {
+  border-radius: 0 !important;
+}
+
+.btn,
+.icon-btn,
+.nav-btn,
+.chip,
+.tag {
+  box-shadow: none !important;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #fdfaef;
+  border-color: var(--accent);
+}
+
+.btn-primary:hover {
+  background: color-mix(in srgb, var(--accent) 84%, #000);
+  border-color: color-mix(in srgb, var(--accent) 84%, #000);
+}
+
+.tech-card::before {
+  display: none !important;
+}
+
+.summary-card {
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.tabs {
+  background: var(--bg);
+  border-bottom-color: var(--line-strong);
+}
+
+.tab.active {
+  border-bottom-color: var(--accent);
+}
+
+.tab.active::after {
+  display: none;
+}
+
+.progress-bar span,
+.reading-progress span {
+  background: var(--accent) !important;
+}
+
+.status-dot,
+.live-dot,
+.model-pill.ok .dot,
+.typing-dot {
+  box-shadow: none !important;
+  animation: none !important;
+}
+
+input,
+textarea {
+  caret-color: var(--accent);
+}
+
+.foot {
+  border-top-color: var(--line-strong) !important;
 }

@@ -23,10 +23,10 @@ import {
   toolLabel,
 } from "./utils";
 
-const THEME_KEY = "repolens-theme";
-const STYLE_KEY = "repolens-style";
+const THEME_KEY = "repolens-theme-field";
+const STYLE_KEY = "repolens-style-field";
 const savedTheme = localStorage.getItem(THEME_KEY);
-const initialTheme = savedTheme === "light" || savedTheme === "dark" ? savedTheme : "dark";
+const initialTheme = savedTheme === "light" || savedTheme === "dark" ? savedTheme : "light";
 const initialStyle = normalizeStyle(localStorage.getItem(STYLE_KEY));
 
 let eventSource = null;

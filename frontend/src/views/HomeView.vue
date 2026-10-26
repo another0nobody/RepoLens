@@ -7,22 +7,8 @@ import Icon from "../components/Icon.vue";
 
 const input = ref(state.source || "");
 const focused = ref(false);
-const mouse = ref({ x: 50, y: 28 });
 const kind = computed(() => detectSource(input.value));
 const canStart = computed(() => input.value.trim().length > 0);
-
-const heroStyle = computed(() => ({
-  "--mx": `${mouse.value.x}%`,
-  "--my": `${mouse.value.y}%`,
-}));
-
-function trackMouse(event) {
-  const rect = event.currentTarget.getBoundingClientRect();
-  mouse.value = {
-    x: Math.round(((event.clientX - rect.left) / rect.width) * 100),
-    y: Math.round(((event.clientY - rect.top) / rect.height) * 100),
-  };
-}
 
 function submit() {
   if (!canStart.value) return;
@@ -44,41 +30,50 @@ function onKeydown(event) {
 
 <template>
   <section class="home">
-    <div class="hero" :style="heroStyle" @mousemove="trackMouse">
-      <div class="hero-glow" aria-hidden="true"></div>
+    <div class="terrain" aria-hidden="true">
+      <svg viewBox="0 0 1400 760" preserveAspectRatio="none">
+        <path class="open" d="M-40 210 C130 90, 250 180, 360 120 S570 70, 700 170 S930 260, 1070 130 S1290 40, 1440 120 L1440 330 C1260 300, 1120 420, 940 360 S620 260, 430 410 S120 420, -40 350 Z" />
+        <path class="marsh" d="M760 500 C840 430, 980 450, 1050 520 S1090 660, 980 700 S760 640, 760 500 Z" />
+        <path class="contour" d="M-30 600 C180 520, 300 640, 460 560 S760 470, 920 560 S1190 660, 1430 560" />
+        <path class="contour" d="M-20 545 C160 470, 290 570, 430 505 S720 430, 900 500 S1150 600, 1430 500" />
+        <path class="contour" d="M-20 490 C140 420, 270 510, 400 455 S690 390, 860 450 S1110 550, 1430 440" />
+        <path class="contour" d="M100 330 C230 280, 330 350, 450 300 S700 250, 820 300 S1020 380, 1130 300" />
+        <path class="contour" d="M60 275 C190 230, 300 300, 430 245 S680 195, 800 245 S980 320, 1080 245" />
+        <path class="course" d="M170 620 C250 510, 520 560, 610 430 S760 290, 1010 330 S1190 430, 1260 360" />
+        <circle class="control" cx="170" cy="620" r="7" />
+        <circle class="control" cx="610" cy="430" r="7" />
+        <circle class="control active" cx="1010" cy="330" r="8" />
+      </svg>
+    </div>
 
-      <p class="eyebrow">
-        <span class="eyebrow-dot"></span>
-        YOUR FIRST LANGCHAIN AGENT PROJECT
-      </p>
-      <h1>
-        输入一个仓库，<br />
-        <span class="grad">看清它的技术栈</span>
-      </h1>
+    <div class="hero">
+      <h1>找到<br /><span>技术路线</span></h1>
       <p class="lede">
-        本地目录或 GitHub 地址都可以。Agent 会扫描依赖与 import，核实每一项技术被哪些模块使用，
-        再生成一份可以继续追问的中文报告。
+        仓库不是一张文件清单，而是一片地形。RepoLens 先测出事实，再由 Agent 标出技术、模块与阅读顺序。
       </p>
-
-      <div class="hero-badges">
-        <span class="tag good"><Icon name="terminal" :size="13" /> 本地只读扫描</span>
-        <span class="tag"><Icon name="layers" :size="13" /> 模块级定位</span>
-        <span class="tag"><Icon name="spark" :size="13" /> LangChain Agent</span>
+      <div class="hero-meta">
+        <span>FIELD NOTE / 001</span>
+        <span>START → SCAN → AGENT → PROOF</span>
       </div>
     </div>
 
-    <div class="input-card" :class="{ focused }">
-      <div class="input-row">
-        <span class="input-icon" aria-hidden="true">
-          <Icon name="terminal" :size="18" />
+    <div class="start-box">
+      <div class="start-head">
+        <span>START / 输入仓库</span>
+        <span class="kind-pill" :class="kind.kind">
+          <Icon :name="kind.kind === 'github' ? 'github' : kind.kind === 'ambiguous' ? 'code' : 'folder'" :size="11" />
+          {{ kind.label }}
         </span>
+      </div>
+      <div class="start-row" :class="{ focused }">
+        <span class="start-mark" aria-hidden="true">◎</span>
         <input
           id="repo-source"
           v-model="input"
           type="text"
           autocomplete="off"
           spellcheck="false"
-          placeholder="C:\code\my-project   或   https://github.com/owner/repo"
+          placeholder="本地路径或 GitHub 地址"
           aria-label="代码仓库路径或 GitHub 地址"
           @focus="focused = true"
           @blur="focused = false"
@@ -86,422 +81,533 @@ function onKeydown(event) {
         />
         <button class="btn btn-primary analyze-btn" type="button" :disabled="state.analyzing || !canStart" @click="submit">
           <span v-if="state.analyzing" class="btn-spinner"></span>
-          <template v-else>
-            开始分析
-            <Icon name="arrowRight" :size="16" />
-          </template>
+          <template v-else>开始分析</template>
         </button>
       </div>
-
-      <div class="input-info">
-        <span class="kind-pill" :class="kind.kind">
-          <Icon :name="kind.kind === 'github' ? 'github' : kind.kind === 'ambiguous' ? 'code' : 'folder'" :size="12" />
-          {{ kind.label }}
-        </span>
-        <span class="shortcut"><kbd>Enter</kbd> 快速开始</span>
-        <span class="input-note">只读扫描 · 密钥自动脱敏</span>
+      <div class="start-meta">
+        <span>只读扫描</span>
+        <span>密钥自动脱敏</span>
+        <span>不修改仓库</span>
+        <span class="enter"><kbd>Enter</kbd> 开始</span>
       </div>
-
       <div v-if="state.examples.length" class="examples">
+        <span class="examples-label">TRAILHEADS</span>
         <button
           v-for="example in state.examples"
           :key="example.value"
-          class="chip example-chip"
+          class="example-link"
           type="button"
           :title="example.description"
           @click="useExample(example)"
         >
-          <Icon :name="example.kind === 'github' ? 'github' : 'folder'" :size="12" />
           <b>{{ example.label }}</b>
-          <span v-if="example.description" class="example-desc">{{ truncate(example.description, 34) }}</span>
+          <span v-if="example.description">{{ truncate(example.description, 26) }}</span>
         </button>
       </div>
     </div>
 
-    <div class="step-strip">
-      <article v-for="(step, index) in [
-        { no: '01', title: '扫描事实', text: '遍历目录、统计语言、解析 requirements.txt / package.json / pom.xml，提取 import 语句。' },
-        { no: '02', title: 'Agent 核实', text: '大模型拿着事实清单，逐项核实技术，定位每个技术被哪些模块使用。' },
-        { no: '03', title: '生成报告', text: '合并成技术栈全景、模块地图、架构解读、风险与学习路径，并支持继续追问。' },
-      ]" :key="step.no" class="step-card">
-        <span class="step-no">{{ step.no }}</span>
-        <h3>{{ step.title }}</h3>
-        <p>{{ step.text }}</p>
-        <span v-if="index < 2" class="step-arrow" aria-hidden="true">→</span>
-      </article>
-    </div>
-
-    <div class="feature-grid">
-      <article class="feature-card">
-        <span class="feature-icon"><Icon name="layers" :size="18" /></span>
-        <h3>技术栈全景</h3>
-        <p>按前后端、数据库、AI、基础设施等分类展示，标注版本、证据和置信度。</p>
-      </article>
-      <article class="feature-card">
-        <span class="feature-icon"><Icon name="code" :size="18" /></span>
-        <h3>模块级定位</h3>
-        <p>精确到文件与行号：哪个模块 import 了它、在项目里承担什么角色。</p>
-      </article>
-      <article class="feature-card">
-        <span class="feature-icon"><Icon name="spark" :size="18" /></span>
-        <h3>报告追问</h3>
-        <p>基于这份报告继续问「Redis 用在哪里」「先读哪个文件」，带多轮记忆。</p>
-      </article>
-      <article class="feature-card">
-        <span class="feature-icon"><Icon name="book" :size="18" /></span>
-        <h3>知识点透明</h3>
-        <p>Tool、结构化输出、中间件、人机协同、记忆，每个能力都标注对应教程章节。</p>
-      </article>
+    <div class="legs-block">
+      <div class="legs-head">
+        <span>COURSE / 03 LEGS</span>
+        <span>FOLLOW THE PURPLE LINE</span>
+      </div>
+      <div class="course-line" aria-hidden="true"></div>
+      <div class="legs">
+        <article class="leg">
+          <span class="leg-code">01</span>
+          <h2>扫描事实</h2>
+          <p>目录、语言、清单、import；先让证据落地。</p>
+          <span class="leg-state">SCAN</span>
+        </article>
+        <article class="leg">
+          <span class="leg-code">02</span>
+          <h2>Agent 核实</h2>
+          <p>拿着事实清单逐项核实每项技术被哪些模块使用。</p>
+          <span class="leg-state">AGENT</span>
+        </article>
+        <article class="leg">
+          <span class="leg-code">03</span>
+          <h2>报告证据</h2>
+          <p>技术栈、模块地图、架构、风险与学习路径；可继续追问。</p>
+          <span class="leg-state">PROOF</span>
+        </article>
+      </div>
     </div>
 
     <p class="home-foot">
-      这个项目把教程第 5~9 章的 Agent 知识点串了起来。
-      <button class="link-btn" type="button" @click="openConcepts">看看每个功能用了什么 →</button>
+      <span>RepoLens / 一个用 LangChain Agent 做的仓库技术地形图</span>
+      <button class="link-btn" type="button" @click="openConcepts">查看每个能力对应的教程知识点 →</button>
     </p>
   </section>
 </template>
 
 <style scoped lang="less">
 .home {
-  padding-top: 28px;
+  position: relative;
+  max-width: 1160px;
+  padding-top: 26px;
+  isolation: isolate;
+  overflow: hidden;
 }
 
-.hero {
-  position: relative;
-  max-width: 900px;
-  padding: 26px 0 30px;
+.terrain {
+  position: absolute;
+  z-index: -1;
+  top: -40px;
+  left: -8vw;
+  right: -8vw;
+  height: 620px;
   overflow: hidden;
+  pointer-events: none;
+  opacity: 0.75;
 
-  .hero-glow {
-    position: absolute;
-    inset: -80px -60px;
-    background: radial-gradient(circle at var(--mx) var(--my), var(--hero-glow), transparent 46%);
-    pointer-events: none;
-    z-index: -1;
-    transition: background 0.15s ease-out;
+  svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .open {
+    fill: color-mix(in srgb, var(--accent-3) 12%, transparent);
+  }
+
+  .marsh {
+    fill: color-mix(in srgb, var(--accent) 7%, transparent);
+  }
+
+  .contour {
+    fill: none;
+    stroke: color-mix(in srgb, var(--accent-3) 45%, transparent);
+    stroke-width: 0.8;
+  }
+
+  .course {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 2;
+    stroke-dasharray: 8 5;
+    opacity: 0.7;
+  }
+
+  .control {
+    fill: var(--bg);
+    stroke: var(--accent);
+    stroke-width: 2;
+  }
+
+  .control.active {
+    fill: var(--accent);
   }
 }
 
-.eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  margin: 0 0 20px;
-  color: var(--accent);
-  font-size: 11px;
-  letter-spacing: 2.2px;
-  text-transform: uppercase;
-}
-
-.eyebrow-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 14px var(--accent);
+.hero {
+  max-width: 820px;
+  padding-top: 20px;
 }
 
 h1 {
   margin: 0;
-  font-size: clamp(40px, 6.2vw, 72px);
-  line-height: 1.04;
-  letter-spacing: -2.4px;
-  font-weight: 720;
-}
+  font-family: var(--font-display);
+  font-size: clamp(64px, 9.5vw, 96px);
+  font-weight: 700;
+  line-height: 0.84;
+  letter-spacing: -0.04em;
+  text-transform: uppercase;
 
-.grad {
-  .gradient-text();
-}
-
-.lede {
-  max-width: 760px;
-  margin: 22px 0 0;
-  color: var(--muted);
-  font-size: 17px;
-  line-height: 1.75;
-}
-
-.hero-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 20px;
-}
-
-.input-card {
-  position: relative;
-  margin-top: 30px;
-  padding: 16px;
-  border-radius: @radius-xl;
-  background: linear-gradient(160deg, color-mix(in srgb, var(--panel-solid) 88%, transparent), var(--panel));
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow);
-  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
-
-  &.focused {
-    border-color: var(--accent-line);
-    box-shadow: 0 0 0 4px var(--accent-soft), var(--shadow);
+  span {
+    color: var(--accent);
   }
 }
 
-.input-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.lede {
+  max-width: 52ch;
+  margin: 26px 0 0;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.8;
 }
 
-.input-icon {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
+.hero-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  max-width: 620px;
+  margin-top: 30px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  color: var(--faint);
+  .mono();
+  font-size: 8px;
+  letter-spacing: 0.08em;
+}
+
+.start-box {
+  max-width: 820px;
+  margin-top: 30px;
+  border: 1px solid var(--line-strong);
+  background: color-mix(in srgb, var(--panel) 92%, transparent);
+}
+
+.start-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 11px;
+  border-bottom: 1px solid var(--line);
+  color: var(--faint);
+  .mono();
+  font-size: 8.5px;
+  letter-spacing: 0.08em;
+}
+
+.kind-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 8px;
+  letter-spacing: 0;
+
+  &.github {
+    color: var(--muted);
+  }
+
+  &.local {
+    color: var(--good);
+    border-color: color-mix(in srgb, var(--good) 50%, var(--line));
+  }
+
+  &.ambiguous {
+    color: var(--warn);
+    border-color: var(--warn);
+  }
+}
+
+.start-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 11px;
+
+  &.focused {
+    box-shadow: inset 0 -2px 0 var(--accent);
+  }
+}
+
+.start-mark {
   color: var(--accent);
+  font-family: var(--font-display);
+  font-size: 22px;
   flex: none;
 }
 
 #repo-source {
   flex: 1;
   min-width: 0;
-  padding: 12px 2px;
+  padding: 7px 0;
   border: 0;
-  outline: none;
+  outline: 0;
   background: transparent;
+  color: var(--text);
   font-size: 16px;
   .mono();
 
   &::placeholder {
     color: var(--faint);
-    font-family: @font-sans;
+    font-family: var(--font-ui);
+    font-size: 13px;
   }
 }
 
 .analyze-btn {
-  min-width: 132px;
-  padding: 12px 18px;
+  flex: none;
+  min-width: 110px;
+  padding: 10px 15px;
+  font-size: 11px;
 }
 
 .btn-spinner {
-  width: 14px;
-  height: 14px;
+  width: 13px;
+  height: 13px;
   border-radius: 50%;
-  border: 2px solid rgba(4, 18, 26, 0.25);
-  border-top-color: #04121a;
+  border: 2px solid rgba(253, 250, 239, 0.3);
+  border-top-color: #fdfaef;
   animation: spin 0.8s linear infinite;
 }
 
-.input-info {
+.start-meta {
   display: flex;
-  align-items: center;
   flex-wrap: wrap;
   gap: 8px 16px;
-  padding: 10px 6px 2px;
+  padding: 8px 11px;
+  border-top: 1px solid var(--line);
   color: var(--faint);
-  font-size: 11.5px;
-}
+  font-size: 9px;
 
-.kind-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 9px;
-  border-radius: @radius-pill;
-  border: 1px solid var(--line);
-  background: var(--panel-soft);
-  color: var(--muted);
-
-  &.github {
-    color: var(--accent-2);
-    border-color: color-mix(in srgb, var(--accent-2) 30%, transparent);
+  .enter {
+    margin-left: auto;
   }
-
-  &.ambiguous {
-    color: var(--warn);
-    border-color: color-mix(in srgb, var(--warn) 30%, transparent);
-  }
-
-  &.local {
-    color: var(--accent);
-    border-color: var(--accent-line);
-  }
-}
-
-.shortcut {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
 
   kbd {
     .mono();
-    padding: 1px 5px;
-    border-radius: 5px;
+    padding: 1px 4px;
     border: 1px solid var(--line);
-    background: var(--panel-soft);
-    color: var(--faint);
-    font-size: 10px;
+    color: var(--muted);
+    font-size: 8px;
   }
-}
-
-.input-note {
-  margin-left: auto;
 }
 
 .examples {
   display: flex;
+  align-items: baseline;
   flex-wrap: wrap;
-  gap: 7px;
-  margin-top: 12px;
+  gap: 6px 16px;
+  padding: 8px 11px;
+  border-top: 1px solid var(--line);
 }
 
-.example-chip {
-  gap: 6px;
-  font-size: 11.5px;
+.examples-label {
+  color: var(--faint);
+  .mono();
+  font-size: 7.5px;
+  letter-spacing: 0.08em;
+}
+
+.example-link {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
   max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 9.5px;
+  text-align: left;
 
   b {
     color: var(--text);
-    font-weight: 600;
+    font-weight: 500;
+  }
+
+  span {
+    max-width: 170px;
+    .truncate();
+    color: var(--faint);
+  }
+
+  &:hover b {
+    color: var(--accent);
   }
 }
 
-.example-desc {
-  color: var(--faint);
-  max-width: 190px;
-  .truncate();
+.legs-block {
+  position: relative;
+  max-width: 980px;
+  margin-top: 56px;
 }
 
-.step-strip {
+.legs-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line-strong);
+  color: var(--faint);
+  .mono();
+  font-size: 8px;
+  letter-spacing: 0.08em;
+}
+
+.course-line {
+  position: absolute;
+  top: 39px;
+  left: 28px;
+  right: 28px;
+  height: 1px;
+  background: var(--accent);
+  opacity: 0.7;
+}
+
+.legs {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-  margin: 34px 0 20px;
+  gap: 28px;
 }
 
-.step-card {
+.leg {
   position: relative;
-  padding: 20px;
-  border-radius: @radius-lg;
-  border: 1px solid var(--line);
-  background: var(--panel);
-  overflow: hidden;
+  padding-top: 24px;
 
-  &::after {
+  &::before {
     content: "";
     position: absolute;
-    inset: 0;
-    background: linear-gradient(140deg, var(--accent-soft), transparent 55%);
-    pointer-events: none;
+    top: -4px;
+    left: 22px;
+    width: 9px;
+    height: 9px;
+    border: 2px solid var(--accent);
+    border-radius: 50%;
+    background: var(--bg);
   }
 
-  h3 {
-    margin: 8px 0 6px;
-    font-size: 15px;
+  &:last-child::before {
+    background: var(--accent);
   }
 
-  p {
-    margin: 0;
-    color: var(--muted);
-    font-size: 12.5px;
-    line-height: 1.7;
+  .leg-code {
+    color: var(--accent);
+    .mono();
+    font-size: 9px;
   }
-}
 
-.step-no {
-  .mono();
-  font-size: 11px;
-  color: var(--accent);
-  letter-spacing: 2px;
-}
-
-.step-arrow {
-  position: absolute;
-  right: 14px;
-  top: 18px;
-  color: var(--faint);
-  font-size: 14px;
-}
-
-.feature-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-}
-
-.feature-card {
-  padding: 19px;
-  border-radius: @radius-lg;
-  border: 1px solid var(--line);
-  background: var(--panel);
-  .card-lift();
-
-  h3 {
-    margin: 10px 0 5px;
-    font-size: 14.5px;
+  h2 {
+    margin: 6px 0 0;
+    font-family: var(--font-display);
+    font-size: 21px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
   }
 
   p {
-    margin: 0;
+    max-width: 30ch;
+    margin: 7px 0 0;
     color: var(--muted);
-    font-size: 12.5px;
+    font-size: 11px;
     line-height: 1.7;
   }
-}
 
-.feature-icon {
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  color: var(--accent);
-  background: var(--accent-soft);
-  border: 1px solid var(--accent-line);
+  .leg-state {
+    display: inline-block;
+    margin-top: 12px;
+    color: var(--faint);
+    .mono();
+    font-size: 8px;
+    letter-spacing: 0.1em;
+  }
 }
 
 .home-foot {
-  margin: 30px 0 0;
-  text-align: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  max-width: 980px;
+  margin: 54px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
   color: var(--faint);
-  font-size: 12.5px;
+  font-size: 9px;
+}
+
+.link-btn {
+  border: 0;
+  background: none;
+  color: var(--accent);
+  padding: 0;
+  font-size: inherit;
 }
 
 @media (max-width: @bp-lg) {
-  .feature-grid {
-    grid-template-columns: repeat(2, 1fr);
+  h1 {
+    font-size: clamp(62px, 9vw, 92px);
+  }
+
+  .start-box,
+  .hero {
+    max-width: 740px;
   }
 }
 
 @media (max-width: @bp-md) {
   .home {
-    padding-top: 6px;
+    padding-top: 4px;
+  }
+
+  .terrain {
+    top: -20px;
+    height: 480px;
+  }
+
+  h1 {
+    font-size: clamp(54px, 16vw, 82px);
   }
 
   .lede {
-    font-size: 15px;
+    font-size: 13px;
   }
 
-  .input-row {
+  .hero-meta {
+    margin-top: 22px;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .start-box {
+    margin-top: 24px;
+  }
+
+  .start-row {
     flex-wrap: wrap;
   }
 
   #repo-source {
-    flex-basis: 100%;
+    flex-basis: calc(100% - 32px);
+    font-size: 14px;
   }
 
   .analyze-btn {
     width: 100%;
   }
 
-  .input-note {
+  .start-meta .enter {
     margin-left: 0;
   }
 
-  .step-strip,
-  .feature-grid {
-    grid-template-columns: 1fr;
+  .legs-block {
+    margin-top: 38px;
   }
 
-  .step-arrow {
+  .course-line {
     display: none;
+  }
+
+  .legs {
+    grid-template-columns: 1fr;
+    gap: 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .leg {
+    padding: 14px 0;
+    border-bottom: 1px solid var(--line);
+
+    &::before {
+      top: 19px;
+      left: 0;
+    }
+
+    .leg-code {
+      padding-left: 18px;
+    }
+
+    h2,
+    p,
+    .leg-state {
+      padding-left: 18px;
+    }
+
+    p {
+      max-width: none;
+    }
+  }
+
+  .home-foot {
+    margin-top: 28px;
+    flex-direction: column;
+    gap: 6px;
   }
 }
 </style>
