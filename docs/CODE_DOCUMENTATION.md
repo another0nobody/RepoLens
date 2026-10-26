@@ -357,6 +357,7 @@ Agent 调 clone_github_repository
 | `sources` | `language` / `manifest` / `config` / `import` / `ai` |
 | `evidence` | 最多 8 条 `{path,line,text,kind}` |
 | `modules` | 最多 20 个 `{path,line,snippet,kind,role,summary}`（按 path 去重；`summary` 是文件级大概功能） |
+| `usage_tags` | 代码使用补充得到的用途标签：缓存/消息/会话/限流/向量/数据访问/模型调用；用于默认角色文案 |
 
 ### 6.2 `RepoInsight` 结构化输出
 
@@ -410,7 +411,8 @@ Agent 调 clone_github_repository
       "hint": "现代异步 Web 框架",
       "version": "0.115.6",
       "confidence": "高",
-      "sources": ["manifest", "import"],
+      "sources": ["manifest", "import", "usage"],
+      "usage_tags": ["缓存"],
       "evidence": [{"path": "requirements.txt", "line": 3, "text": "fastapi==0.115.6", "kind": "依赖声明"}],
       "modules": [{"path": "backend/app/main.py", "line": 7, "snippet": "from fastapi import FastAPI", "kind": "导入", "role": "入口", "summary": "后端：注册 GET /health；创建 FastAPI 应用；挂载子路由"}],
       "module_count": 1,
@@ -493,6 +495,19 @@ Agent 调 clone_github_repository
 正则覆盖 Python、JS/TS、Java/Kotlin、Go、Rust、Ruby、PHP、C/C++；Jupyter Notebook 会先抽取代码单元格再按 Python 解析。
 
 匹配顺序：先查 `catalog.lookup(module)` 精确/别名/前缀；未知模块忽略，避免把标准库和第三方包误报。
+
+### 7.4.1 代码使用补充（SCN-14）
+
+清单和 import 会漏掉“从上层包导入一个类”“通过连接串使用”“只调用某个客户端”的情况。`detect_code_usages()` 在读取每个文本文件时补一层强信号：
+
+- Python 用 `ast` 遍历 `Import` / `ImportFrom` / `Name` / `Attribute` / `Call` / 字符串常量，不会把注释或 docstring 当成使用；
+- 支持 `RedisCache`、`StrictRedis`、`RedisCluster`、`redis.Redis(...)`、`redis://`、`rediss://` 等；
+- 同时识别 `postgresql://`、`mongodb://`、`mysql://` 等连接串；
+- 其他语言用强名称正则（Redis/ioredis、Kafka、Mongo、PostgreSQL、OpenAI 等）；
+- 记录 `UsageRef(spec, line, text, tag)`，`TechHit.add_usage()` 写入 `sources=usage`、`evidence kind=usage`、模块和 `usage_tags`；
+- 用途标签会进入 `default_role()`，例如 Redis 显示“在项目中作为缓存使用”。
+
+已知边界：动态拼接的字符串、反射调用、间接依赖无法保证识别；见 §17。
 
 ### 7.5 文件级功能摘要
 
@@ -1038,15 +1053,16 @@ git status --short
 5. **`log` 事件未在前端渲染**；UI 主要消费 `phase/progress/tool/warning`。
 6. **追问工具次数是提示词约束**，没有 `ToolCallLimitMiddleware` 硬限制；只有模型调用 40 次上限。
 7. **文件功能摘要是启发式的**：基于路径、路由、类/函数等强信号，不是完整语义分析；复杂文件需要人工确认。
-8. **GitHub 分析依赖 Agent**：没有模型 Key 时无法克隆，不能只靠规则分析 GitHub。
-9. **扫描是语法/正则级**：不构建 AST、不做跨文件类型推断；模块角色来自路径关键词。
-10. **词典静态维护**（252 项）；未知依赖最多展示 24 个。
-11. **报告文件历史无索引数据库**；每次 `/api/history` glob + 读 JSON，报告多时会变慢（当前上限 40 条展示）。
-12. **HITL 只有克隆一个工具**；新增有副作用工具需要显式加入 `interrupt_on`。
-13. **前端 CSS 使用 `color-mix` 等现代特性**；旧浏览器可能显示异常。
-14. **风格主要靠 CSS 变量与全局覆盖实现**；新增风格必须同时补 dark/light 两套变量，不能只改一个主色。
-15. **`local_path` 绝对路径会写入本地报告**；公开分享报告时需删除/改用相对路径。
-16. **`data/repos` 缓存不会自动清理**；长期使用需手动删除。
+8. **代码使用补充也是启发式的**：Python 用 AST，其他语言用强名称正则；动态拼接的客户端名、反射、间接依赖会漏；用途标签只表示强信号，不等于已确认的生产用法。
+9. **GitHub 分析依赖 Agent**：没有模型 Key 时无法克隆，不能只靠规则分析 GitHub。
+10. **扫描主流程不是完整类型分析**：不构建跨文件类型推断；模块角色来自路径关键词；Python 使用补充单独用 AST。
+11. **词典静态维护**（252 项）；未知依赖最多展示 24 个。
+12. **报告文件历史无索引数据库**；每次 `/api/history` glob + 读 JSON，报告多时会变慢（当前上限 40 条展示）。
+13. **HITL 只有克隆一个工具**；新增有副作用工具需要显式加入 `interrupt_on`。
+14. **前端 CSS 使用 `color-mix` 等现代特性**；旧浏览器可能显示异常。
+15. **风格主要靠 CSS 变量与全局覆盖实现**；新增风格必须同时补 dark/light 两套变量，不能只改一个主色。
+16. **`local_path` 绝对路径会写入本地报告**；公开分享报告时需删除/改用相对路径。
+17. **`data/repos` 缓存不会自动清理**；长期使用需手动删除。
 
 ---
 

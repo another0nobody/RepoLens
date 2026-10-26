@@ -2,7 +2,7 @@
 
 > 本文是 RepoLens 的**产品需求与功能契约**，用于防止后续维护或 AI Agent 修改时丢失已实现特性。
 >
-> - 文档版本：1.4
+> - 文档版本：1.5
 > - 适用基线：`main` 分支（文档创建时最新提交）
 > - 产品版本：后端 `1.0.0`，前端 `repolens-web@2.0.0`
 > - 实现说明：[CODE_DOCUMENTATION.md](CODE_DOCUMENTATION.md)
@@ -128,8 +128,9 @@
 | SCN-01 | P0 | 确定性扫描 | 不依赖大模型即可产出文件数、代码行、语言、清单、import、技术列表 |
 | SCN-02 | P0 | 依赖清单解析 | 支持 requirements/pyproject/setup/Pipfile/package.json/pom/gradle/go.mod/Cargo/composer/Gemfile/csproj/Dockerfile/compose 等 |
 | SCN-03 | P0 | import 解析 | Python/JS/TS/Java/Kotlin/Go/Rust/Ruby/PHP/C/C++ 至少可识别常用 import；Notebook 可解析 |
-| SCN-04 | P0 | 技术证据 | 每项技术有 sources、evidence、modules；证据含路径/行号/原文/类型 |
+| SCN-04 | P0 | 技术证据 | 每项技术有 sources、evidence、modules；证据含路径/行号/原文/类型；来源含 `usage`（代码实际使用） |
 | SCN-05 | P0 | 模块定位 | 模块精确到文件:行号，含代码片段、角色（入口/接口层/数据模型/测试等）和一句「大概功能」；读不到内容时退化为路径角色 |
+| SCN-14 | P0 | 代码使用补充 | 除清单/import 外，识别代码里的强技术符号与连接串（如 `RedisCache`、`redis.Redis`、`redis://`、`postgresql://`）；记录用途标签（缓存/消息/会话/数据访问）和行号；Python 用 AST，避免把注释/docstring 当成使用；其他语言用强名称正则 |
 | SCN-06 | P0 | 版本与置信度 | 版本来自清单且按主依赖优先；置信度高/中/低；AI 推断项标记 `ai_inferred` |
 | SCN-07 | P0 | 扫描上限 | 最多 8000 文件、2600 个文件内容、单文件 600KB；超限设置 `truncated` 并在报告 warning |
 | SCN-08 | P1 | 技术词典 | 12 个分类、252 项技术；支持别名和大小写归一 |
@@ -441,7 +442,7 @@ resolved（SSE interrupt_resolved；关闭弹窗）
 
 - [ ] **SRC-01/02** 本地 + GitHub 两种来源；
 - [ ] **SRC-03** 路径安全拒绝；
-- [ ] **SCN-01~07** 扫描、清单、import、证据、模块、版本/置信度、上限；
+- [ ] **SCN-01~07 / SCN-14** 扫描、清单、import、证据、模块、版本/置信度、代码使用补充、上限；
 - [ ] **AGT-01~07** Agent 流程、6 工具、结构化输出、无 Key/AI 异常降级、调用限制、事实约束；
 - [ ] **RUN-01~09** 创建、状态、时间线、工具流、待办、Token、重连、恢复、后台、错误重试；
 - [ ] **HITL-01~07** 克隆审批、倒计时、批准/拒绝、Esc 禁止、重复提交防护；
@@ -655,3 +656,4 @@ resolved（SSE interrupt_resolved；关闭弹窗）
 | 1.2 | 2026-10-25 | 新增晴空 Sky 风格（UI-15）、云朵/阳光背景与首次选择自动浅色 |
 | 1.3 | 2026-10-25 | 追问新增技术深挖模板（CHAT-11~13）、technology_deep_dive 工具与事实/推断分离答法 |
 | 1.4 | 2026-10-25 | 模块地图新增文件级「大概功能」摘要，技术抽屉与 AI 工具同步使用 |
+| 1.5 | 2026-10-26 | 新增代码使用补充（SCN-14）：AST/强名称识别 RedisCache、redis.Redis、连接串等；技术增加 usage_tags 用途 |

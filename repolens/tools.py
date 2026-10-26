@@ -224,6 +224,8 @@ def build_tools(ctx: AnalysisContext) -> list:
                     lines.append(
                         f"- {module['path']}:{module['line']}｜{module['role']}{summary}｜{module['snippet']}"
                     )
+                if tech.usage_tags:
+                    lines.append(f"- 用途：{'、'.join(sorted(tech.usage_tags))}")
             else:
                 lines.append("使用它的模块：没有找到直接 import（可能仅由配置/框架间接使用）。")
             chunks.append("\n".join(lines))

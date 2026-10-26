@@ -20,6 +20,7 @@
 
 from __future__ import annotations
 
+import ast
 import json
 import os
 import re
@@ -221,6 +222,16 @@ class ImportRef:
 
 
 @dataclass
+class UsageRef:
+    """一行代码里对某项技术的实际使用（不一定是 import）。"""
+
+    spec: catalog.TechSpec
+    line: int
+    text: str
+    tag: str
+
+
+@dataclass
 class DepRef:
     """依赖清单里的一条依赖（或一个由配置推导出的技术）。"""
 
@@ -255,6 +266,7 @@ class TechHit:
     sources: set[str] = field(default_factory=set)
     evidence: list[dict] = field(default_factory=list)
     modules: dict[str, dict] = field(default_factory=dict)
+    usage_tags: set[str] = field(default_factory=set)
     version_score: int = -1  # 内部使用：版本号的"可信优先级"，越大越优先
 
     def add_evidence(self, path: str, line: int, text: str, kind: str) -> None:
@@ -286,6 +298,15 @@ class TechHit:
             "summary": (summary or "").strip()[:120],
         }
 
+    def add_usage(self, path: str, line: int, text: str, tag: str, summary: str = "") -> None:
+        self.sources.add("usage")
+        if self.confidence != "高":
+            self.confidence = "中"
+        self.add_evidence(path, line, text, "usage")
+        self.add_module(path, line, text, "使用", summary)
+        if tag:
+            self.usage_tags.add(tag)
+
     def to_dict(self) -> dict:
         modules = sorted(self.modules.values(), key=lambda item: item["path"])
         return {
@@ -299,6 +320,7 @@ class TechHit:
             "evidence": self.evidence,
             "modules": modules,
             "module_count": len(modules),
+            "usage_tags": sorted(self.usage_tags),
         }
 
 
@@ -420,7 +442,7 @@ _FILE_TEST = re.compile(r"^\s*def\s+test_\w+|^\s*(?:it|test)\(\s*[\"']", re.MULT
 _FILE_VUE = re.compile(r"<template[\s>]", re.IGNORECASE)
 _FILE_REACT = re.compile(r"\b(?:useState|useEffect|useMemo|createRoot|ReactDOM)\b|from\s+[\"']react[\"']")
 _FILE_HTTP = re.compile(r"\b(?:axios|fetch|httpx|requests)\.", re.IGNORECASE)
-_FILE_REDIS = re.compile(r"\bredis\b", re.IGNORECASE)
+_FILE_REDIS = re.compile(r"\b(?:redis|rediscache|redisclient|strictredis|rediscluster|ioredis)\b", re.IGNORECASE)
 
 
 def _short_names(names: list[str], limit: int = 3) -> str:
@@ -1156,6 +1178,168 @@ def extract_imports(text: str, language: str) -> list[ImportRef]:
     return refs
 
 
+# 这些名字出现在**代码**里时，已经足够说明技术在项目中被使用。
+# 只收强信号，避免把普通变量名（例如 cache）当成 Redis。
+_USAGE_CODE_NAMES = re.compile(
+    r"\b(?:rediscache|redisclient|strictredis|rediscluster|redis|ioredis|"
+    r"mongoclient|pymongo|mongoose|psycopg2?|asyncpg|postgresql|postgres|"
+    r"mysql|mongodb|kafkaproducer|kafkaconsumer|celery|openai|asyncopenai|"
+    r"azureopenai|chatopenai)\b",
+    re.IGNORECASE,
+)
+
+_USAGE_URL_HINTS = (
+    ("redis://", "Redis"),
+    ("rediss://", "Redis"),
+    ("postgres://", "PostgreSQL"),
+    ("postgresql://", "PostgreSQL"),
+    ("mongodb://", "MongoDB"),
+    ("mongodb+srv://", "MongoDB"),
+    ("mysql://", "MySQL"),
+)
+
+
+def _usage_tag(spec: catalog.TechSpec, name: str, text: str) -> str:
+    """把“用了什么”细化为一个用途标签，例如 Redis → 缓存/消息/会话。"""
+    lowered = f"{name} {text}".lower()
+    if spec.name == "Redis":
+        if any(word in lowered for word in ("queue", "stream", "publish", "subscribe", "pubsub")):
+            return "消息"
+        if "session" in lowered:
+            return "会话"
+        if "rate" in lowered:
+            return "限流"
+        if "vector" in lowered:
+            return "向量"
+        return "缓存"
+    if spec.category == "数据库":
+        return "数据访问"
+    if spec.category == "缓存与消息":
+        return "缓存"
+    if spec.category == "AI & Agent":
+        return "模型调用"
+    return ""
+
+
+def _python_usage_refs(text: str) -> list[UsageRef]:
+    """用 AST 找 Python 代码里的技术调用；不会把 docstring/注释当成使用。
+
+    这就是用来补“只 import 了上层包，或者只从上层包导入了一个类”的情况，
+    例如 `from langchain_community.cache import RedisCache`。
+    """
+    try:
+        tree = ast.parse(text)
+    except SyntaxError:
+        return []
+    lines = text.splitlines()
+
+    def line_text(line: int) -> str:
+        return _clean_snippet(lines[line - 1]) if 1 <= line <= len(lines) else ""
+
+    refs: list[UsageRef] = []
+
+    def add(name: str, line: int) -> None:
+        if not name:
+            return
+        base = name.rsplit(".", 1)[-1]
+        if not _USAGE_CODE_NAMES.search(base):
+            return
+        spec = catalog.lookup(name) or catalog.lookup(base)
+        if spec is None:
+            return
+        snippet = line_text(line)
+        refs.append(UsageRef(spec=spec, line=line, text=snippet, tag=_usage_tag(spec, name, snippet)))
+
+    def name_of(node: ast.AST) -> str:
+        if isinstance(node, ast.Name):
+            return node.id
+        if isinstance(node, ast.Attribute):
+            left = name_of(node.value)
+            return f"{left}.{node.attr}" if left else node.attr
+        return ""
+
+    class Visitor(ast.NodeVisitor):
+        def visit_Import(self, node: ast.Import) -> None:
+            for alias in node.names:
+                add(alias.name.split(".", 1)[0], node.lineno)
+            self.generic_visit(node)
+
+        def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
+            if node.module:
+                add(node.module, node.lineno)
+            for alias in node.names:
+                add(alias.name, node.lineno)
+            self.generic_visit(node)
+
+        def visit_Call(self, node: ast.Call) -> None:
+            add(name_of(node.func), node.lineno)
+            self.generic_visit(node)
+
+        def visit_Name(self, node: ast.Name) -> None:
+            add(node.id, node.lineno)
+            self.generic_visit(node)
+
+        def visit_Attribute(self, node: ast.Attribute) -> None:
+            add(node.attr, node.lineno)
+            add(name_of(node), node.lineno)
+            self.generic_visit(node)
+
+        def visit_Constant(self, node: ast.Constant) -> None:
+            if isinstance(node.value, str):
+                lowered = node.value.lower()
+                for prefix, tech_name in _USAGE_URL_HINTS:
+                    if prefix in lowered:
+                        add(tech_name, node.lineno)
+
+    Visitor().visit(tree)
+
+    # 同一个文件同一行的同一技术只留一条，避免 `redis.Redis(...)` 产生 Name+Attribute+Call 三份。
+    unique: dict[tuple[str, int], UsageRef] = {}
+    for ref in refs:
+        unique.setdefault((ref.spec.name, ref.line), ref)
+    return list(unique.values())
+
+
+def detect_code_usages(relative: str, text: str, language: str) -> list[UsageRef]:
+    """从代码内容里找技术的实际使用，作为 import/清单之外的补充证据。
+
+    这是“细粒度”的关键：只出现在上层包导入、符号调用、连接 URL 里的技术，
+    也能进入技术栈，而不是只认 requirements.txt 里的包名。
+    """
+    if not text or language not in {
+        "Python", "Jupyter Notebook", "JavaScript", "TypeScript", "Vue", "Svelte",
+        "Go", "Rust", "Java", "Kotlin", "PHP", "Ruby",
+    }:
+        return []
+    if language in {"Python", "Jupyter Notebook"}:
+        return _python_usage_refs(text)
+
+    lowered = text.lower()
+    refs: list[UsageRef] = []
+    lines = text.splitlines()
+    for match in _USAGE_CODE_NAMES.finditer(text):
+        spec = catalog.lookup(match.group(0))
+        if spec is None:
+            continue
+        line = text.count("\n", 0, match.start()) + 1
+        snippet = _clean_snippet(lines[line - 1]) if line <= len(lines) else match.group(0)
+        refs.append(UsageRef(spec=spec, line=line, text=snippet, tag=_usage_tag(spec, match.group(0), snippet)))
+    for prefix, tech_name in _USAGE_URL_HINTS:
+        index = lowered.find(prefix)
+        if index < 0:
+            continue
+        spec = catalog.lookup(tech_name)
+        if spec is None:
+            continue
+        line = text.count("\n", 0, index) + 1
+        snippet = _clean_snippet(lines[line - 1]) if line <= len(lines) else prefix
+        refs.append(UsageRef(spec=spec, line=line, text=snippet, tag=_usage_tag(spec, tech_name, snippet)))
+    unique: dict[tuple[str, int], UsageRef] = {}
+    for ref in refs:
+        unique.setdefault((ref.spec.name, ref.line), ref)
+    return list(unique.values())
+
+
 def _match_import(module: str) -> catalog.TechSpec | None:
     """把 import 名映射到词典里的技术。"""
     spec = catalog.lookup(module)
@@ -1203,6 +1387,7 @@ def scan_repository(
     language_stats: dict[str, dict] = {}
     manifests: list[Manifest] = []
     imports: dict[str, list[ImportRef]] = {}
+    usages: dict[str, list[UsageRef]] = {}
     file_summaries: dict[str, str] = {}
     total_size = 0
     total_loc = 0
@@ -1253,6 +1438,9 @@ def scan_repository(
             if not text:
                 continue
             file_summaries[relative] = describe_file(relative, text, language)
+            code_usages = detect_code_usages(relative, text, language)
+            if code_usages:
+                usages[relative] = code_usages
 
             if is_code and language != "Jupyter Notebook":
                 file_loc = _count_loc(text)
@@ -1300,7 +1488,7 @@ def scan_repository(
     languages = _build_language_stats(language_stats, total_loc)
     top_dirs = _build_top_dirs(files)
     entry_points = _find_entry_points(files)
-    techs, omitted_dependencies = _build_techs(languages, manifests, imports, file_summaries, progress)
+    techs, omitted_dependencies = _build_techs(languages, manifests, imports, usages, file_summaries, progress)
 
     snapshot = Snapshot(
         root=root,
@@ -1408,6 +1596,7 @@ def _build_techs(
     languages: list[dict],
     manifests: list[Manifest],
     imports: dict[str, list[ImportRef]],
+    usages: dict[str, list[UsageRef]],
     file_summaries: dict[str, str],
     progress: Progress,
 ) -> tuple[list[TechHit], int]:
@@ -1509,6 +1698,14 @@ def _build_techs(
                 hit.confidence = "中"
             hit.add_evidence(path, ref.line, ref.text, "import")
             hit.add_module(path, ref.line, ref.text, "导入", file_summaries.get(path, ""))
+
+    # 3b) 代码实际使用：补上只从上层包导入、符号调用或连接 URL 里出现的技术。
+    # 例如 `from langchain_community.cache import RedisCache`，模块路径本身不是 redis，
+    # 但 RedisCache 这个符号已经足够说明 Redis 被使用。
+    for path, refs in usages.items():
+        for ref in refs:
+            hit = get_hit(ref.spec)
+            hit.add_usage(path, ref.line, ref.text, ref.tag, file_summaries.get(path, ""))
 
     # 4) 排序：分类顺序 -> 置信度 -> 模块数 -> 名字
     category_order = {name: index for index, name in enumerate(catalog.CATEGORIES)}
