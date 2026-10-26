@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 
 import ArchitectureTab from "../components/ArchitectureTab.vue";
 import ChatTab from "../components/ChatTab.vue";
@@ -26,6 +26,9 @@ const report = computed(() => state.report);
 const stats = computed(() => report.value?.stats || {});
 const techs = computed(() => report.value?.techs || []);
 const warnings = computed(() => report.value?.warnings || []);
+const depth = ref(2);
+const depthLabels = ["名称", "职责", "模块"];
+const depthLabel = computed(() => depthLabels[depth.value] || "模块");
 
 const codeLanguages = computed(() => (report.value?.languages || []).filter((item) => item.is_code).length);
 const scanSeconds = computed(() => Number(stats.value.scan_seconds || 0));
@@ -51,7 +54,7 @@ const filteredTechs = computed(() => {
       tech.name,
       tech.category,
       tech.role,
-      ...(tech.modules || []).map((module) => `${module.path} ${module.snippet} ${module.role}`),
+      ...(tech.modules || []).map((module) => `${module.path} ${module.snippet} ${module.role} ${module.summary || ""}`),
     ]
       .join(" ")
       .toLowerCase()
@@ -79,13 +82,13 @@ const aiState = computed(() => {
   const ai = report.value?.ai || {};
   if (ai.used) return { cls: "good", text: `AI 解读 · ${ai.model || "模型"}` };
   if (ai.error) return { cls: "warn", text: "AI 解读失败 · 规则报告" };
-  return { cls: "warn", text: "仅规则扫描（未启用 AI 解读）" };
+  return { cls: "warn", text: "仅规则扫描" };
 });
 
 const summaryNote = computed(() => {
   const ai = report.value?.ai || {};
   if (ai.used) return "由大模型基于扫描事实生成";
-  if (ai.error) return "AI 不可用，本报告由本地规则生成";
+  if (ai.error) return "AI 不可用，由本地规则生成";
   return "由本地规则生成";
 });
 
@@ -139,10 +142,10 @@ function copyLink() {
     <header class="report-head">
       <div class="head-main">
         <div class="kicker">
-          <button class="btn back-btn" type="button" @click="goHome">
+          <button class="back-btn" type="button" @click="goHome">
             <Icon name="arrowLeft" :size="14" /> 新分析
           </button>
-          <span class="tag" :class="aiState.cls"><Icon name="spark" :size="12" /> {{ aiState.text }}</span>
+          <span class="ai-state" :class="aiState.cls"><i></i>{{ aiState.text }}</span>
         </div>
         <h2>{{ report.repo_name }}</h2>
         <a v-if="sourceHref" class="source mono" :href="sourceHref" target="_blank" rel="noreferrer noopener">
@@ -152,146 +155,154 @@ function copyLink() {
       </div>
 
       <div class="actions">
-        <button class="btn icon-action" type="button" title="复制报告链接" @click="copyLink">
-          <Icon name="copy" :size="14" /> 链接
-        </button>
-        <button class="btn" type="button" @click="reanalyze">
-          <Icon name="refresh" :size="14" /> 重新分析
-        </button>
-        <button class="btn" type="button" @click="exportMarkdown">
-          <Icon name="download" :size="14" /> Markdown
-        </button>
-        <button class="btn" type="button" @click="exportJSON">
-          <Icon name="download" :size="14" /> JSON
-        </button>
+        <button class="text-action" type="button" @click="copyLink">复制链接</button>
+        <button class="text-action" type="button" @click="reanalyze">重新分析</button>
+        <button class="text-action" type="button" @click="exportMarkdown">Markdown</button>
+        <button class="text-action" type="button" @click="exportJSON">JSON</button>
       </div>
     </header>
 
-    <div class="stat-row">
-      <div class="stat-card">
-        <span class="v">{{ fmtNumber(stats.file_count) }}</span>
-        <span class="l">文件总数</span>
-      </div>
-      <div class="stat-card">
-        <span class="v">{{ fmtNumber(stats.code_file_count) }}</span>
-        <span class="l">代码文件</span>
-      </div>
-      <div class="stat-card">
-        <span class="v">{{ fmtNumber(stats.total_loc) }}</span>
-        <span class="l">代码行数</span>
-      </div>
-      <div class="stat-card">
-        <span class="v">{{ fmtNumber(techs.length) }}</span>
-        <span class="l">技术项</span>
-      </div>
-      <div class="stat-card">
-        <span class="v">{{ fmtNumber(codeLanguages) }}</span>
-        <span class="l">编程语言</span>
-      </div>
-      <div class="stat-card">
-        <span class="v">{{ scanSeconds < 0.1 ? "<0.1" : scanSeconds.toFixed(1) }}s</span>
-        <span class="l">扫描耗时</span>
-      </div>
-    </div>
+    <div class="report-layout">
+      <aside class="report-index">
+        <div class="index-top">
+          <span>REPORT / 001</span>
+          <span>{{ techs.length }} ITEMS</span>
+        </div>
 
-    <div class="summary-card">
-      <div class="summary-top">
-        <h3><Icon name="spark" :size="14" /> 一句话看懂</h3>
-        <span class="muted">{{ summaryNote }}</span>
-      </div>
-      <p>{{ report.summary }}</p>
-      <div v-if="(report.highlights || []).length" class="highlights">
-        <span v-for="(item, index) in report.highlights" :key="index" class="chip">{{ item }}</span>
-      </div>
-    </div>
+        <nav class="tabs" aria-label="报告分区">
+          <button
+            v-for="(tab, index) in TABS"
+            :key="tab.key"
+            class="tab"
+            :class="{ active: state.tab === tab.key }"
+            type="button"
+            @click="switchTab(tab.key)"
+          >
+            <span class="tab-no">{{ String(index + 1).padStart(2, "0") }}</span>
+            <span>{{ tab.label }}</span>
+          </button>
+        </nav>
 
-    <div v-if="warnings.length" class="warnings">
-      <p v-for="(warning, index) in warnings" :key="index">
-        <Icon name="warning" :size="13" /> {{ warning }}
-      </p>
-    </div>
-
-    <nav class="tabs" aria-label="报告分区">
-      <button
-        v-for="tab in TABS"
-        :key="tab.key"
-        class="tab"
-        :class="{ active: state.tab === tab.key }"
-        type="button"
-        @click="switchTab(tab.key)"
-      >
-        {{ tab.label }}
-      </button>
-    </nav>
-
-    <div class="tab-panels">
-      <section v-show="state.tab === 'stack'" class="tab-panel">
-        <div class="stack-toolbar">
-          <div class="chips">
-            <button
-              v-for="chip in categoryChips"
-              :key="chip.name"
-              class="chip"
-              :class="{ active: state.category === chip.name }"
-              type="button"
-              @click="setCategory(chip.name)"
-            >
-              {{ chip.icon }} {{ chip.name }} · {{ fmtNumber(chip.count) }}
-            </button>
+        <div class="depth-control">
+          <div class="depth-head">
+            <span>EVIDENCE DEPTH</span>
+            <b>{{ depthLabel }}</b>
           </div>
-          <div class="search-wrap">
-            <Icon name="search" :size="14" />
-            <input
-              :value="state.search"
-              type="search"
-              placeholder="搜索技术 / 分类 / 文件…"
-              aria-label="搜索技术"
-              @input="setSearch($event.target.value)"
-            />
-            <button v-if="state.search" class="clear-search" type="button" aria-label="清空搜索" @click="setSearch('')">
-              <Icon name="close" :size="12" />
-            </button>
+          <input
+            v-model.number="depth"
+            type="range"
+            min="0"
+            max="2"
+            step="1"
+            aria-label="证据深度：名称、职责、模块"
+          />
+          <div class="depth-scale" aria-hidden="true">
+            <span>NAME</span><span>ROLE</span><span>MODULES</span>
           </div>
         </div>
 
-        <div v-if="groups.length" class="tech-groups">
-          <section v-for="group in groups" :key="group.name" class="tech-group">
-            <div class="group-head">
-              <h3>{{ group.icon }} {{ group.name }}</h3>
-              <span class="count mono">{{ group.items.length }}</span>
-              <span class="line"></span>
+        <div class="index-note">
+          拖动深度轴，查看技术从“只是名字”到“证据模块”的展开。
+        </div>
+      </aside>
+
+      <main class="report-main" :class="`depth-${depth}`">
+        <div class="stat-line">
+          <span><b>{{ fmtNumber(stats.file_count) }}</b><small>文件</small></span>
+          <span><b>{{ fmtNumber(stats.code_file_count) }}</b><small>代码文件</small></span>
+          <span><b>{{ fmtNumber(stats.total_loc) }}</b><small>代码行</small></span>
+          <span><b>{{ fmtNumber(techs.length) }}</b><small>技术项</small></span>
+          <span><b>{{ fmtNumber(codeLanguages) }}</b><small>语言</small></span>
+          <span><b>{{ scanSeconds < 0.1 ? "<0.1" : scanSeconds.toFixed(1) }}s</b><small>扫描</small></span>
+        </div>
+
+        <div class="abstract">
+          <div class="abstract-head">
+            <span>ABSTRACT</span>
+            <span>{{ summaryNote }}</span>
+          </div>
+          <p>{{ report.summary }}</p>
+          <div v-if="(report.highlights || []).length" class="highlights">
+            <span v-for="(item, index) in report.highlights" :key="index">{{ item }}</span>
+          </div>
+        </div>
+
+        <div v-if="warnings.length" class="warnings">
+          <p v-for="(warning, index) in warnings" :key="index">
+            <Icon name="warning" :size="13" /> {{ warning }}
+          </p>
+        </div>
+
+        <div class="tab-panels">
+          <section v-show="state.tab === 'stack'" class="tab-panel">
+            <div class="stack-toolbar">
+              <div class="chips">
+                <button
+                  v-for="chip in categoryChips"
+                  :key="chip.name"
+                  class="chip"
+                  :class="{ active: state.category === chip.name }"
+                  type="button"
+                  @click="setCategory(chip.name)"
+                >
+                  {{ chip.name }} <span>{{ fmtNumber(chip.count) }}</span>
+                </button>
+              </div>
+              <div class="search-wrap">
+                <Icon name="search" :size="14" />
+                <input
+                  :value="state.search"
+                  type="search"
+                  placeholder="搜索技术 / 分类 / 文件…"
+                  aria-label="搜索技术"
+                  @input="setSearch($event.target.value)"
+                />
+                <button v-if="state.search" class="clear-search" type="button" aria-label="清空搜索" @click="setSearch('')">
+                  <Icon name="close" :size="12" />
+                </button>
+              </div>
             </div>
-            <div class="tech-grid">
-              <TechCard
-                v-for="(tech, index) in group.items"
-                :key="tech.key"
-                :tech="tech"
-                :index="index"
-                @open="openTech"
-              />
+
+            <div v-if="groups.length" class="tech-groups">
+              <section v-for="group in groups" :key="group.name" class="tech-group">
+                <div class="group-head">
+                  <h3>{{ group.name }}</h3>
+                  <span class="count">{{ group.items.length }} ENTRIES</span>
+                  <span class="line"></span>
+                </div>
+                <div class="tech-list">
+                  <TechCard
+                    v-for="(tech, index) in group.items"
+                    :key="tech.key"
+                    :tech="tech"
+                    :index="index"
+                    @open="openTech"
+                  />
+                </div>
+              </section>
+            </div>
+            <div v-else class="empty-state">
+              没有匹配的技术。试试清空搜索或切换分类。
             </div>
           </section>
+
+          <section v-show="state.tab === 'modules'" class="tab-panel">
+            <ModuleMap />
+          </section>
+
+          <section v-show="state.tab === 'architecture'" class="tab-panel">
+            <ArchitectureTab :report="report" />
+          </section>
+
+          <section v-show="state.tab === 'chat'" class="tab-panel">
+            <ChatTab />
+          </section>
+
+          <section v-show="state.tab === 'process'" class="tab-panel">
+            <ProcessTab :events="state.events" />
+          </section>
         </div>
-        <div v-else class="empty-state">
-          没有匹配的技术。试试清空搜索或切换分类。
-        </div>
-      </section>
-
-      <section v-show="state.tab === 'modules'" class="tab-panel">
-        <ModuleMap />
-      </section>
-
-      <section v-show="state.tab === 'architecture'" class="tab-panel">
-        <ArchitectureTab :report="report" />
-      </section>
-
-      <section v-show="state.tab === 'chat'" class="tab-panel">
-        <ChatTab />
-      </section>
-
-      <section v-show="state.tab === 'process'" class="tab-panel">
-        <ProcessTab :events="state.events" />
-      </section>
+      </main>
     </div>
   </section>
 </template>
@@ -309,7 +320,7 @@ function copyLink() {
   span {
     display: block;
     height: 100%;
-    background: linear-gradient(90deg, var(--accent), var(--accent-2), var(--accent-3));
+    background: var(--accent);
     transition: width 0.1s linear;
   }
 }
@@ -320,7 +331,8 @@ function copyLink() {
   justify-content: space-between;
   gap: 24px;
   flex-wrap: wrap;
-  padding: 8px 0 22px;
+  padding: 4px 0 18px;
+  border-bottom: 1px solid var(--line-strong);
 }
 
 .head-main {
@@ -328,9 +340,11 @@ function copyLink() {
 
   h2 {
     margin: 10px 0 0;
-    font-size: clamp(28px, 4vw, 42px);
-    line-height: 1.1;
-    letter-spacing: -1px;
+    font-family: var(--font-display);
+    font-size: clamp(38px, 5.5vw, 62px);
+    line-height: 0.9;
+    letter-spacing: -0.04em;
+    font-weight: 400;
     word-break: break-word;
   }
 }
@@ -343,8 +357,39 @@ function copyLink() {
 }
 
 .back-btn {
-  padding: 7px 10px;
-  font-size: 11.5px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 10px;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--accent);
+  }
+}
+
+.ai-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--faint);
+  .mono();
+  font-size: 8.5px;
+
+  i {
+    width: 5px;
+    height: 5px;
+    background: var(--faint);
+  }
+
+  &.good i {
+    background: var(--good);
+  }
+
+  &.warn i {
+    background: var(--warn);
+  }
 }
 
 .source {
@@ -352,8 +397,8 @@ function copyLink() {
   align-items: center;
   gap: 5px;
   margin: 8px 0 0;
-  color: var(--muted);
-  font-size: 11.5px;
+  color: var(--faint);
+  font-size: 9px;
   word-break: break-all;
 
   &:hover {
@@ -363,106 +408,198 @@ function copyLink() {
 
 .actions {
   display: flex;
-  gap: 7px;
-  flex-wrap: wrap;
-
-  .btn {
-    font-size: 11.5px;
-    padding: 8px 11px;
-  }
-}
-
-.stat-row {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 9px;
-  margin-bottom: 14px;
-}
-
-.stat-card {
-  padding: 13px 15px;
-  border-radius: @radius-md;
-  border: 1px solid var(--line);
-  background: var(--panel);
-  transition: border-color 0.2s, transform 0.2s;
-
-  &:hover {
-    border-color: var(--line-strong);
-    transform: translateY(-2px);
-  }
-
-  .v {
-    display: block;
-    .mono();
-    font-size: 21px;
-    font-weight: 600;
-    letter-spacing: -0.5px;
-  }
-
-  .l {
-    color: var(--faint);
-    font-size: 10.5px;
-  }
-}
-
-.summary-card {
-  position: relative;
-  padding: 20px 22px;
-  border-radius: @radius-xl;
-  border: 1px solid var(--accent-line);
-  background:
-    radial-gradient(900px 160px at 0% 0%, var(--accent-soft), transparent 70%),
-    var(--panel);
-  margin-bottom: 14px;
-}
-
-.summary-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
+  padding-bottom: 2px;
+}
 
-  h3 {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    margin: 0;
+.text-action {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-family: var(--font-ui);
+  font-size: 10px;
+  cursor: pointer;
+
+  &:hover {
     color: var(--accent);
-    font-size: 12px;
-  }
-
-  .muted {
-    font-size: 10.5px;
+    text-decoration: underline;
+    text-underline-offset: 3px;
   }
 }
 
-.summary-card > p {
-  margin: 10px 0 0;
-  font-size: 15.5px;
-  line-height: 1.8;
+.report-layout {
+  display: grid;
+  grid-template-columns: 178px minmax(0, 1fr);
+  gap: 34px;
+  align-items: start;
+  margin-top: 22px;
+}
+
+.report-index {
+  position: sticky;
+  top: 24px;
+  min-width: 0;
+}
+
+.index-top,
+.abstract-head,
+.depth-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--faint);
+  .mono();
+  font-size: 8px;
+  letter-spacing: 0.08em;
+}
+
+.index-top {
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.tabs {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--line);
+}
+
+.tab {
+  display: grid;
+  grid-template-columns: 25px 1fr;
+  gap: 5px;
+  align-items: baseline;
+  padding: 9px 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: none;
+  color: var(--muted);
+  font-size: 11.5px;
+  text-align: left;
+  cursor: pointer;
+
+  .tab-no {
+    color: var(--faint);
+    .mono();
+    font-size: 8px;
+  }
+
+  &:hover {
+    color: var(--text);
+  }
+
+  &.active {
+    color: var(--accent);
+  }
+}
+
+.depth-control {
+  margin-top: 26px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line-strong);
+
+  input[type="range"] {
+    width: 100%;
+    margin: 12px 0 4px;
+    accent-color: var(--accent);
+    cursor: ew-resize;
+  }
+
+  .depth-head b {
+    color: var(--accent);
+    font-weight: 400;
+  }
+}
+
+.depth-scale {
+  display: flex;
+  justify-content: space-between;
+  color: var(--faint);
+  .mono();
+  font-size: 7.5px;
+  letter-spacing: 0.04em;
+}
+
+.index-note {
+  margin-top: 14px;
+  color: var(--faint);
+  font-size: 9px;
+  line-height: 1.6;
+}
+
+.report-main {
+  min-width: 0;
+}
+
+.stat-line {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+
+  span {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 9px 10px;
+    border-right: 1px solid var(--line);
+
+    &:last-child {
+      border-right: 0;
+    }
+  }
+
+  b {
+    color: var(--text);
+    .mono();
+    font-size: 17px;
+    font-weight: 400;
+    line-height: 1.2;
+  }
+
+  small {
+    color: var(--faint);
+    font-size: 8.5px;
+  }
+}
+
+.abstract {
+  max-width: 74ch;
+  padding: 22px 0 18px;
+  border-bottom: 1px solid var(--line-strong);
+
+  p {
+    margin: 14px 0 0;
+    color: var(--text);
+    font-family: var(--font-display);
+    font-size: clamp(21px, 2.3vw, 29px);
+    line-height: 1.58;
+    letter-spacing: -0.02em;
+  }
 }
 
 .highlights {
   display: flex;
   flex-wrap: wrap;
-  gap: 7px;
-  margin-top: 14px;
+  gap: 4px 14px;
+  margin-top: 15px;
+  color: var(--muted);
+  font-size: 10px;
 
-  .chip {
-    cursor: default;
-    color: var(--text);
+  span::before {
+    content: "—";
+    margin-right: 5px;
+    color: var(--accent);
   }
 }
 
 .warnings {
-  padding: 12px 15px;
-  border-radius: @radius-md;
-  border: 1px solid color-mix(in srgb, var(--warn) 26%, transparent);
-  background: var(--warn-soft);
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
   color: var(--warn);
-  margin-bottom: 14px;
-  font-size: 11.5px;
+  font-size: 10px;
   line-height: 1.7;
 
   p {
@@ -473,84 +610,58 @@ function copyLink() {
   }
 }
 
-.tabs {
-  position: sticky;
-  top: @topbar-h;
-  z-index: 30;
-  display: flex;
-  gap: 3px;
-  margin: 18px 0 18px;
-  padding: 0;
-  border-bottom: 1px solid var(--line);
-  overflow-x: auto;
-  .glass();
-  background: var(--topbar-bg);
-}
-
-.tab {
-  position: relative;
-  border: 0;
-  background: none;
-  padding: 11px 15px;
-  color: var(--muted);
-  font-size: 12.5px;
-  white-space: nowrap;
-  border-bottom: 2px solid transparent;
-  transition: color 0.16s;
-
-  &:hover {
-    color: var(--text);
-  }
-
-  &.active {
-    color: var(--text);
-    border-bottom-color: var(--accent);
-
-    &::after {
-      content: "";
-      position: absolute;
-      left: 13px;
-      right: 13px;
-      bottom: -2px;
-      height: 2px;
-      background: linear-gradient(90deg, var(--accent), var(--accent-2));
-      box-shadow: 0 0 14px var(--accent);
-    }
-  }
-}
-
 .stack-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
-  margin-bottom: 18px;
+  margin: 18px 0 14px;
 }
 
 .chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.chip {
+  padding: 5px 7px;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  background: none;
+  color: var(--muted);
+  font-size: 9.5px;
+  cursor: pointer;
+
+  span {
+    color: var(--faint);
+    font-size: 8px;
+  }
+
+  &:hover {
+    color: var(--text);
+  }
+
+  &.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
 }
 
 .search-wrap {
-  position: relative;
   display: flex;
   align-items: center;
   gap: 6px;
-  width: 250px;
+  width: 220px;
   max-width: 100%;
-  padding: 0 10px;
-  border-radius: @radius-sm;
-  border: 1px solid var(--line);
-  background: var(--input-bg);
+  padding: 0 8px;
+  border-bottom: 1px solid var(--line-strong);
   color: var(--faint);
-  transition: border-color 0.18s, box-shadow 0.18s;
 
   &:focus-within {
-    border-color: var(--accent-line);
-    box-shadow: 0 0 0 3px var(--accent-soft);
+    border-color: var(--accent);
   }
 
   input {
@@ -559,8 +670,9 @@ function copyLink() {
     border: 0;
     outline: 0;
     background: transparent;
-    padding: 9px 0;
-    font-size: 12px;
+    padding: 6px 0;
+    color: var(--text);
+    font-size: 10.5px;
   }
 }
 
@@ -585,18 +697,23 @@ function copyLink() {
 
 .group-head {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 8px;
-  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line-strong);
 
   h3 {
     margin: 0;
-    font-size: 14px;
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 400;
+    letter-spacing: -0.02em;
   }
 
   .count {
     color: var(--faint);
-    font-size: 10.5px;
+    .mono();
+    font-size: 8px;
   }
 
   .line {
@@ -606,14 +723,36 @@ function copyLink() {
   }
 }
 
-.tech-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(272px, 1fr));
-  gap: 11px;
+.tech-list {
+  display: flex;
+  flex-direction: column;
+}
+
+// Depth axis: name → role → modules. The full row is visible by default.
+.depth-0 {
+  :deep(.tech-role),
+  :deep(.tech-foot) {
+    display: none;
+  }
+
+  :deep(.tech-card) {
+    padding-top: 11px;
+    padding-bottom: 11px;
+  }
+}
+
+.depth-1 {
+  :deep(.tech-foot) {
+    display: none;
+  }
+}
+
+.depth-2 :deep(.tech-role) {
+  margin-bottom: 12px;
 }
 
 .tab-panel {
-  animation: fade-up 0.3s @ease-out;
+  animation: fade-up 0.22s @ease-out;
 }
 
 .report-loading {
@@ -621,14 +760,13 @@ function copyLink() {
 }
 
 .skeleton {
-  border-radius: @radius-lg;
   background: linear-gradient(90deg, var(--panel-soft) 25%, var(--panel-hover) 37%, var(--panel-soft) 63%);
   background-size: 400% 100%;
   animation: shimmer 1.4s ease infinite;
 }
 
 .hero-skeleton {
-  height: 220px;
+  height: 160px;
   margin-bottom: 14px;
 }
 
@@ -640,26 +778,29 @@ function copyLink() {
 }
 
 .stat-skeleton {
-  height: 64px;
+  height: 52px;
 }
 
 .body-skeleton {
   height: 520px;
 }
 
-@media (max-width: @bp-xl) {
-  .stat-row {
-    grid-template-columns: repeat(3, 1fr);
-  }
-
-  .skeleton-row {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
 @media (max-width: @bp-lg) {
-  .tech-grid {
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  .report-layout {
+    grid-template-columns: 156px minmax(0, 1fr);
+    gap: 24px;
+  }
+
+  .stat-line {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .stat-line span:nth-child(3) {
+    border-right: 0;
+  }
+
+  .stat-line span:nth-child(n + 4) {
+    border-top: 1px solid var(--line);
   }
 }
 
@@ -670,26 +811,97 @@ function copyLink() {
 
   .actions {
     width: 100%;
+    gap: 16px;
   }
 
-  .stat-row {
-    grid-template-columns: repeat(2, 1fr);
+  .report-layout {
+    grid-template-columns: 1fr;
+    gap: 18px;
+    margin-top: 16px;
+  }
+
+  .report-index {
+    position: static;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .tabs {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    border-top: 0;
+    border-bottom: 1px solid var(--line);
+    overflow-x: auto;
+  }
+
+  .tab {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    padding: 8px 4px;
+    border-bottom: 0;
+    border-right: 1px solid var(--line);
+    font-size: 10px;
+
+    .tab-no {
+      display: none;
+    }
+
+    &:last-child {
+      border-right: 0;
+    }
+
+    &.active {
+      border-bottom: 2px solid var(--accent);
+    }
+  }
+
+  .depth-control {
+    margin-top: 12px;
+    padding-top: 8px;
+  }
+
+  .index-note {
+    display: none;
+  }
+
+  .stat-line {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .abstract p {
+    font-size: 19px;
   }
 
   .search-wrap {
     width: 100%;
   }
+}
+
+@media (max-width: @bp-sm) {
+  .stat-line {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .stat-line span:nth-child(3) {
+    border-right: 1px solid var(--line);
+  }
+
+  .stat-line span:nth-child(2n) {
+    border-right: 0;
+  }
+
+  .stat-line span:nth-child(n + 3) {
+    border-top: 1px solid var(--line);
+  }
 
   .tabs {
-    top: 64px;
+    grid-template-columns: repeat(5, minmax(66px, 1fr));
   }
 
-  .tech-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .summary-card {
-    padding: 17px;
+  .tab {
+    font-size: 9px;
   }
 }
 </style>

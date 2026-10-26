@@ -1,8 +1,7 @@
 <script setup>
 import { computed } from "vue";
 
-import Icon from "./Icon.vue";
-import { categoryColor, categoryIcon, confidenceClass, fmtNumber } from "../utils";
+import { categoryColor, confidenceClass, fmtNumber } from "../utils";
 
 const props = defineProps({
   tech: { type: Object, required: true },
@@ -13,6 +12,7 @@ const emit = defineEmits(["open"]);
 const color = computed(() => categoryColor(props.tech.category));
 const confidence = computed(() => confidenceClass(props.tech.confidence));
 const modules = computed(() => props.tech.modules || []);
+const frame = computed(() => String(props.index + 1).padStart(2, "0"));
 const keyModules = computed(() =>
   (props.tech.key_modules || modules.value.map((module) => module.path) || []).slice(0, 6)
 );
@@ -30,171 +30,175 @@ const keyModules = computed(() =>
     @keydown.enter.prevent="emit('open', tech.key)"
     @keydown.space.prevent="emit('open', tech.key)"
   >
-    <div class="tech-top">
-      <div class="tech-id">
-        <div class="tech-name">{{ tech.name }}</div>
-        <div class="tech-version mono">{{ tech.version ? `v${tech.version}` : "版本未知" }}</div>
+    <span class="tech-index mono">{{ frame }}</span>
+
+    <div class="tech-main">
+      <div class="tech-title">
+        <span class="tech-name">{{ tech.name }}</span>
+        <span class="tech-version mono">{{ tech.version ? `v${tech.version}` : "版本未知" }}</span>
       </div>
-      <span class="tag cat">{{ categoryIcon(tech.category) }} {{ tech.category }}</span>
+      <p class="tech-role">{{ tech.role || tech.hint || "暂无说明" }}</p>
     </div>
 
-    <p class="tech-role">{{ tech.role || tech.hint || "暂无说明" }}</p>
-
-    <div class="tech-foot">
+    <div class="tech-side tech-foot">
+      <span class="cat"><i :style="{ background: color }"></i>{{ tech.category }}</span>
       <span class="conf"><i :class="confidence"></i>置信度 {{ tech.confidence || "中" }}</span>
-      <span class="sep"></span>
-      <span>{{ fmtNumber(tech.module_count) }} 个模块</span>
-      <span class="sep"></span>
-      <span>{{ fmtNumber((tech.evidence || []).length) }} 条证据</span>
-      <span v-if="tech.ai_inferred" class="ai-flag"><Icon name="spark" :size="11" /> AI 推断</span>
-      <span class="open-arrow" aria-hidden="true"><Icon name="arrowRight" :size="14" /></span>
+      <span>{{ fmtNumber(tech.module_count) }} 模块</span>
+      <span>{{ fmtNumber((tech.evidence || []).length) }} 证据</span>
+      <span v-if="tech.ai_inferred" class="ai-flag">AI 推断</span>
     </div>
+
+    <span class="open-arrow" aria-hidden="true">↗</span>
   </article>
 </template>
 
 <style scoped lang="less">
 .tech-card {
-  position: relative;
-  padding: 17px 18px 14px;
-  border-radius: @radius-lg;
-  border: 1px solid var(--line);
-  background: var(--panel);
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto 18px;
+  gap: 12px;
+  align-items: center;
+  padding: 13px 4px;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
   cursor: pointer;
-  overflow: hidden;
-  animation: card-in 0.38s @ease-out both;
-  animation-delay: calc(var(--i) * 24ms);
-  transition: transform 0.2s @ease-out, border-color 0.2s, box-shadow 0.2s;
+  text-align: left;
+  transition: background 0.14s, padding 0.14s;
   .focus-ring();
 
-  &::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 16px;
-    bottom: 16px;
-    width: 2px;
-    border-radius: 2px;
-    background: var(--c);
-    opacity: 0.85;
-    transition: top 0.2s, bottom 0.2s;
+  &:hover,
+  &:focus-visible {
+    padding-left: 8px;
+    background: var(--panel-soft);
   }
 
-  &:hover {
-    transform: translateY(-3px);
-    border-color: color-mix(in srgb, var(--c) 40%, var(--line));
-    box-shadow: var(--shadow-soft);
+  &:hover .tech-name,
+  &:focus-visible .tech-name {
+    color: var(--accent);
+  }
 
-    &::before {
-      top: 10px;
-      bottom: 10px;
-    }
-
-    .open-arrow {
-      opacity: 1;
-      transform: translateX(0);
-    }
+  &:hover .open-arrow,
+  &:focus-visible .open-arrow {
+    color: var(--accent);
+    transform: translate(1px, -1px);
   }
 }
 
-@keyframes card-in {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.tech-index {
+  color: var(--faint);
+  font-size: 9px;
+  align-self: start;
+  padding-top: 3px;
 }
 
-.tech-top {
+.tech-main {
+  min-width: 0;
+}
+
+.tech-title {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
+  align-items: baseline;
+  gap: 9px;
+  min-width: 0;
 }
 
 .tech-name {
-  font-size: 16px;
-  font-weight: 650;
-  letter-spacing: -0.2px;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 23px;
+  font-weight: 400;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+  transition: color 0.14s;
 }
 
 .tech-version {
-  margin-top: 2px;
   color: var(--faint);
-  font-size: 9.5px;
-}
-
-.tag.cat {
-  max-width: 130px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: 10px;
+  font-size: 8px;
+  white-space: nowrap;
 }
 
 .tech-role {
-  margin: 9px 0 12px;
+  max-width: 72ch;
+  margin: 5px 0 0;
   color: var(--muted);
-  font-size: 12.5px;
-  line-height: 1.65;
-  .text-clamp(3);
+  font-size: 11px;
+  line-height: 1.6;
+  .text-clamp(2);
 }
 
-.tech-foot {
+.tech-side {
   display: flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--faint);
-  font-size: 10px;
   flex-wrap: wrap;
-}
+  justify-content: flex-end;
+  gap: 4px 10px;
+  max-width: 240px;
+  color: var(--faint);
+  font-size: 8.5px;
+  line-height: 1.4;
+  text-align: right;
 
-.conf {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
+  .cat,
+  .conf {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
 
   i {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
+    width: 5px;
+    height: 5px;
+    flex: none;
     background: var(--faint);
+  }
 
-    &.high {
-      background: var(--good);
-      box-shadow: 0 0 7px var(--good);
-    }
+  .conf i.high {
+    background: var(--good);
+  }
 
-    &.mid {
-      background: var(--warn);
-    }
+  .conf i.mid {
+    background: var(--warn);
+  }
+
+  .ai-flag {
+    color: var(--warn);
   }
 }
 
-.sep {
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  background: var(--faint);
-  opacity: 0.6;
-}
-
-.ai-flag {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  margin-left: auto;
-  color: var(--accent-2);
-}
-
 .open-arrow {
-  position: absolute;
-  right: 16px;
-  bottom: 13px;
-  color: var(--c);
-  opacity: 0;
-  transform: translateX(-4px);
-  transition: 0.2s @ease-out;
+  color: var(--faint);
+  font-size: 12px;
+  align-self: start;
+  padding-top: 3px;
+  transition: color 0.14s, transform 0.14s;
+}
+
+@media (max-width: @bp-md) {
+  .tech-card {
+    grid-template-columns: 27px minmax(0, 1fr) 16px;
+    gap: 8px;
+    padding: 12px 0;
+  }
+
+  .tech-name {
+    font-size: 21px;
+  }
+
+  .tech-side {
+    grid-column: 2 / 3;
+    justify-content: flex-start;
+    max-width: none;
+    padding-top: 4px;
+    text-align: left;
+  }
+
+  .tech-foot {
+    grid-column: 2 / 3;
+  }
+
+  .open-arrow {
+    grid-column: 3;
+    grid-row: 1;
+  }
 }
 </style>

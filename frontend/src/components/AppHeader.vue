@@ -1,14 +1,13 @@
 <script setup>
 import { computed } from "vue";
 
-import BrandLogo from "./BrandLogo.vue";
 import Icon from "./Icon.vue";
 
 const props = defineProps({
   health: { type: Object, default: null },
-  theme: { type: String, default: "dark" },
+  theme: { type: String, default: "light" },
 });
-const emit = defineEmits(["brand", "styles", "history", "concepts", "toggle-theme"]);
+const emit = defineEmits(["brand", "history", "concepts", "toggle-theme"]);
 
 const modelLabel = computed(() => {
   if (!props.health) return "检测环境中…";
@@ -19,172 +18,256 @@ const modelClass = computed(() => (!props.health ? "" : props.health.ai_availabl
 </script>
 
 <template>
-  <header class="topbar-wrap">
-    <div class="topbar">
-      <button class="brand" type="button" aria-label="回到首页" @click="emit('brand')">
-        <BrandLogo :size="40" />
-        <span class="brand-text">
-          <strong>RepoLens</strong>
-          <small>技术栈侦探</small>
-        </span>
-      </button>
+  <aside class="index-rail">
+    <button class="brand" type="button" aria-label="回到首页" @click="emit('brand')">
+      <span class="rail-mark" aria-hidden="true">RL</span>
+      <span class="brand-text">
+        <strong>RepoLens</strong>
+        <small>TYPE INDEX / 001</small>
+      </span>
+    </button>
 
-      <div class="topbar-right">
-        <span class="model-pill" :class="modelClass" :title="health ? '当前使用的大模型' : '正在连接后端'">
-          <span class="dot"></span>
-          <span class="model-text">{{ modelLabel }}</span>
-        </span>
-        <button class="btn btn-ghost nav-btn" type="button" title="切换页面风格" @click="emit('styles')">
-          <Icon name="palette" :size="16" />
-          <span>风格</span>
-        </button>
-        <button class="btn btn-ghost nav-btn" type="button" title="查看历史分析" @click="emit('history')">
-          <Icon name="history" :size="16" />
-          <span>历史</span>
-        </button>
-        <button class="btn btn-ghost nav-btn" type="button" title="查看知识点讲解" @click="emit('concepts')">
-          <Icon name="book" :size="16" />
-          <span>知识点</span>
-        </button>
-        <button
-          class="icon-btn"
-          type="button"
-          :aria-label="theme === 'dark' ? '切换到浅色主题' : '切换到深色主题'"
-          :title="theme === 'dark' ? '切换到浅色主题' : '切换到深色主题'"
-          @click="emit('toggle-theme')"
-        >
-          <Icon :name="theme === 'dark' ? 'sun' : 'moon'" :size="17" />
-        </button>
-      </div>
+    <nav class="rail-nav" aria-label="主导航">
+      <button class="rail-link" type="button" @click="emit('brand')">
+        <span class="no">00</span><span>分析</span>
+      </button>
+      <button class="rail-link" type="button" @click="emit('history')">
+        <span class="no">01</span><span>历史</span>
+      </button>
+      <button class="rail-link" type="button" @click="emit('concepts')">
+        <span class="no">02</span><span>知识点</span>
+      </button>
+    </nav>
+
+    <div class="rail-foot">
+      <span class="model" :class="modelClass" :title="health ? '当前使用的大模型' : '正在连接后端'">
+        <i></i>{{ modelLabel }}
+      </span>
+      <button
+        class="theme-btn"
+        type="button"
+        :aria-label="theme === 'dark' ? '切换到浅色主题' : '切换到深色主题'"
+        :title="theme === 'dark' ? '切换到浅色主题' : '切换到深色主题'"
+        @click="emit('toggle-theme')"
+      >
+        <Icon :name="theme === 'dark' ? 'sun' : 'moon'" :size="15" />
+        <span>{{ theme === "dark" ? "LIGHT" : "DARK" }}</span>
+      </button>
     </div>
-  </header>
+  </aside>
 </template>
 
 <style scoped lang="less">
-.topbar-wrap {
-  position: sticky;
-  top: 0;
+.index-rail {
+  position: fixed;
+  inset: 0 auto 0 0;
   z-index: 40;
-  .glass();
-  background: var(--topbar-bg);
-  border-bottom: 1px solid var(--line);
-  transition: background 0.3s ease, border-color 0.3s ease;
-}
-
-.topbar {
+  width: 212px;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: @space-5;
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 14px 26px;
+  flex-direction: column;
+  padding: 24px 18px 18px;
+  border-right: 1px solid var(--line-strong);
+  background: var(--bg);
 }
 
 .brand {
   display: flex;
-  align-items: center;
-  gap: 11px;
+  align-items: flex-start;
+  gap: 10px;
   border: 0;
   background: none;
   padding: 0;
+  color: var(--text);
   text-align: left;
   .focus-ring();
 
-  &:hover :deep(.brand-mark) {
-    transform: rotate(-4deg) scale(1.03);
+  &:hover .rail-mark {
+    color: var(--accent);
+    border-color: var(--accent);
   }
+}
+
+.rail-mark {
+  display: grid;
+  place-items: center;
+  width: 31px;
+  height: 31px;
+  flex: none;
+  border: 1px solid var(--line-strong);
+  color: var(--accent);
+  font-family: var(--font-display);
+  font-size: 14px;
+  line-height: 1;
+  transition: 0.16s;
 }
 
 .brand-text {
   display: flex;
   flex-direction: column;
-  line-height: 1.15;
+  min-width: 0;
 
   strong {
-    font-size: 17px;
-    letter-spacing: 0.4px;
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: -0.04em;
   }
 
   small {
-    color: var(--muted);
-    font-size: 11px;
-    letter-spacing: 1.6px;
+    margin-top: 4px;
+    color: var(--faint);
+    font-family: var(--font-ui);
+    font-size: 8px;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
   }
 }
 
-.topbar-right {
+.rail-nav {
+  display: flex;
+  flex-direction: column;
+  margin-top: 54px;
+  border-top: 1px solid var(--line);
+}
+
+.rail-link {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  align-items: baseline;
+  gap: 8px;
+  padding: 12px 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: none;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: left;
+  transition: color 0.16s, padding 0.16s;
+  .focus-ring();
+
+  .no {
+    color: var(--faint);
+    font-family: var(--font-ui);
+    font-size: 9px;
+  }
+
+  &:hover {
+    color: var(--accent);
+    padding-left: 3px;
+  }
+}
+
+.rail-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.model {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  color: var(--faint);
+  font-size: 8.5px;
+  line-height: 1.4;
+  .truncate();
+
+  i {
+    width: 5px;
+    height: 5px;
+    flex: none;
+    background: var(--faint);
+  }
+
+  &.ok i {
+    background: var(--good);
+  }
+
+  &.warn i {
+    background: var(--warn);
+  }
 }
 
-.model-pill {
+.theme-btn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  max-width: 300px;
-  padding: 7px 12px;
-  border-radius: @radius-pill;
-  border: 1px solid var(--line);
-  background: var(--panel-soft);
+  gap: 6px;
+  width: max-content;
+  padding: 0;
+  border: 0;
+  background: none;
   color: var(--muted);
-  font-size: 12px;
-  .truncate();
+  font-family: var(--font-ui);
+  font-size: 8.5px;
+  letter-spacing: 0.1em;
+  .focus-ring();
 
-  .dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: var(--faint);
-    flex: none;
+  &:hover {
+    color: var(--accent);
   }
-
-  &.ok .dot {
-    background: var(--good);
-    box-shadow: 0 0 12px var(--good);
-    animation: pulse 2.4s infinite;
-  }
-
-  &.warn .dot {
-    background: var(--warn);
-    box-shadow: 0 0 12px var(--warn);
-  }
-}
-
-.model-text {
-  .truncate();
-}
-
-.nav-btn {
-  padding: 8px 11px;
-  font-size: 12.5px;
 }
 
 @media (max-width: @bp-md) {
-  .topbar {
-    padding: 11px 15px;
+  .index-rail {
+    position: sticky;
+    inset: auto;
+    width: auto;
+    flex-direction: row;
+    align-items: center;
+    padding: 9px 15px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line-strong);
+  }
+
+  .brand-text strong {
+    font-size: 18px;
   }
 
   .brand-text small {
     display: none;
   }
 
-  .model-pill {
-    max-width: 160px;
+  .rail-nav {
+    flex-direction: row;
+    margin: 0 0 0 auto;
+    border-top: 0;
+    border-bottom: 0;
   }
 
-  .model-text {
+  .rail-link {
+    display: flex;
+    gap: 4px;
+    padding: 5px 8px;
+    border-bottom: 0;
     font-size: 11px;
+
+    .no {
+      display: none;
+    }
+
+    &:hover {
+      padding-left: 8px;
+    }
   }
 
-  .nav-btn span {
+  .rail-foot {
+    flex-direction: row;
+    align-items: center;
+    margin: 0 0 0 12px;
+    padding: 0 0 0 12px;
+    border-top: 0;
+    border-left: 1px solid var(--line);
+  }
+
+  .model {
     display: none;
   }
-}
 
-@media (max-width: @bp-sm) {
-  .model-pill {
+  .theme-btn span {
     display: none;
   }
 }

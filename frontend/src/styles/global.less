@@ -854,16 +854,6 @@ p {
   pointer-events: none;
 }
 
-.bg-grid {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(var(--grid-line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
-  background-size: 56px 56px;
-  mask-image: radial-gradient(ellipse 82% 62% at 50% 0%, #000 32%, transparent 100%);
-}
-
 .bg-glow {
   position: absolute;
   border-radius: 50%;
@@ -1405,4 +1395,267 @@ p {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+// ============================================================================
+// DESIGN BRANCH: Type Index
+// A specimen sheet: paper, ink, one vermilion, and a real depth axis.
+// ============================================================================
+@font-face {
+  font-family: "RepoLens Specimen";
+  src: url("/fonts/specimen-regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "RepoLens Specimen";
+  src: url("/fonts/specimen-bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "RepoLens Specimen";
+  src: url("/fonts/specimen-italic.woff2") format("woff2");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+html[data-theme="dark"],
+html[data-style][data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #141210;
+  --bg-2: #1a1713;
+  --panel: #1b1814;
+  --panel-solid: #201c17;
+  --panel-soft: rgba(244, 240, 230, 0.045);
+  --panel-hover: rgba(244, 240, 230, 0.08);
+  --line: rgba(244, 240, 230, 0.19);
+  --line-strong: rgba(244, 240, 230, 0.38);
+  --text: #f1ebdf;
+  --muted: #b7af9f;
+  --faint: #857d6e;
+  --accent: #ff5a45;
+  --accent-2: #e4dccb;
+  --accent-3: #b7af9f;
+  --accent-soft: rgba(255, 90, 69, 0.12);
+  --accent-line: rgba(255, 90, 69, 0.5);
+  --good: #a9c99a;
+  --good-soft: rgba(169, 201, 154, 0.1);
+  --warn: #e5b86a;
+  --warn-soft: rgba(229, 184, 106, 0.1);
+  --bad: #ff5a45;
+  --bad-soft: rgba(255, 90, 69, 0.12);
+  --grad-a: #f1ebdf;
+  --grad-b: #b7af9f;
+  --grad-c: #ff5a45;
+  --grad-d: #857d6e;
+  --shadow: 0 30px 70px -48px #000;
+  --shadow-soft: 0 18px 40px -30px #000;
+  --scroll-thumb: rgba(244, 240, 230, 0.24);
+  --grid-line: transparent;
+  --topbar-bg: #141210;
+  --drawer-bg: #1b1814;
+  --code-bg: rgba(244, 240, 230, 0.07);
+  --hero-glow: transparent;
+  --overlay: rgba(10, 9, 7, 0.76);
+  --toast-bg: #201c17;
+  --input-bg: #1b1814;
+  --font-ui: "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-display: "RepoLens Specimen", "Noto Serif SC", "Songti SC", Georgia, serif;
+  --page-bg: #141210;
+  --texture-color: transparent;
+  --texture-opacity: 0;
+}
+
+html[data-theme="light"],
+html[data-style][data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #f2eee4;
+  --bg-2: #ece6d9;
+  --panel: #f8f4e9;
+  --panel-solid: #fbf7ed;
+  --panel-soft: rgba(23, 20, 16, 0.045);
+  --panel-hover: rgba(23, 20, 16, 0.075);
+  --line: rgba(23, 20, 16, 0.2);
+  --line-strong: rgba(23, 20, 16, 0.42);
+  --text: #171410;
+  --muted: #5e574c;
+  --faint: #8c8475;
+  --accent: #c8392c;
+  --accent-2: #171410;
+  --accent-3: #5e574c;
+  --accent-soft: rgba(200, 57, 44, 0.08);
+  --accent-line: rgba(200, 57, 44, 0.42);
+  --good: #4f713d;
+  --good-soft: rgba(79, 113, 61, 0.08);
+  --warn: #8d5a17;
+  --warn-soft: rgba(141, 90, 23, 0.08);
+  --bad: #b42c22;
+  --bad-soft: rgba(180, 44, 34, 0.08);
+  --grad-a: #171410;
+  --grad-b: #5e574c;
+  --grad-c: #c8392c;
+  --grad-d: #8c8475;
+  --shadow: 0 24px 50px -42px rgba(23, 20, 16, 0.42);
+  --shadow-soft: 0 14px 30px -26px rgba(23, 20, 16, 0.28);
+  --scroll-thumb: rgba(23, 20, 16, 0.24);
+  --grid-line: transparent;
+  --topbar-bg: #f2eee4;
+  --drawer-bg: #f8f4e9;
+  --code-bg: rgba(23, 20, 16, 0.06);
+  --hero-glow: transparent;
+  --overlay: rgba(23, 20, 16, 0.32);
+  --toast-bg: #fbf7ed;
+  --input-bg: #fbf7ed;
+  --font-ui: "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-display: "RepoLens Specimen", "Noto Serif SC", "Songti SC", Georgia, serif;
+  --page-bg: #f2eee4;
+  --texture-color: transparent;
+  --texture-opacity: 0;
+}
+
+html[data-style] body {
+  background: var(--bg) !important;
+}
+
+html .app-bg {
+  display: none;
+}
+
+body {
+  font-family: var(--font-ui);
+}
+
+h1,
+h2,
+h3,
+.brand-text strong,
+.tech-name,
+.stat-card .v {
+  font-family: var(--font-display);
+  letter-spacing: -0.04em;
+}
+
+::selection {
+  background: var(--accent);
+  color: #fff9ed;
+}
+
+* {
+  scrollbar-color: var(--scroll-thumb) transparent;
+}
+
+// Specimen rules, not cards.
+.tech-card,
+.summary-card,
+.stat-card,
+.input-card,
+.rail-card,
+.live-panel,
+.tech-group,
+.module-group,
+.chat-card,
+.bubble,
+.drawer,
+.modal,
+.history-item,
+.concept,
+.feature-card,
+.step-card,
+.search-wrap,
+.btn,
+.icon-btn,
+.model-pill,
+.tag,
+.chip,
+.kind-pill,
+.example-chip,
+.tech-row,
+.architecture-card,
+.risk-card,
+.learning-card,
+.deep-dive,
+.dd-card,
+.dd-select,
+.chat-form input,
+.chat-suggestions .chip,
+.empty-icon,
+.info-grid .ig,
+.evidence li,
+.module,
+.notice,
+.hint {
+  border-radius: 0 !important;
+}
+
+.btn,
+.icon-btn,
+.nav-btn,
+.chip,
+.tag {
+  box-shadow: none !important;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff9ed;
+  border-color: var(--accent);
+}
+
+.btn-primary:hover {
+  background: color-mix(in srgb, var(--accent) 84%, #000);
+  border-color: color-mix(in srgb, var(--accent) 84%, #000);
+}
+
+.tech-card::before {
+  display: none !important;
+}
+
+.summary-card {
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.tabs {
+  background: var(--bg);
+  border-bottom-color: var(--line-strong);
+}
+
+.tab.active {
+  border-bottom-color: var(--accent);
+}
+
+.tab.active::after {
+  display: none;
+}
+
+.progress-bar span,
+.reading-progress span {
+  background: var(--accent) !important;
+}
+
+.status-dot,
+.live-dot,
+.model-pill.ok .dot,
+.typing-dot {
+  box-shadow: none !important;
+  animation: none !important;
+}
+
+input,
+textarea {
+  caret-color: var(--accent);
+}
+
+.foot {
+  border-top-color: var(--line-strong) !important;
 }

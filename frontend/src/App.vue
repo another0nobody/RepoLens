@@ -6,7 +6,6 @@ import ConceptsDrawer from "./components/ConceptsDrawer.vue";
 import HistoryDrawer from "./components/HistoryDrawer.vue";
 import HitlModal from "./components/HitlModal.vue";
 import Icon from "./components/Icon.vue";
-import StylePicker from "./components/StylePicker.vue";
 import TechDrawer from "./components/TechDrawer.vue";
 import ToastHost from "./components/ToastHost.vue";
 import HomeView from "./views/HomeView.vue";
@@ -18,7 +17,6 @@ import {
   initApp,
   openConcepts,
   openHistory,
-  openStyles,
   state,
   toggleTheme,
 } from "./store";
@@ -78,7 +76,6 @@ onBeforeUnmount(() => {
       :health="state.health"
       :theme="state.theme"
       @brand="goHome"
-      @styles="openStyles"
       @history="openHistory"
       @concepts="openConcepts"
       @toggle-theme="toggleTheme"
@@ -93,19 +90,16 @@ onBeforeUnmount(() => {
     </main>
 
     <footer class="foot">
-      <span>RepoLens · 一个用来学习 LangChain Agent 的小项目</span>
-      <span class="foot-right">
-        <span>扫描在本地完成 · 只有必要的事实会发送给模型</span>
-        <a href="https://github.com/another0nobody/RepoLens" target="_blank" rel="noreferrer noopener">
-          <Icon name="github" :size="14" /> GitHub
-        </a>
-      </span>
+      <span>RepoLens · 证据先于解释</span>
+      <span>本地只读扫描 · 敏感信息脱敏</span>
+      <a href="https://github.com/another0nobody/RepoLens" target="_blank" rel="noreferrer noopener">
+        <Icon name="github" :size="13" /> GitHub
+      </a>
     </footer>
 
     <TechDrawer />
     <HistoryDrawer />
     <ConceptsDrawer />
-    <StylePicker />
     <HitlModal />
     <ToastHost />
   </div>
@@ -114,37 +108,29 @@ onBeforeUnmount(() => {
 <style scoped lang="less">
 .app {
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
 }
 
 .shell {
-  flex: 1;
-  width: 100%;
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 40px 26px 90px;
+  width: calc(100% - 212px);
+  max-width: 1320px;
+  margin-left: 212px;
+  padding: 44px 34px 80px;
 }
 
 .foot {
   display: flex;
   justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-  max-width: 1280px;
-  width: 100%;
-  margin: 0 auto;
-  padding: 20px 26px 30px;
-  border-top: 1px solid var(--line);
-  color: var(--faint);
-  font-size: 11px;
-}
-
-.foot-right {
-  display: flex;
   align-items: center;
   gap: 16px;
   flex-wrap: wrap;
+  max-width: 1320px;
+  width: calc(100% - 212px);
+  margin-left: 212px;
+  padding: 18px 34px 26px;
+  border-top: 1px solid var(--line-strong);
+  color: var(--faint);
+  font-size: 9px;
+  letter-spacing: 0.04em;
 
   a {
     display: inline-flex;
@@ -159,13 +145,25 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: @bp-md) {
+  .shell,
+  .foot {
+    width: 100%;
+    margin-left: 0;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
   .shell {
-    padding: 26px 16px 70px;
+    padding-top: 24px;
+    padding-bottom: 60px;
   }
 
   .foot {
-    padding: 16px;
+    padding-top: 14px;
+    padding-bottom: 18px;
     flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
   }
 }
 </style>
