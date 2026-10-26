@@ -137,6 +137,11 @@ def default_role(tech: TechHit) -> str:
     if tech.category == "编程语言":
         return f"{tech.name} 是本项目的主要开发语言之一。"
     hint = f"（{tech.hint}）" if tech.hint else ""
+    tags = "、".join(sorted(tech.usage_tags))
+    if tags and tech.modules:
+        return f"在项目中作为{tags}使用{hint}，在 {len(tech.modules)} 个模块中被直接使用。"
+    if tags:
+        return f"在项目中作为{tags}使用{hint}。"
     if tech.modules:
         return f"用于{base.rstrip('。')}{hint}，在 {len(tech.modules)} 个模块中被直接使用。"
     return f"用于{base.rstrip('。')}{hint}，主要在依赖清单或配置中出现。"
