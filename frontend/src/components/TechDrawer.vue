@@ -4,7 +4,7 @@ import { computed } from "vue";
 import BaseDrawer from "./BaseDrawer.vue";
 import Icon from "./Icon.vue";
 import { closeTech, copy, currentTech, state } from "../store";
-import { categoryColor, fmtNumber } from "../utils";
+import { categoryColor, fmtNumber, sourceLabel } from "../utils";
 
 const tech = computed(() => currentTech.value);
 const modules = computed(() => tech.value?.modules || []);
@@ -37,17 +37,21 @@ const color = computed(() => categoryColor(tech.value?.category || ""));
           <span>证据条数</span>
         </div>
         <div class="ig">
-          <b>{{ (tech.sources || []).join(" / ") || "扫描" }}</b>
+          <b>{{ (tech.sources || []).map(sourceLabel).join(" / ") || "扫描" }}</b>
           <span>识别来源</span>
         </div>
       </div>
+
+      <p v-if="(tech.usage_tags || []).length" class="usage-line">
+        用途：{{ tech.usage_tags.join("、") }}
+      </p>
 
       <div v-if="tech.ai_inferred" class="notice">
         <Icon name="warning" :size="15" />
         这项技术是 AI 根据上下文推断的，代码中没有找到直接证据，请人工确认。
       </div>
 
-      <h4>证据（依赖清单 / import）</h4>
+      <h4>证据（依赖清单 / import / 代码使用）</h4>
       <ul v-if="evidence.length" class="evidence">
         <li v-for="(item, index) in evidence" :key="index">
           <button class="loc mono" type="button" @click="copy(`${item.path}:${item.line}`, '位置')">
@@ -89,6 +93,16 @@ const color = computed(() => categoryColor(tech.value?.category || ""));
     color: var(--text);
     font-size: 14px;
     line-height: 1.8;
+  }
+
+  .usage-line {
+    margin: 9px 0 0;
+    padding: 6px 9px;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 10.5px;
   }
 
   h4 {
