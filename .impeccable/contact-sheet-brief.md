@@ -4,7 +4,7 @@
 
 THESIS: A technical report is a contact sheet of evidence: the scan, the agent's moves, and every technology are frames you can inspect. The surface refuses the category default of six equal dashboard stats and a chat box as the organizing idea.
 
-OWN-WORLD: Darkroom black ground, photo-white frame borders, silver-gray metadata, one grease-pencil red reserved for actions and the active selection. Display voice is a condensed grotesque, data voice is typewriter, body is a quiet humanist sans. Flat ink; no glass, no glow, no gradient text.
+OWN-WORLD: Darkroom black ground, photo-white frame borders, silver-gray metadata, one grease-pencil red reserved for actions and the active selection. Display voice is a compact geometric grotesque, data voice is typewriter, body is a quiet humanist sans. Flat ink; no glass, no glow, no gradient text.
 
 STORY: The visitor loads a roll (a repository), watches it develop (agent frames), then reads the proof sheet (report). They understand that every claim has a frame and a source; selecting a frame opens its evidence.
 
