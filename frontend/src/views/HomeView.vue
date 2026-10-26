@@ -214,7 +214,10 @@ h1 {
   text-transform: uppercase;
 
   span {
-    color: var(--accent);
+    display: inline-block;
+    color: var(--text);
+    padding-bottom: 2px;
+    border-bottom: 4px solid var(--accent);
   }
 }
 
