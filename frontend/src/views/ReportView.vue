@@ -53,6 +53,7 @@ const filteredTechs = computed(() => {
     return [
       tech.name,
       tech.category,
+      tech.function,
       tech.role,
       ...(tech.modules || []).map((module) => `${module.path} ${module.snippet} ${module.role} ${module.summary || ""}`),
     ]
@@ -63,19 +64,21 @@ const filteredTechs = computed(() => {
 });
 
 const groups = computed(() => {
-  const order = categories.value.map((item) => item.name);
   const map = new Map();
   filteredTechs.value.forEach((tech) => {
-    if (!map.has(tech.category)) map.set(tech.category, []);
-    map.get(tech.category).push(tech);
+    const name = tech.function || tech.category || "其他能力";
+    if (!map.has(name)) {
+      map.set(name, {
+        name,
+        order: Number(tech.function_order ?? 999),
+        items: [],
+      });
+    }
+    map.get(name).items.push(tech);
   });
-  return Array.from(map.entries())
-    .sort((a, b) => {
-      const ia = order.indexOf(a[0]);
-      const ib = order.indexOf(b[0]);
-      return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
-    })
-    .map(([name, items]) => ({ name, items, icon: categoryIcon(name) }));
+  return Array.from(map.values()).sort(
+    (a, b) => a.order - b.order || a.name.localeCompare(b.name, "zh-CN")
+  );
 });
 
 const aiState = computed(() => {
