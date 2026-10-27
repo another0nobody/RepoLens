@@ -132,6 +132,80 @@ _CATEGORY_ROLE = {
 }
 
 
+_FUNCTION_ORDER = {
+    "开发语言": 10,
+    "提供后端接口": 20,
+    "持久化业务数据": 30,
+    "提供数据缓存": 40,
+    "提供会话存储": 41,
+    "提供限流": 42,
+    "提供向量检索": 43,
+    "提供消息队列": 44,
+    "构建前端界面": 50,
+    "调用后端接口": 51,
+    "编排 Agent": 60,
+    "调用大模型": 61,
+    "验证代码行为": 70,
+    "监控与观测": 80,
+    "运行与部署": 90,
+    "构建与工具链": 100,
+    "处理与分析数据": 110,
+    "其他能力": 999,
+}
+
+_LLM_NAMES = {
+    "OpenAI", "OpenAI SDK", "Azure OpenAI", "Anthropic", "Google Gemini",
+    "DeepSeek", "Ollama", "Mistral AI", "Cohere",
+}
+_HTTP_CLIENT_NAMES = {"Axios", "fetch", "ky", "requests", "httpx", "HTTPX"}
+_AGENT_NAMES = {"LangChain", "LangGraph", "LlamaIndex", "CrewAI", "AutoGen"}
+
+_MESSAGE_NAMES = {
+    "Kafka", "RabbitMQ", "NATS", "Apache Pulsar", "RocketMQ", "ZeroMQ",
+}
+
+
+def function_for(category: str, name: str, tags: list[str] | set[str] | None = None) -> str:
+    """把“技术分类”翻译成用户先理解的项目功能。
+
+    例如 Redis + 缓存标签 → “提供数据缓存”，FastAPI → “提供后端接口”。
+    这是展示层的主分组键，不替代原始 category。
+    """
+    tags = set(tags or [])
+    if name in _LLM_NAMES:
+        return "调用大模型"
+    if name in _AGENT_NAMES:
+        return "编排 Agent"
+    if name in _HTTP_CLIENT_NAMES:
+        return "调用后端接口"
+    if category == "缓存与消息":
+        if "消息" in tags or name in _MESSAGE_NAMES:
+            return "提供消息队列"
+        if "会话" in tags:
+            return "提供会话存储"
+        if "限流" in tags:
+            return "提供限流"
+        if "向量" in tags:
+            return "提供向量检索"
+        return "提供数据缓存"
+    return {
+        "编程语言": "开发语言",
+        "后端框架": "提供后端接口",
+        "前端框架": "构建前端界面",
+        "AI & Agent": "编排 Agent",
+        "数据库": "持久化业务数据",
+        "测试与质量": "验证代码行为",
+        "基础设施与运维": "运行与部署",
+        "构建与工具链": "构建与工具链",
+        "监控与观测": "监控与观测",
+        "数据科学": "处理与分析数据",
+    }.get(category, "其他能力")
+
+
+def default_function(tech: TechHit) -> str:
+    return function_for(tech.category, tech.name, tech.usage_tags)
+
+
 def default_role(tech: TechHit) -> str:
     base = _CATEGORY_ROLE.get(tech.category, "项目使用的技术之一。")
     if tech.category == "编程语言":
@@ -143,8 +217,8 @@ def default_role(tech: TechHit) -> str:
     if tags:
         return f"在项目中作为{tags}使用{hint}。"
     if tech.modules:
-        return f"用于{base.rstrip('。')}{hint}，在 {len(tech.modules)} 个模块中被直接使用。"
-    return f"用于{base.rstrip('。')}{hint}，主要在依赖清单或配置中出现。"
+        return f"{base.rstrip('。')}{hint}，在 {len(tech.modules)} 个模块中被直接使用。"
+    return f"{base.rstrip('。')}{hint}，主要在依赖清单或配置中出现。"
 
 
 def _top_techs(snapshot: Snapshot, limit: int = 5) -> list[TechHit]:
@@ -398,6 +472,12 @@ def build_report(ctx: AnalysisContext, insight: Any = None, ai_error: str | None
                     }
                 )
         ai_notes = [tech.model_dump() for tech in raw_techs if hasattr(tech, "model_dump")]
+
+    # 功能 → 技术栈：在 AI 合并之后统一补上，保证 AI 改分类/AI 新增的技术也有主分组。
+    for item in tech_dicts:
+        function = function_for(item.get("category", ""), item.get("name", ""), item.get("usage_tags") or [])
+        item["function"] = function
+        item["function_order"] = _FUNCTION_ORDER.get(function, 999)
 
     tech_dicts = _sorted_techs(tech_dicts)
 
