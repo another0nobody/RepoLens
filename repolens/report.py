@@ -132,6 +132,38 @@ _CATEGORY_ROLE = {
 }
 
 
+_FUNCTION_LAYER = {
+    "构建前端界面": "前端",
+    "调用后端接口": "前端",
+    "提供后端接口": "后端",
+    "持久化业务数据": "数据与存储",
+    "提供数据缓存": "数据与存储",
+    "提供会话存储": "数据与存储",
+    "提供限流": "数据与存储",
+    "提供向量检索": "数据与存储",
+    "提供消息队列": "数据与存储",
+    "编排 Agent": "Agent / AI",
+    "调用大模型": "Agent / AI",
+    "开发语言": "语言与运行时",
+    "运行与部署": "基础设施",
+    "监控与观测": "基础设施",
+    "验证代码行为": "工程效率",
+    "构建与工具链": "工程效率",
+    "处理与分析数据": "数据与存储",
+    "其他能力": "其他",
+}
+
+_LAYER_ORDER = {
+    "前端": 10,
+    "后端": 20,
+    "数据与存储": 30,
+    "Agent / AI": 40,
+    "语言与运行时": 50,
+    "基础设施": 60,
+    "工程效率": 70,
+    "其他": 999,
+}
+
 _FUNCTION_ORDER = {
     "开发语言": 10,
     "提供后端接口": 20,
@@ -200,6 +232,11 @@ def function_for(category: str, name: str, tags: list[str] | set[str] | None = N
         "监控与观测": "监控与观测",
         "数据科学": "处理与分析数据",
     }.get(category, "其他能力")
+
+
+def layer_for(function: str) -> str:
+    """把功能归到前/后/数据/AI/基础设施等层级。"""
+    return _FUNCTION_LAYER.get(function, "其他")
 
 
 def default_function(tech: TechHit) -> str:
@@ -476,8 +513,11 @@ def build_report(ctx: AnalysisContext, insight: Any = None, ai_error: str | None
     # 功能 → 技术栈：在 AI 合并之后统一补上，保证 AI 改分类/AI 新增的技术也有主分组。
     for item in tech_dicts:
         function = function_for(item.get("category", ""), item.get("name", ""), item.get("usage_tags") or [])
+        layer = layer_for(function)
         item["function"] = function
         item["function_order"] = _FUNCTION_ORDER.get(function, 999)
+        item["layer"] = layer
+        item["layer_order"] = _LAYER_ORDER.get(layer, 999)
 
     tech_dicts = _sorted_techs(tech_dicts)
 

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 
 import ArchitectureTab from "../components/ArchitectureTab.vue";
 import ChatTab from "../components/ChatTab.vue";
@@ -7,6 +7,7 @@ import Icon from "../components/Icon.vue";
 import ModuleMap from "../components/ModuleMap.vue";
 import ProcessTab from "../components/ProcessTab.vue";
 import TechCard from "../components/TechCard.vue";
+import TechGraph from "../components/TechGraph.vue";
 import { TABS, categoryIcon, fmtNumber } from "../utils";
 import {
   copy,
@@ -50,6 +51,7 @@ const filteredTechs = computed(() => {
     return [
       tech.name,
       tech.category,
+      tech.layer,
       tech.function,
       tech.role,
       ...(tech.modules || []).map((module) => `${module.path} ${module.snippet} ${module.role}`),
@@ -60,22 +62,40 @@ const filteredTechs = computed(() => {
   });
 });
 
+const stackView = ref("group");
+
 const groups = computed(() => {
-  const map = new Map();
+  const layerMap = new Map();
   filteredTechs.value.forEach((tech) => {
-    const name = tech.function || tech.category || "其他能力";
-    if (!map.has(name)) {
-      map.set(name, {
-        name,
+    const layerName = tech.layer || "其他";
+    const functionName = tech.function || tech.category || "其他能力";
+    if (!layerMap.has(layerName)) {
+      layerMap.set(layerName, {
+        name: layerName,
+        order: Number(tech.layer_order ?? 999),
+        techCount: 0,
+        functions: new Map(),
+      });
+    }
+    const layer = layerMap.get(layerName);
+    layer.techCount += 1;
+    if (!layer.functions.has(functionName)) {
+      layer.functions.set(functionName, {
+        name: functionName,
         order: Number(tech.function_order ?? 999),
         items: [],
       });
     }
-    map.get(name).items.push(tech);
+    layer.functions.get(functionName).items.push(tech);
   });
-  return Array.from(map.values()).sort(
-    (a, b) => a.order - b.order || a.name.localeCompare(b.name, "zh-CN")
-  );
+  return Array.from(layerMap.values())
+    .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name, "zh-CN"))
+    .map((layer) => ({
+      ...layer,
+      functions: Array.from(layer.functions.values()).sort(
+        (a, b) => a.order - b.order || a.name.localeCompare(b.name, "zh-CN")
+      ),
+    }));
 });
 
 const aiState = computed(() => {
@@ -242,12 +262,20 @@ function copyLink() {
               {{ chip.icon }} {{ chip.name }} · {{ fmtNumber(chip.count) }}
             </button>
           </div>
+          <div class="view-toggle" role="group" aria-label="技术栈展示方式">
+            <button type="button" :class="{ active: stackView === 'group' }" @click="stackView = 'group'">
+              分组
+            </button>
+            <button type="button" :class="{ active: stackView === 'graph' }" @click="stackView = 'graph'">
+              层级图
+            </button>
+          </div>
           <div class="search-wrap">
             <Icon name="search" :size="14" />
             <input
               :value="state.search"
               type="search"
-              placeholder="搜索技术 / 分类 / 文件…"
+              placeholder="搜索技术 / 层级 / 功能 / 文件…"
               aria-label="搜索技术"
               @input="setSearch($event.target.value)"
             />
@@ -257,21 +285,33 @@ function copyLink() {
           </div>
         </div>
 
-        <div v-if="groups.length" class="tech-groups">
-          <section v-for="group in groups" :key="group.name" class="tech-group">
+        <div v-if="stackView === 'graph'" class="graph-view">
+          <TechGraph v-if="filteredTechs.length" :techs="filteredTechs" @open="openTech" />
+          <div v-else class="empty-state">没有匹配的技术。试试清空搜索或切换分类。</div>
+        </div>
+
+        <div v-else-if="groups.length" class="tech-groups">
+          <section v-for="layer in groups" :key="layer.name" class="tech-group layer-group">
             <div class="group-head">
-              <h3>{{ group.name }}</h3>
-              <span class="count mono">{{ group.items.length }}</span>
+              <h3>{{ layer.name }}</h3>
+              <span class="count mono">{{ layer.techCount }}</span>
               <span class="line"></span>
             </div>
-            <div class="tech-grid">
-              <TechCard
-                v-for="(tech, index) in group.items"
-                :key="tech.key"
-                :tech="tech"
-                :index="index"
-                @open="openTech"
-              />
+            <div v-for="fn in layer.functions" :key="fn.name" class="function-group">
+              <div class="function-head">
+                <h4>{{ fn.name }}</h4>
+                <span class="count">{{ fn.items.length }}</span>
+                <span class="line"></span>
+              </div>
+              <div class="tech-grid">
+                <TechCard
+                  v-for="(tech, index) in fn.items"
+                  :key="tech.key"
+                  :tech="tech"
+                  :index="index"
+                  @open="openTech"
+                />
+              </div>
             </div>
           </section>
         </div>
@@ -526,9 +566,40 @@ function copyLink() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
   margin-bottom: 18px;
+}
+
+.view-toggle {
+  display: flex;
+  border: 1px solid var(--line);
+}
+
+.view-toggle button {
+  padding: 5px 8px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-ui);
+  font-size: 9.5px;
+  cursor: pointer;
+
+  &:last-child {
+    border-right: 0;
+  }
+
+  &.active {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+}
+
+.graph-view {
+  min-width: 0;
+  overflow-x: auto;
+  padding-bottom: 8px;
 }
 
 .chips {
@@ -613,6 +684,43 @@ function copyLink() {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(272px, 1fr));
   gap: 11px;
+}
+
+.function-group {
+  margin-top: 14px;
+
+  &:first-of-type {
+    margin-top: 10px;
+  }
+}
+
+.function-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+  padding-left: 3px;
+  border-left: 1px solid var(--line-strong);
+
+  h4 {
+    margin: 0;
+    padding-left: 7px;
+    color: var(--muted);
+    font-family: var(--font-ui);
+    font-size: 10px;
+    font-weight: 400;
+  }
+
+  .count {
+    color: var(--faint);
+    font-size: 8px;
+  }
+
+  .line {
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+  }
 }
 
 .tab-panel {
