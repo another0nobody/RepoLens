@@ -413,6 +413,8 @@ Agent 调 clone_github_repository
       "confidence": "高",
       "sources": ["manifest", "import", "usage"],
       "usage_tags": ["缓存"],
+      "function": "提供数据缓存",
+      "function_order": 40,
       "evidence": [{"path": "requirements.txt", "line": 3, "text": "fastapi==0.115.6", "kind": "依赖声明"}],
       "modules": [{"path": "backend/app/main.py", "line": 7, "snippet": "from fastapi import FastAPI", "kind": "导入", "role": "入口", "summary": "后端：注册 GET /health；创建 FastAPI 应用；挂载子路由"}],
       "module_count": 1,
@@ -509,7 +511,26 @@ Agent 调 clone_github_repository
 
 已知边界：动态拼接的字符串、反射调用、间接依赖无法保证识别；见 §17。
 
-### 7.5 文件级功能摘要
+### 7.5 功能归类（功能 → 技术）
+
+`report.function_for(category, name, usage_tags)` 把技术分类翻译成用户先理解的项目功能，并写入报告：
+
+| 技术/分类 | function |
+| --- | --- |
+| 编程语言 | 开发语言 |
+| 后端框架 | 提供后端接口 |
+| 数据库 | 持久化业务数据 |
+| 缓存与消息（Redis/缓存标签） | 提供数据缓存 |
+| 缓存与消息（Kafka/RabbitMQ 等） | 提供消息队列 |
+| 前端框架 / Axios | 构建前端界面 / 调用后端接口 |
+| AI 框架 / 模型 SDK | 编排 Agent / 调用大模型 |
+| 测试与质量 | 验证代码行为 |
+| 基础设施与运维 | 运行与部署 |
+| 构建与工具链 | 构建与工具链 |
+
+`function_order` 固定功能组顺序，前端技术栈 Tab 直接按它分组；旧报告缺少 `function` 时前端回退按 `category` 分组。
+
+### 7.5.1 文件级功能摘要
 
 `scanner.describe_file(relative, text, language)` 在读取文本文件时生成一句「大概功能」，随模块一起进入报告：
 

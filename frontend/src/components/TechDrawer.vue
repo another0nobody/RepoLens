@@ -16,7 +16,7 @@ const color = computed(() => categoryColor(tech.value?.category || ""));
   <BaseDrawer
     :open="Boolean(tech)"
     :title="tech?.name || '技术详情'"
-    :subtitle="tech ? `${tech.category} · ${tech.version ? `版本 ${tech.version}` : '版本未知'} · 置信度 ${tech.confidence}` : ''"
+    :subtitle="tech ? `${tech.function ? `${tech.function} · ` : ''}${tech.category} · ${tech.version ? `版本 ${tech.version}` : '版本未知'} · 置信度 ${tech.confidence}` : ''"
     wide
     @close="closeTech"
   >
