@@ -415,6 +415,8 @@ Agent 调 clone_github_repository
       "usage_tags": ["缓存"],
       "function": "提供数据缓存",
       "function_order": 40,
+      "layer": "数据与存储",
+      "layer_order": 30,
       "evidence": [{"path": "requirements.txt", "line": 3, "text": "fastapi==0.115.6", "kind": "依赖声明"}],
       "modules": [{"path": "backend/app/main.py", "line": 7, "snippet": "from fastapi import FastAPI", "kind": "导入", "role": "入口", "summary": "后端：注册 GET /health；创建 FastAPI 应用；挂载子路由"}],
       "module_count": 1,
@@ -528,7 +530,14 @@ Agent 调 clone_github_repository
 | 基础设施与运维 | 运行与部署 |
 | 构建与工具链 | 构建与工具链 |
 
-`function_order` 固定功能组顺序，前端技术栈 Tab 直接按它分组；旧报告缺少 `function` 时前端回退按 `category` 分组。
+`function_order` 固定功能组顺序。`layer_for(function)` 再把功能归到层级：前端、后端、数据与存储、Agent / AI、语言与运行时、基础设施、工程效率、其他；`layer_order` 固定层级顺序。前端技术栈 Tab 按“层级 → 功能 → 技术”分组；旧报告缺少 `function`/`layer` 时回退按 `category` 分组。
+
+层级图的实现是 `frontend/src/components/TechGraph.vue`：
+
+- 三列节点：层级、功能、技术；SVG 画连线，HTML 节点可聚焦/点击；
+- 技术节点点击打开技术抽屉；
+- `max-width: 960px` 时切换为纵向树，避免横向溢出；
+- 不引入第三方图库。
 
 ### 7.5.1 文件级功能摘要
 
