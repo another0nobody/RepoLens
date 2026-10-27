@@ -54,11 +54,15 @@ const layout = computed(() => {
   const COL_LAYER = 18;
   const COL_FUNCTION = 294;
   const COL_TECH = 636;
+  const LAYER_RIGHT = COL_LAYER + 132;
+  const FUNCTION_RIGHT = COL_FUNCTION + 182;
+  const LAYER_JUNCTION = LAYER_RIGHT + (COL_FUNCTION - LAYER_RIGHT) / 2;
+  const FUNCTION_JUNCTION = FUNCTION_RIGHT + (COL_TECH - FUNCTION_RIGHT) / 2;
   const WIDTH = 884;
   const layerNodes = [];
   const functionNodes = [];
   const techNodes = [];
-  const edges = [];
+  const paths = [];
   let y = 54;
 
   layers.value.forEach((layer) => {
@@ -66,47 +70,59 @@ const layout = computed(() => {
     const layerFunctions = [];
     layer.functions.forEach((fn) => {
       const fnStart = y;
-      const fnTechs = [];
+      const fnTechTops = [];
       fn.techs.forEach((tech) => {
         const center = y + ROW / 2;
-        fnTechs.push(tech);
-        techNodes.push({ tech, top: center, left: COL_TECH, color: LAYER_COLORS[layer.name] || "var(--accent)" });
-        edges.push({
-          x1: COL_FUNCTION + 182,
-          y1: center,
-          x2: COL_TECH,
-          y2: center,
+        fnTechTops.push(center);
+        techNodes.push({
+          tech,
+          top: center,
+          left: COL_TECH,
           color: LAYER_COLORS[layer.name] || "var(--accent)",
         });
         y += ROW;
       });
-      const center = fnTechs.length ? fnStart + (y - fnStart) / 2 : fnStart + ROW / 2;
+      const center = fnTechTops.length ? fnStart + (y - fnStart) / 2 : fnStart + ROW / 2;
       layerFunctions.push({ fn, top: center });
       functionNodes.push({
         fn,
         top: center,
         left: COL_FUNCTION,
         color: LAYER_COLORS[layer.name] || "var(--accent)",
-      });
-      edges.push({
-        x1: COL_LAYER + 132,
-        y1: center,
-        x2: COL_FUNCTION,
-        y2: center,
-        color: LAYER_COLORS[layer.name] || "var(--accent)",
+        techTops: fnTechTops,
       });
       y += 14;
     });
+
     const layerCenter = layerFunctions.length
       ? layerFunctions.reduce((total, item) => total + item.top, 0) / layerFunctions.length
       : layerStart + ROW / 2;
+    const color = LAYER_COLORS[layer.name] || "var(--accent)";
     layerNodes.push({
       layer,
       top: layerCenter,
       left: COL_LAYER,
-      color: LAYER_COLORS[layer.name] || "var(--accent)",
+      color,
     });
+
+    // 分叉点放在两列中间：先出一条主干，再在中间垂直分叉到各功能。
+    if (layerFunctions.length) {
+      let d = `M ${LAYER_RIGHT} ${layerCenter} H ${LAYER_JUNCTION}`;
+      layerFunctions.forEach((item) => {
+        d += ` M ${LAYER_JUNCTION} ${layerCenter} V ${item.top} H ${COL_FUNCTION}`;
+      });
+      paths.push({ d, color });
+    }
     y += 10;
+  });
+
+  functionNodes.forEach((node) => {
+    if (!node.techTops.length) return;
+    let d = `M ${FUNCTION_RIGHT} ${node.top} H ${FUNCTION_JUNCTION}`;
+    node.techTops.forEach((techTop) => {
+      d += ` M ${FUNCTION_JUNCTION} ${node.top} V ${techTop} H ${COL_TECH}`;
+    });
+    paths.push({ d, color: node.color });
   });
 
   return {
@@ -115,7 +131,7 @@ const layout = computed(() => {
     layerNodes,
     functionNodes,
     techNodes,
-    edges,
+    paths,
   };
 });
 
@@ -134,14 +150,12 @@ function open(tech) {
 
     <div class="graph-canvas" :style="{ height: `${layout.height}px`, width: `${layout.width}px` }">
       <svg class="graph-lines" :viewBox="`0 0 ${layout.width} ${layout.height}`" aria-hidden="true">
-        <line
-          v-for="(edge, index) in layout.edges"
+        <path
+          v-for="(edge, index) in layout.paths"
           :key="index"
-          :x1="edge.x1"
-          :y1="edge.y1"
-          :x2="edge.x2"
-          :y2="edge.y2"
+          :d="edge.d"
           :stroke="edge.color"
+          fill="none"
           stroke-width="1"
           opacity="0.55"
         />
