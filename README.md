@@ -50,6 +50,7 @@
 | [AGENTS.md](AGENTS.md) | AI Agent / 新维护者 | 最短上下文入口、P0 红线、修改流程、验收清单 |
 | [需求文档](docs/REQUIREMENTS.md) | 产品 / 维护者 / Agent | 功能契约、优先级、状态机、验收场景、防遗忘清单 |
 | [代码文档](docs/CODE_DOCUMENTATION.md) | 维护者 / Agent | 文件地图、调用链、报告 JSON、API/SSE 契约、前端 store、已知限制 |
+| [优化路线图](docs/OPTIMIZATION_ROADMAP.md) | 产品 / 维护者 | 程序与设计优化方向、可新增模块、阶段路线与待决策项 |
 
 > **给 Agent 的硬要求**：改代码前先读 [AGENTS.md](AGENTS.md) 和 [需求文档](docs/REQUIREMENTS.md)；任何 P0 功能删除都必须得到人类明确确认。
 
