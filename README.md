@@ -4,7 +4,7 @@
 >
 > 这是 **你的第一个 LangChain Agent 项目**：不要求你事先懂 Agent，README 会把用到的每个概念讲清楚。
 >
-> 前端：**Vue 3 + Vite + Less**，内置 **6 套页面风格 × 深/浅模式**；后端 / Agent：**Python + LangChain**。前端构建产物已提交，只装 Python 也能直接运行。
+> 前端：**Vue 3 + Vite + Less**，**Contact Sheet 暗房接触印样**设计 + 深/浅模式；后端 / Agent：**Python + LangChain**。前端构建产物已提交，只装 Python 也能直接运行。
 
 <details>
 <summary><b>界面预览（点开看截图）</b></summary>
@@ -37,7 +37,7 @@
 
 ![人工审批](docs/hitl.png)
 
-> 截图使用内置示例仓库 `examples/demo_shop`；报告来源与运行页都使用相对路径，不包含本机用户名与真实项目路径。界面支持 6 套页面风格，每套都有深色 / 浅色模式。
+> 截图使用内置示例仓库 `examples/demo_shop`；报告来源与运行页都使用相对路径，不包含本机用户名与真实项目路径。界面采用 Contact Sheet 设计，支持深色 / 浅色模式。
 
 </details>
 
@@ -56,43 +56,21 @@
 
 ---
 
-## 6 套页面风格
+## Contact Sheet 设计
 
-点击右上角「风格」即可切换。每套风格都会同时改变**配色、字体、背景纹理、卡片轮廓和光效**，不是简单换一个主色；深色 / 浅色可以独立切换，选择会保存在本地。
+页面采用 **Contact Sheet（暗房接触印样）** 视觉：黑色工作台、银白印样、红色只用于动作与选中状态；技术栈按“层级 → 功能 → 技术”组织，报告阅读像逐格查看证据底片。
 
-| 风格 | 关键词 | 适合 |
-| --- | --- | --- |
-| **极光 Aurora** | 深空蓝黑、青紫光晕、玻璃感 | 默认，长时间阅读报告 |
-| **纸境 Paper** | 米白纸张、衬线标题、暖橙 | 技术刊物 / 文档感 |
-| **终端 Terminal** | 磷光绿、等宽字体、扫描线 | 极客 / CLI / CRT |
-| **霓虹 Neon** | 深紫夜色、青粉霓虹、强辉光 | 演示 / 展示 |
-| **樱 Sakura** | 樱花粉、奶油白、柔光圆角 | 轻松 / 友好 |
-| **晴空 Sky** | 蓝天、白云、阳光金 | 不想看科技风的时候；选择时自动切浅色 |
+![Contact Sheet 首页](docs/design/contact-sheet/home-desktop.png)
 
-**新增：晴空 Sky（蓝天白云）**
+![Contact Sheet 报告](docs/design/contact-sheet/report-desktop.png)
 
-![晴空风格](docs/style-sky.png)
+技术栈支持“分组 / 层级图”两种阅读方式：
 
-![风格选择器](docs/style-picker.png)
+![层级分组](docs/design/contact-sheet/stack-hierarchy.png)
 
-<details>
-<summary><b>展开 6 套完整首页截图</b></summary>
+![层级图](docs/design/contact-sheet/stack-graph.png)
 
-| 极光 | 纸境 | 终端 |
-| --- | --- | --- |
-| ![极光](docs/home.png) | ![纸境](docs/style-paper.png) | ![终端](docs/style-terminal.png) |
-| **霓虹** | **樱** | **晴空** |
-| ![霓虹](docs/style-neon.png) | ![樱](docs/style-sakura.png) | ![晴空](docs/style-sky.png) |
-
-**纸境 · 浅色**：[查看截图](docs/style-paper-light.png)
-
-**晴空 · 深色**：[查看截图](docs/style-sky-dark.png)
-
-**移动端（晴空 · 浅色）**
-
-<img src="docs/style-mobile.png" width="280" alt="移动端晴空浅色风格" />
-
-</details>
+右上角太阳/月亮切换深色与浅色，选择会保存在本地。
 
 ---
 
@@ -108,8 +86,8 @@
 | AI 解读 | 项目摘要、架构分层、风险建议、学习路径；没有 API Key 时自动降级为纯规则报告 |
 | 报告追问 | 基于报告继续问项目问题；针对任意技术可一键深挖「优势 / 难点易错点 / 相似方案差异 / 为什么选它」，带多轮记忆 |
 | 人工审批（HITL） | Agent 克隆 GitHub 仓库前会真的暂停，等你在网页上点「允许」 |
-| 历史与导出 | 报告保存在 `data/reports/`，支持历史列表、JSON / Markdown 导出、报告分享链接 |
-| 页面风格 | 极光 / 纸境 / 终端 / 霓虹 / 樱 / 晴空，6 套视觉语言 × 深/浅模式，选择会被记住 |
+| 历史与导出 | 报告保存在 `data/reports/`，SQLite（`data/repolens.db`）保存运行、事件、聊天和报告索引；支持历史列表、JSON / Markdown 导出、报告分享链接 |
+| 报告设计 | Contact Sheet 暗房接触印样：技术栈按“层级 → 功能 → 技术”组织，并提供分组视图与层级图 |
 | 安全 | 只读扫描、密钥脱敏、拒绝 `.env`/私钥、默认只监听 127.0.0.1 |
 
 > 说明：报告里的「模块」来自**直接 import**（以及 Docker/Compose 等配置）。如果某个库只由框架间接使用，它可能显示「仅依赖声明，未找到直接 import」，这是正常的。
@@ -154,7 +132,18 @@ pip install -r requirements.txt
 python run.py --open
 ```
 
-### 2.3 配置模型
+### 2.3 运行测试
+
+测试使用 Python 标准库 `unittest`，不需要额外安装测试框架：
+
+```powershell
+cd repolens
+..\.venv\Scripts\python.exe -m unittest discover -s tests -v
+```
+
+覆盖扫描器、报告 schema、SQLite 持久化、事件持久化和历史报告恢复。
+
+### 2.4 配置模型
 
 ```powershell
 copy .env.example .env
@@ -175,7 +164,7 @@ DEEPSEEK_API_KEY=你的密钥
 - 不填任何 Key 也能启动：规则扫描仍然工作，页面会明确标注「仅规则扫描」；
 - 智谱/DeepSeek 都走 OpenAI 兼容协议，所以代码里统一用 `langchain_openai`，不需要额外安装供应商包。
 
-### 2.4 启动
+### 2.5 启动
 
 ```powershell
 # 自动打开浏览器
@@ -188,7 +177,7 @@ python run.py --open
 
 默认地址：<http://127.0.0.1:8765>。端口被占用时会自动往后找 5 个端口。
 
-### 2.5 第一次体验
+### 2.6 第一次体验
 
 1. 打开页面，点击「内置示例仓库」→「开始分析」；
 2. 观察左侧时间线、Agent 待办清单和右侧工具流；
@@ -198,7 +187,7 @@ python run.py --open
 
 > 想看 GitHub 流程：输入 `psf/requests`。如果你的网络访问不了 GitHub，克隆会失败，页面会显示 git 的真实错误，不会卡住。
 
-### 2.6 推送到 GitHub 前（重要）
+### 2.7 推送到 GitHub 前（重要）
 
 这个项目已经针对“误传 API Key”做了几层规避：
 
@@ -224,7 +213,7 @@ git status --short
 
 > 注意：自动扫描无法识别图片里的文字。重新截图时，请确认页面中没有 Key、Token 或本机绝对路径。
 
-### 2.7 前端开发（Vue 3 + Vite + Less）
+### 2.8 前端开发（Vue 3 + Vite + Less）
 
 日常运行 Python 不需要 Node.js。只有修改界面时才需要：
 
@@ -258,7 +247,7 @@ npm run build    # 输出到 ../static/dist
 - 回车直接开始，也支持点击「开始分析」；
 - 示例按钮只是帮你填入路径，不会自动开始；
 - 右上角显示当前模型；没有配置 Key 时会显示「仅规则扫描」；
-- 右上角「风格」可切换 6 套页面风格，右侧太阳/月亮切换深色与浅色；两项选择都会记住；晴空首次选择会自动切浅色。
+- 右上角太阳/月亮切换深色与浅色，选择会记住。
 
 ### 3.2 运行页
 
@@ -282,9 +271,9 @@ npm run build    # 输出到 ../static/dist
 - **分析过程**：把本次 SSE 事件流按时间回放，可按「工具 / 阶段 / 异常」筛选；
 - **导出**：JSON / Markdown；**分享链接**形如 `http://127.0.0.1:8765/?report=<run_id>`；
 - **小交互**：技术卡片可点击查看详情、卡片与抽屉有过渡动画、顶部有阅读进度条、`/` 聚焦搜索框、`Esc` 关闭抽屉；
-- **风格贯穿全站**：首页、运行页、报告页、抽屉、弹窗和 Toast 都会使用当前风格与深浅模式。
+- **视觉贯穿全站**：首页、运行页、报告页、抽屉、弹窗和 Toast 都会使用 Contact Sheet 的视觉语言与深浅模式。
 
-> 历史报告同样支持追问：服务器会从磁盘重建一个轻量上下文（见 `ensure_run_for_report`），但**跨进程的对话记忆不会保留**（短期记忆在 `InMemorySaver` 里）。
+> 历史报告同样支持追问：服务器会从磁盘重建报告上下文，并从 SQLite 恢复聊天记录（见 `ensure_run_for_report`）。LangGraph 的 checkpointer 仍是进程内实现，但刷新/重启后，已保存的对话会重新注入追问 Agent。
 
 ---
 
@@ -545,6 +534,7 @@ class ProgressMiddleware(AgentMiddleware):
 | 组件 | `checkpointer`（本项目 `InMemorySaver`） | `store`（本项目 `InMemoryStore`） |
 | 作用范围 | 同一个 `thread_id` 的对话历史 | 按 namespace + key 跨会话保存 |
 | 本项目用途 | 追问多轮对话 | 保存每次分析的结论 |
+| 持久化补充 | `data/repolens.db` 的 `messages` 表保存追问；重启后重新注入 | 报告与运行索引也写入 SQLite |
 | 生产替代 | `PostgresSaver` / `RedisSaver` | `PostgresStore` |
 
 短期记忆：
@@ -563,7 +553,7 @@ def remember_analysis(summary: str, runtime: ToolRuntime) -> str:
     runtime.store.put(("repolens", "analyses"), run_id, {...})
 ```
 
-注意：本项目为了「零外部依赖」，记忆都在进程内存里。**重启服务后短期记忆会消失**（历史报告仍在磁盘上，仍可追问，只是不带之前的聊天上下文）。
+注意：LangGraph 的 checkpointer/store 仍是进程内实现；不过追问消息已经写入 SQLite，**刷新页面或重启服务后，已保存的聊天会重新注入 Agent**。`data/repolens.db` 只保存本地运行数据，不提交到仓库。
 
 `SummarizationMiddleware` 用于追问：对话超过约 7000 token 时自动总结，只保留最近 8 条，避免上下文溢出。
 
@@ -635,10 +625,10 @@ repolens/
 │       ├── main.js
 │       ├── App.vue
 │       ├── api.js / store.js / utils.js
-│       ├── theme.js          # 6 套风格元数据、预览色、theme-color
+│       ├── theme.js          # 主题元数据、theme-color、深浅模式
 │       ├── styles/           # tokens.less / mixins.less / global.less（风格变量）
 │       ├── views/            # HomeView / RunView / ReportView
-│       └── components/       # 头栏、时间线、技术卡片、风格选择器、抽屉、审批弹窗…
+│       └── components/       # 头栏、时间线、技术卡片、层级图、抽屉、审批弹窗…
 ├── repolens/
 │   ├── config.py             # 模型/端口/克隆限制配置
 │   ├── events.py             # 进程内事件总线（线程安全）
@@ -652,7 +642,8 @@ repolens/
 │   ├── schemas.py            # 结构化输出 Pydantic 模型
 │   ├── agent.py              # create_agent + 提示词 + 追问 Agent
 │   ├── pipeline.py           # 编排：流式运行、HITL、降级
-│   ├── report.py             # 事实 + AI 合并、持久化
+│   ├── report.py             # 事实 + AI 合并、报告 schema/持久化
+│   ├── storage.py            # SQLite：运行 / 事件 / 聊天 / 报告索引
 │   └── server.py             # 标准库 HTTP 服务 + SSE API
 ├── static/dist/              # Vite 构建产物（已提交，Python 直接托管）
 │   ├── index.html
@@ -661,7 +652,8 @@ repolens/
 ├── examples/demo_shop/       # 自带演示仓库（FastAPI + React + Docker）
 └── data/
     ├── repos/                # GitHub 克隆缓存（gitignore）
-    └── reports/              # 生成的报告 JSON（gitignore）
+    ├── reports/              # 生成的报告 JSON（gitignore）
+    └── repolens.db           # SQLite：运行、事件、聊天、报告索引（gitignore）
 ```
 
 ### 建议的代码阅读顺序
@@ -677,8 +669,8 @@ repolens/
 7. `repolens/middleware.py`、`report.py`：进度事件如何产生、事实与 AI 如何合并；
 8. `frontend/src/main.js` → `App.vue`：Vue 应用如何挂载、切换三个视图；
 9. `frontend/src/store.js`：前端状态、SSE 重连、深链路、追问和 HITL 决策；
-10. `frontend/src/views/` 与 `components/`：首页、运行页、报告页、风格选择器和各个交互组件；
-11. `frontend/src/theme.js` 与 `styles/`：6 套风格的元数据、CSS 变量、字体、纹理和深浅模式。
+10. `frontend/src/views/` 与 `components/`：首页、运行页、报告页、层级图和各个交互组件；
+11. `frontend/src/theme.js` 与 `styles/`：主题元数据、CSS 变量、字体、纹理和深浅模式。
 
 ---
 
@@ -740,7 +732,7 @@ A：它只出现在依赖清单、Docker 镜像或配置里，代码中没有直
 A：防止误选超大目录耗尽内存。报告会标注「扫描已截断」。可以改 `scanner.MAX_FILES`，但建议先缩小到子目录。
 
 **Q：报告存在哪？怎么清空？**
-A：`data/reports/*.json`；直接删除即可。GitHub 克隆缓存在 `data/repos/`，也可删除。
+A：报告在 `data/reports/*.json`，运行/事件/聊天/索引在 `data/repolens.db`；删除 `data/` 即可重置。GitHub 克隆缓存在 `data/repos/`。
 
 **Q：端口被占用？**
 A：`python run.py --port 9000`，或设置环境变量 `REPOLENS_PORT`。程序也会自动尝试后 5 个端口。

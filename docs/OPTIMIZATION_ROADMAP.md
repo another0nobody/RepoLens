@@ -222,11 +222,11 @@ RepoLens 的差异点是 **扫描事实 + 可核对证据 + Agent 解释**。
 
 ### 第一阶段：做稳
 
-- 选定 Contact Sheet 作为主设计；
-- 自动化测试；
-- `schema_version`；
-- SQLite 持久化 run/events/chat；
-- 统一错误态、旧报告迁移。
+- [x] 选定 Contact Sheet 作为主设计；
+- [x] 自动化测试（标准库 unittest，覆盖扫描/schema/SQLite/事件/历史恢复）；
+- [x] `schema_version` 与旧报告迁移；
+- [x] SQLite 持久化 run/events/chat/report 索引；
+- [ ] 统一错误态；旧报告 JSON/SQLite 双写一致性继续观察。
 
 ### 第二阶段：做深仓库结构
 

@@ -29,7 +29,8 @@ repolens/
 │   ├── tools.py               # 6 个 Agent 工具
 │   ├── scanner.py             # 确定性仓库扫描
 │   ├── catalog.py             # 252 项技术词典
-│   ├── report.py              # 事实 + AI 合并、落盘
+│   ├── report.py              # 事实 + AI 合并、schema、落盘
+│   ├── storage.py             # SQLite run/event/chat/report 索引
 │   ├── sources.py             # 本地路径/GitHub 克隆
 │   ├── security.py            # 脱敏/敏感文件
 │   ├── schemas.py             # RepoInsight / TechFinding
@@ -40,6 +41,7 @@ repolens/
 │   └── src/{views,components,store.js,api.js,theme.js,styles}
 ├── static/dist/               # 已提交的构建产物（Python 直接托管）
 ├── examples/demo_shop/        # 内置演示仓库
+├── tests/                     # unittest 测试
 ├── docs/                      # 截图 + 本套文档
 └── data/                      # 运行时报告/克隆缓存（gitignore）
 ```
@@ -75,7 +77,7 @@ repolens/
 - 报告页技术卡/详情抽屉/模块地图/架构/风险/学习路径/警告；技术栈按**层级 → 功能 → 技术**分组（如“数据与存储 → 提供数据缓存 → Redis”），并支持“分组 / 层级图”切换；
 - 历史、JSON/Markdown 导出、分享链接；
 - 追问流式输出、报告依据、多轮记忆；**技术深挖四模板**（优势/难点/相似方案/为什么选它）+ `technology_deep_dive` 工具 + 事实/推断分离；
-- **6 套页面风格（极光 / 纸境 / 终端 / 霓虹 / 樱 / 晴空）× 深/浅模式**；风格选择器、持久化、全站生效；晴空首次选择自动浅色；
+- **Contact Sheet 设计基线 × 深/浅模式**；
 - 响应式、Toast、抽屉、HITL 弹窗；
 - API/SSE/报告 JSON 字段契约；
 - `static/dist` 静态托管；
@@ -123,6 +125,10 @@ npm run dev      # 5173 -> /api 代理 8765
 # 前端生产构建
 npm run build    # ../static/dist
 
+# 自动化测试
+cd ..
+..\.venv\Scripts\python.exe -m unittest discover -s tests -v
+
 # 密钥扫描
 cd ..
 ..\.venv\Scripts\python.exe check_secrets.py
@@ -152,7 +158,7 @@ Invoke-RestMethod "http://127.0.0.1:8765/api/report?run_id=$($run.run_id)"
 - **把 `.env` 或 `data/` 加入 Git**：泄露密钥/仓库内容；
 - **在文档里承诺未实现功能**：先实现再写“已实现”；
 - **以为追问工具次数有硬限制**：目前只有提示词约束，硬限制是模型 40 次；
-- **新增风格只改主色**：每套风格必须在 `global.less` 同时补 dark/light 两套完整变量，并检查 `theme.js` 预览与字体；
+- **改主题只改主色**：Contact Sheet 的深浅两套变量、字体、边框和印样纸色都要一起检查；
 - **把深挖回答做成泛泛的技术百科**：必须先查报告和 `technology_deep_dive`，引用项目模块/行号，并明确区分事实、通用知识和推断；选型理由没有记录时不要编造；
 - **删掉模块 `summary`**：模块地图/技术抽屉靠它显示“文件大概功能”；它是启发式摘要，但旧报告要保留前端 fallback；
 - **只认 import/清单**：RedisCache、`redis.Redis(...)`、`redis://` 等代码使用会被漏掉；改动扫描器时保留 `detect_code_usages()` 和 `usage_tags`。
@@ -162,11 +168,13 @@ Invoke-RestMethod "http://127.0.0.1:8765/api/report?run_id=$($run.run_id)"
 ## 7. 验收清单（改完必看）
 
 - [ ] `npm run build` 成功，`static/dist` 更新；
+- [ ] `python -m unittest discover -s tests -v` 通过；
+- [ ] 报告包含 `schema_version`；SQLite `data/repolens.db` 可写入并重启恢复；
 - [ ] `python run.py` 启动，`/` 与 `/assets/*` 200；
 - [ ] 本地示例完整走通：首页 → 运行 → 报告 → 模块（每行有大概功能）→ 架构 → 追问（含技术深挖 4 模板）→ 历史；
 - [ ] 无 Key 时本地规则报告仍可生成；
 - [ ] HITL 批准/拒绝路径正确；拒绝立即结束；
-- [ ] 390px 无横向溢出；6 套风格 × 深/浅主题正常且刷新保持；晴空首次选择自动浅色；
+- [ ] 390px 无横向溢出；Contact Sheet 深/浅主题正常且刷新保持；层级图窄屏为纵向树；
 - [ ] `check_secrets.py` 通过；
 - [ ] 没有提交 `.env`、`data/`、`node_modules`、`docs/.chrome-*`；
 - [ ] 已更新需求文档/代码文档（如有契约变化）。

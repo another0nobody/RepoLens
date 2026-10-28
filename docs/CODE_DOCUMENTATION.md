@@ -44,9 +44,9 @@ RepoLens 是一个本地运行的「代码仓技术栈侦探」：
 | 实时推送 | SSE（Server-Sent Events），分析事件与分析流共用事件总线 |
 | 前端 | Vue 3、Vite 6、Less，无 UI 组件库 |
 | 构建产物 | `static/dist/`，由 Python 服务托管 `/`、`/assets/*`、`/favicon.svg` |
-| 持久化 | 报告 JSON 落盘 `data/reports/`；运行与对话记忆在内存 |
+| 持久化 | SQLite `data/repolens.db` 保存运行/事件/聊天/报告索引；报告 JSON 继续落盘 `data/reports/` |
 
-当前不依赖数据库、不依赖 Node 常驻服务、不需要登录。
+SQLite 使用 Python 标准库，不需要数据库服务；不依赖 Node 常驻服务、不需要登录。
 
 ---
 
@@ -54,7 +54,7 @@ RepoLens 是一个本地运行的「代码仓技术栈侦探」：
 
 ```text
 Browser (Vue)
-  │  GET /api/health, /api/examples, /api/history, /api/report
+  │  GET /api/health, /api/examples, /api/history, /api/report, /api/chat/history
   │  POST /api/analyze  -> run_id
   │  GET  /api/events?run_id=...  (SSE)
   │  POST /api/hitl, /api/chat (SSE response)
@@ -64,7 +64,8 @@ RepoLensHandler (stdlib ThreadingHTTPServer)
 RepoLensApp
   ├─ runs: dict[run_id, Run]        # 内存运行状态；超过 30 个时清理最旧完成项
   ├─ checkpointer: InMemorySaver    # 短期记忆 / LangGraph checkpoint
-  └─ store: InMemoryStore           # 长期记忆 namespace=("repolens","analyses")
+  ├─ store: InMemoryStore           # 长期记忆 namespace=("repolens","analyses")
+  └─ storage: SQLiteStore           # run/event/message/report 索引，重启可恢复
   ▼
 analysis-<run_id> 后台线程
   ▼
@@ -126,7 +127,9 @@ run_analysis(ctx)
 | `repolens/middleware.py` | 进度、脱敏、工具事件 | `ProgressMiddleware`, `SecretMaskingMiddleware` |
 | `repolens/agent.py` | 模型、提示词、中间件、分析 Agent、追问 Agent | `build_analysis_agent()`, `build_chat_agent()` |
 | `repolens/pipeline.py` | 分析主流程、Agent 循环、HITL、兜底、追问流 | `run_analysis()`, `_run_agent()`, `stream_chat()` |
-| `repolens/report.py` | 事实 + AI 合并、报告持久化、历史摘要 | `build_report()`, `save_report()`, `list_reports()` |
+| `repolens/report.py` | 事实 + AI 合并、报告 schema、报告持久化、历史摘要 | `build_report()`, `save_report()`, `load_report()`, `normalize_report()`, `list_reports()` |
+| `repolens/storage.py` | SQLite：run、事件、聊天、报告索引 | `SQLiteStore.upsert_run/append_event/add_message/save_report` |
+| `tests/` | 标准库 unittest 测试 | 扫描器、报告 schema、SQLite、事件、历史恢复 |
 | `repolens/sources.py` | 本地路径校验、GitHub 解析/克隆、体积检查 | `validate_local_path()`, `clone_github()` |
 | `repolens/security.py` | 正则脱敏、敏感文件判断 | `mask_secrets()`, `is_sensitive_path()` |
 | `repolens/server.py` | HTTP 路由、SSE、静态文件、运行管理、知识点文案 | `RepoLensApp`, `RepoLensHandler`, `create_server()` |
@@ -378,6 +381,7 @@ Agent 调 clone_github_repository
 
 ```json
 {
+  "schema_version": 2,
   "run_id": "1730000000-abcd1234",
   "generated_at": "2026-10-25T00:00:00+08:00",
   "repo_name": "demo_shop",
@@ -447,12 +451,47 @@ Agent 调 clone_github_repository
 
 ### 6.4 持久化
 
+#### 报告 Schema
+
+- `REPORT_SCHEMA_VERSION = 2`；报告根字段 `schema_version`；
+- `normalize_report()` 是唯一的兼容入口：
+  - 缺 `function` 时按 category/name/usage_tags 补；
+  - 缺 `layer` 时按 function 补；
+  - 补 `function_order/layer_order/usage_tags/sources/evidence/modules/module_count`；
+  - 不删除旧字段；
+- `save_report()` 保存前 normalize；`load_report()` 读取后 normalize；
+- 版本 1（没有 schema_version）的报告会被补到版本 2，前端无需单独分支。
+
+#### JSON 与 SQLite
+
 - `config.REPORTS_DIR = data/reports/`；
-- 文件名 `<run_id>.json`，`run_id` 必须匹配 `^[A-Za-z0-9_-]{1,80}$`；
-- `save_report()` 写 UTF-8、缩进 2；
-- `load_report()` 读失败/不存在返回 `None`；
-- `list_reports(limit=40)` 只返回摘要：`run_id/repo_name/source/source_type/generated_at/tech_count/code_files/total_loc/ai_used`；
+- 文件名 `<run_id>.json`，`run_id` 匹配 `^[A-Za-z0-9_-]{1,80}$`；
+- `save_report(report, storage=...)` 同时写 JSON 和 SQLite；SQLite 失败不影响 JSON；
+- `load_report(run_id, storage=...)` 优先读 SQLite，缺失时回退 JSON；
+- `list_reports(limit=40)` 继续作为磁盘摘要；`RepoLensApp.history()` 合并 SQLite 索引与磁盘 JSON，升级前报告不会消失；
 - `data/` 被 `.gitignore` 忽略。
+
+#### SQLite 表
+
+文件：`config.DB_PATH = data/repolens.db`。
+
+| 表 | 内容 | 主要用途 |
+| --- | --- | --- |
+| `runs` | run_id/source/status/created_at/model/report_ready | 刷新、重启后恢复运行状态 |
+| `events` | run_id/seq/type/data/ts | SSE 事件回放；最多保留 4000 条/run |
+| `messages` | run_id/role/content/meta | 追问记录；重启后注入 Agent |
+| `reports` | 报告摘要 + 完整 JSON | 历史索引，避免每次 glob 读大文件 |
+
+启动时 `mark_stale_runs()` 把上次遗留的 `running` 标记为 `error`（服务重启，运行已中断）。
+`EventBus` 通过 `on_event` 回调同步写 `events`；`RepoLensApp.start_run()` 写 `runs`。
+
+#### 追问恢复
+
+- 用户问题在流开始前写入 `messages`；助手回答在 `done` 时写入，异常时保存 partial；
+- `ensure_run_for_report()` 从 `messages` 恢复 `ctx.chat_history`，并设置 `chat_seeded=False`；
+- `stream_chat()` 首次对话把历史转为 LangChain `HumanMessage/AIMessage`，和当前问题一起发送；
+- 前端 `loadReport/showReport` 调用 `/api/chat/history` 恢复聊天气泡；
+- checkpointer 仍是 `InMemorySaver`，所以恢复依赖 SQLite 消息，而不是 checkpoint。
 
 ---
 
@@ -630,12 +669,13 @@ Agent 调 clone_github_repository
 
 | 路径 | 查询/返回 | 说明 |
 | --- | --- | --- |
-| `/api/health` | `{ok,app,version,model,ai_available,provider,uptime_seconds,active_runs,max_files}` | 前端 Header 模型状态 |
+| `/api/health` | `{ok,app,version,model,ai_available,provider,uptime_seconds,active_runs,max_files,persistence,storage}` | Header 状态 + SQLite 计数 |
 | `/api/examples` | `{items:[{label,value,kind,description}]}` | 首页示例 |
-| `/api/history` | `{items:[摘要]}` | 最多 40 条 |
-| `/api/report?run_id=` | 完整报告 | 缺失 400，找不到 404 |
-| `/api/run?run_id=` | `{run_id,source,source_type,status,report_ready,elapsed_seconds,repo_name,error?}` | 刷新恢复 |
-| `/api/events?run_id=&from=` | `text/event-stream` | SSE；先补发历史再长连 |
+| `/api/history` | `{items:[摘要]}` | SQLite 索引 + 磁盘 JSON，最多 40 条 |
+| `/api/report?run_id=` | 完整报告（含 `schema_version`） | 缺失 400，找不到 404 |
+| `/api/run?run_id=` | `{run_id,source,source_type,status,report_ready,elapsed_seconds,repo_name,error?}` | 刷新/重启恢复；可回退 SQLite 行 |
+| `/api/events?run_id=&from=` | `text/event-stream` | SSE；内存优先，重启后回放 SQLite |
+| `/api/chat/history?run_id=` | `{items:[{id,role,content,created_at,meta}]}` | 追问历史 |
 | `/api/memory` | `{items:[{key,value,updated_at}]}` | 最多 20 条 |
 | `/api/concepts` | `{concepts:[...]}` | 内置 9 个知识点 |
 | `/` `/index.html` | `static/dist/index.html` | 未构建返回 503 |
@@ -684,6 +724,7 @@ Agent 调 clone_github_repository
 ```
 
 限制：`run_id` 必填；`message` 非空、≤2000 字；同一 Run 的追问串行（`chat_lock`）。
+持久化：用户问题立即写 `messages`；助手回答在 `done` 时写入；刷新/重启后通过 `/api/chat/history` 恢复，并在首次追问时重新注入 Agent。
 
 ### 9.3 通用错误
 
@@ -972,7 +1013,24 @@ npm run build    # ../static/dist
 python run.py
 ```
 
-### 14.3 最小冒烟测试
+### 14.3 自动化测试
+
+测试使用 Python 标准库 `unittest`，无需额外依赖：
+
+```powershell
+cd repolens
+..\.venv\Scripts\python.exe -m unittest discover -s tests -v
+```
+
+覆盖：
+
+- `test_scanner_unit.py`：demo 核心事实、RedisCache/连接串、docstring 不误报；
+- `test_report_schema_unit.py`：schema_version、层级字段、旧报告迁移、JSON/SQLite 读写；
+- `test_storage_unit.py`：run 生命周期、事件裁剪、聊天、报告索引、stale run；
+- `test_events_unit.py`：EventBus 持久化 sink；
+- `test_app_persistence_unit.py`：历史合并、重启后聊天恢复。
+
+### 14.4 最小冒烟测试
 
 ```powershell
 # 健康检查
@@ -990,7 +1048,7 @@ Invoke-RestMethod "http://127.0.0.1:8765/api/run?run_id=$($run.run_id)"
 Invoke-RestMethod "http://127.0.0.1:8765/api/report?run_id=$($run.run_id)"
 ```
 
-### 14.4 发布前
+### 14.5 发布前
 
 ```powershell
 ..\.venv\Scripts\python.exe check_secrets.py
@@ -1061,8 +1119,8 @@ git status --short
 | 页面 503：前端尚未构建 | `cd frontend && npm run build`，确认 `static/dist/index.html` |
 | 首页显示“仅规则扫描” | 没有读到 API Key；检查 `.env` 位置/变量名/占位符 |
 | 模型 401/404/超时 | Key 错 / 模型名错 / `MODEL_TIMEOUT` 太小；失败会降级规则报告 |
-| 刷新后进度丢失 | 运行状态在内存；进程重启后无法恢复，报告仍在 `data/reports` |
-| 追问历史报告没有上下文记忆 | 预期：`ensure_run_for_report` 只恢复报告，不恢复 checkpointer |
+| 刷新后进度丢失 | 先看 `/api/events` 是否能从 SQLite 回放；运行中的内存状态仍可能因进程重启中断 |
+| 追问历史报告没有上下文记忆 | 检查 `/api/chat/history` 与 `messages` 表；首次追问会注入历史，checkpoint 本身不持久化 |
 | 报告里技术模块为空 | 只在依赖清单/配置出现，没有直接 import；看 `evidence`/`hint` |
 | GitHub 克隆失败 | 先确认命令行 `git clone` 可访问；公开仓库；代理/网络；GitHub 分析依赖 Agent |
 | HITL 一直转圈 | 检查 `/api/hitl` 是否 409（没有 pending）；超时 300s 自动拒绝 |
@@ -1076,8 +1134,8 @@ git status --short
 
 ## 17. 已知限制与技术债
 
-1. **没有自动化单元/端到端测试**；当前靠手动 QA 与 `check_secrets.py`。
-2. **运行状态、事件、短期/长期记忆都在内存**；重启丢失。报告 JSON 落盘。
+1. **自动化测试覆盖基础层**：scanner、报告 schema、SQLite、事件、历史恢复；还没有浏览器 E2E 和 CI 矩阵。
+2. **LangGraph 的 checkpointer/store 仍在内存**；run/事件/聊天/报告已写 SQLite，但长期记忆（InMemoryStore）重启仍会丢失。
 3. **没有鉴权**；默认 127.0.0.1，绑定公网需自行加反向代理/认证。
 4. **SSE 使用 HTTP/1.0 短连接**，靠 `EventSource` 重连；没有 WebSocket。
 5. **`log` 事件未在前端渲染**；UI 主要消费 `phase/progress/tool/warning`。
@@ -1087,10 +1145,10 @@ git status --short
 9. **GitHub 分析依赖 Agent**：没有模型 Key 时无法克隆，不能只靠规则分析 GitHub。
 10. **扫描主流程不是完整类型分析**：不构建跨文件类型推断；模块角色来自路径关键词；Python 使用补充单独用 AST。
 11. **词典静态维护**（252 项）；未知依赖最多展示 24 个。
-12. **报告文件历史无索引数据库**；每次 `/api/history` glob + 读 JSON，报告多时会变慢（当前上限 40 条展示）。
+12. **SQLite 与 JSON 双写**；两者不一致时以 SQLite 为优先，磁盘 JSON 作为兜底。暂无自动迁移工具，只做读取时 normalize。
 13. **HITL 只有克隆一个工具**；新增有副作用工具需要显式加入 `interrupt_on`。
 14. **前端 CSS 使用 `color-mix` 等现代特性**；旧浏览器可能显示异常。
-15. **风格主要靠 CSS 变量与全局覆盖实现**；新增风格必须同时补 dark/light 两套变量，不能只改一个主色。
+15. **Contact Sheet 主题通过 CSS 变量实现**；改深浅模式要同时检查纸色、边框、字体和印样对比度。
 16. **`local_path` 绝对路径会写入本地报告**；公开分享报告时需删除/改用相对路径。
 17. **`data/repos` 缓存不会自动清理**；长期使用需手动删除。
 
