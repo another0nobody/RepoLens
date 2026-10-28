@@ -20,6 +20,7 @@ Python 自带的 http.server 虽然朴素，但足够支撑：
     POST /api/hitl              批准/拒绝克隆
     GET  /api/report?run_id=    读取报告
     GET  /api/history           历史报告
+    GET  /api/chat/history      追问历史
     GET  /api/memory            长期记忆
     POST /api/chat              追问（SSE 流式回答）
 """
@@ -50,6 +51,7 @@ from .pipeline import run_analysis, stream_chat
 from .report import list_reports, load_report
 from .scanner import MAX_FILES
 from .sources import SourceError, looks_like_github, parse_github, validate_local_path
+from .storage import SQLiteStore
 
 STATIC_DIR = config.PROJECT_ROOT / "static"
 DIST_DIR = STATIC_DIR / "dist"
@@ -78,9 +80,12 @@ class Run:
 class RepoLensApp:
     """把"运行管理"和"报告读取"从 HTTP 细节里拆出来。"""
 
-    def __init__(self) -> None:
+    def __init__(self, db_path: Path | str | None = None) -> None:
         self.runs: dict[str, Run] = {}
         self.lock = threading.Lock()
+        self.storage = SQLiteStore(db_path or config.DB_PATH)
+        # 上一次进程异常退出时遗留的 running 状态不应该永远挂着。
+        self.storage.mark_stale_runs()
         # 结构化输出结果会被序列化进 checkpoint。显式允许我们自己的 Pydantic 类型，
         # 否则新版 LangGraph 会给出 "unregistered type" 警告，未来版本可能直接拒绝。
         # 这里做一层兼容：万一某个 LangGraph 版本没有这个序列化器，也能正常启动。
@@ -128,7 +133,10 @@ class RepoLensApp:
                     self.runs.pop(old.run_id, None)
 
             run_id = f"{int(time.time())}-{uuid.uuid4().hex[:8]}"
-            bus = EventBus(run_id)
+            bus = EventBus(
+                run_id,
+                on_event=lambda event: self.storage.append_event(run_id, event),
+            )
             cfg = config.load_model_config()
             ctx = AnalysisContext(
                 run_id=run_id,
@@ -137,10 +145,19 @@ class RepoLensApp:
                 bus=bus,
                 store=self.store,
                 checkpointer=self.checkpointer,
+                storage=self.storage,
                 model_display=cfg.display_name,
             )
             run = Run(run_id=run_id, source=source, source_type=source_type, ctx=ctx)
             self.runs[run_id] = run
+            self.storage.upsert_run(
+                run_id=run_id,
+                source=source,
+                source_type=source_type,
+                status="running",
+                created_at=run.created_at,
+                model=cfg.display_name,
+            )
 
         run.thread = threading.Thread(
             target=self._run_thread,
@@ -159,6 +176,14 @@ class RepoLensApp:
             run.ctx.finish()
         finally:
             run.status = "done" if run.ctx.report else "error"
+            self.storage.update_run(
+                run.run_id,
+                status=run.status,
+                report_ready=run.ctx.report is not None,
+                repo_name=run.ctx.snapshot.repo_name if run.ctx.snapshot else "",
+                local_path=str(run.ctx.repo_root or ""),
+                error=str(run.ctx.error or ""),
+            )
 
     def get_run(self, run_id: str) -> Run | None:
         with self.lock:
@@ -168,7 +193,18 @@ class RepoLensApp:
         run = self.get_run(run_id)
         if run is not None and run.ctx.report is not None:
             return run.ctx.report
-        return load_report(run_id)
+        return load_report(run_id, storage=self.storage)
+
+    def history(self, limit: int = 40) -> list[dict]:
+        """合并 SQLite 索引和磁盘 JSON，保证升级前的老报告仍然可见。"""
+        merged: dict[str, dict] = {}
+        for item in self.storage.list_reports(limit):
+            merged[str(item.get("run_id"))] = item
+        for item in list_reports(limit):
+            merged.setdefault(str(item.get("run_id")), item)
+        items = list(merged.values())
+        items.sort(key=lambda item: item.get("generated_at", ""), reverse=True)
+        return items[:limit]
 
     def ensure_run_for_report(self, run_id: str, report: dict) -> Run:
         """从磁盘加载历史报告后，临时重建一个上下文，让"追问"仍然可用。"""
@@ -184,10 +220,13 @@ class RepoLensApp:
             bus=bus,
             store=self.store,
             checkpointer=self.checkpointer,
+            storage=self.storage,
             model_display=str((report.get("ai") or {}).get("model", "")),
         )
         ctx.report = report
         ctx.source_note = str(report.get("source_note", ""))
+        ctx.chat_history = self.storage.messages(run_id)
+        ctx.chat_seeded = False
         local_path = report.get("local_path")
         if local_path and Path(local_path).is_dir():
             ctx.repo_root = Path(local_path)
@@ -215,6 +254,8 @@ class RepoLensApp:
             "uptime_seconds": int(time.time() - self.started_at),
             "active_runs": len([run for run in self.runs.values() if run.status == "running"]),
             "max_files": MAX_FILES,
+            "persistence": "sqlite" if self.storage.available else "json-fallback",
+            "storage": self.storage.stats(),
         }
 
     def examples(self) -> list[dict]:
@@ -275,7 +316,9 @@ class RepoLensHandler(BaseHTTPRequestHandler):
         elif path == "/api/examples":
             self._json({"items": self.app.examples()})
         elif path == "/api/history":
-            self._json({"items": list_reports()})
+            self._json({"items": self.app.history()})
+        elif path == "/api/chat/history":
+            self._handle_chat_history(parsed)
         elif path == "/api/report":
             self._handle_report(parsed)
         elif path == "/api/run":
@@ -423,7 +466,7 @@ class RepoLensHandler(BaseHTTPRequestHandler):
             return
         run = self.app.get_run(run_id)
         if run is None:
-            report = load_report(run_id)
+            report = load_report(run_id, storage=self.app.storage)
             if report is not None:
                 self._json(
                     {
@@ -434,6 +477,21 @@ class RepoLensHandler(BaseHTTPRequestHandler):
                         "report_ready": True,
                         "elapsed_seconds": 0,
                         "repo_name": report.get("repo_name", ""),
+                    }
+                )
+                return
+            persisted = self.app.storage.get_run(run_id)
+            if persisted is not None:
+                self._json(
+                    {
+                        "run_id": run_id,
+                        "source": persisted.get("source", ""),
+                        "source_type": persisted.get("source_type", "local"),
+                        "status": persisted.get("status", "done"),
+                        "report_ready": bool(persisted.get("report_ready")),
+                        "elapsed_seconds": 0,
+                        "repo_name": persisted.get("repo_name", ""),
+                        "error": persisted.get("error", ""),
                     }
                 )
                 return
@@ -524,14 +582,25 @@ class RepoLensHandler(BaseHTTPRequestHandler):
         if not run_id:
             self._json({"error": "缺少 run_id"}, HTTPStatus.BAD_REQUEST)
             return
-        run = self.app.get_run(run_id)
-        if run is None:
-            self._json({"error": "找不到这次分析"}, HTTPStatus.NOT_FOUND)
-            return
         try:
             last_seq = int((query.get("from") or ["0"])[0])
         except ValueError:
             last_seq = 0
+
+        run = self.app.get_run(run_id)
+        if run is None:
+            # 进程重启后内存里的 EventBus 没了，但 SQLite 还留着事件，可以回放。
+            persisted_events = self.app.storage.events(run_id, last_seq)
+            if not persisted_events:
+                self._json({"error": "找不到这次分析"}, HTTPStatus.NOT_FOUND)
+                return
+            self._sse_start()
+            try:
+                for event in persisted_events:
+                    self._sse_send(event)
+            except (BrokenPipeError, ConnectionResetError, OSError):
+                pass
+            return
 
         self._sse_start()
         bus = run.ctx.bus
@@ -557,6 +626,14 @@ class RepoLensHandler(BaseHTTPRequestHandler):
             pass
 
     # ------------------------------------------------------------- 追问
+    def _handle_chat_history(self, parsed) -> None:
+        query = parse_qs(parsed.query)
+        run_id = (query.get("run_id") or [""])[0].strip()
+        if not run_id:
+            self._json({"error": "缺少 run_id"}, HTTPStatus.BAD_REQUEST)
+            return
+        self._json({"items": self.app.storage.messages(run_id)})
+
     def _handle_chat(self) -> None:
         payload = self._read_json()
         if payload is None:
@@ -574,7 +651,7 @@ class RepoLensHandler(BaseHTTPRequestHandler):
             return
         run = self.app.get_run(run_id)
         if run is None:
-            report = load_report(run_id)
+            report = load_report(run_id, storage=self.app.storage)
             if report is None:
                 self._json({"error": "找不到这次分析"}, HTTPStatus.NOT_FOUND)
                 return
@@ -586,6 +663,11 @@ class RepoLensHandler(BaseHTTPRequestHandler):
                 return
             run.ctx.report = report
 
+        # 先保存用户问题；助手回答在流结束后保存。
+        self.app.storage.add_message(run_id, "user", message)
+        assistant_parts: list[str] = []
+        answer_saved = False
+
         self._sse_start()
         try:
             with run.chat_lock:
@@ -594,6 +676,16 @@ class RepoLensHandler(BaseHTTPRequestHandler):
 
                     run.chat_agent = build_chat_agent(run.ctx)
                 for item in stream_chat(run.ctx, message, run.chat_agent):
+                    if item.get("type") == "token":
+                        assistant_parts.append(str((item.get("data") or {}).get("text", "")))
+                    if item.get("type") == "done":
+                        self.app.storage.add_message(
+                            run_id,
+                            "assistant",
+                            "".join(assistant_parts),
+                            {"model": run.ctx.model_display},
+                        )
+                        answer_saved = True
                     self._sse_send(
                         {
                             "seq": int(time.time() * 1000),
@@ -608,6 +700,14 @@ class RepoLensHandler(BaseHTTPRequestHandler):
                 self._sse_send({"seq": 0, "type": "error", "data": {"message": str(exc)}})
             except OSError:
                 pass
+        finally:
+            if not answer_saved and assistant_parts:
+                self.app.storage.add_message(
+                    run_id,
+                    "assistant",
+                    "".join(assistant_parts),
+                    {"model": run.ctx.model_display, "partial": True},
+                )
 
 
 class RepoLensHTTPServer(ThreadingHTTPServer):

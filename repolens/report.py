@@ -25,6 +25,11 @@ from .scanner import Snapshot, TechHit, guess_module_role
 
 MAX_FACTS_CHARS = 7000
 
+# 报告结构版本：
+#   1：早期没有版本号的报告；
+#   2：增加 function/function_order、layer/layer_order 等展示字段。
+REPORT_SCHEMA_VERSION = 2
+
 
 # ============================================================================
 # 给 Agent 看的"事实摘要"
@@ -555,6 +560,7 @@ def build_report(ctx: AnalysisContext, insight: Any = None, ai_error: str | None
     highlights = list(getattr(insight, "highlights", None) or []) if insight is not None else []
 
     report = {
+        "schema_version": REPORT_SCHEMA_VERSION,
         "run_id": ctx.run_id,
         "generated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
         "repo_name": snapshot.repo_name,
@@ -601,24 +607,80 @@ def report_path(run_id: str) -> Path:
     return config.REPORTS_DIR / f"{run_id}.json"
 
 
-def save_report(report: dict) -> Path:
+def normalize_report(report: dict) -> dict:
+    """把旧报告补齐到当前 schema，保证前端字段稳定。
+
+    旧版本没有 schema_version，也可能没有 function/layer。
+    这里不删除任何旧字段，只补默认值和展示分组字段。
+    """
+    normalized = dict(report)
+    normalized["schema_version"] = REPORT_SCHEMA_VERSION
+    normalized.setdefault("warnings", [])
+    normalized.setdefault("highlights", [])
+    normalized.setdefault("risks", [])
+    normalized.setdefault("learning_path", [])
+    normalized.setdefault("architecture", [])
+    normalized.setdefault("stats", {})
+    normalized.setdefault("ai", {})
+    normalized.setdefault("categories", [])
+
+    techs: list[dict] = []
+    for raw in normalized.get("techs") or []:
+        if not isinstance(raw, dict):
+            continue
+        tech = dict(raw)
+        tags = tech.get("usage_tags") or []
+        tech["usage_tags"] = sorted({str(tag) for tag in tags})
+        function = str(tech.get("function") or "").strip()
+        if not function:
+            function = function_for(str(tech.get("category") or ""), str(tech.get("name") or ""), tags)
+        layer = str(tech.get("layer") or "").strip() or layer_for(function)
+        tech["function"] = function
+        tech["function_order"] = int(tech.get("function_order") or _FUNCTION_ORDER.get(function, 999))
+        tech["layer"] = layer
+        tech["layer_order"] = int(tech.get("layer_order") or _LAYER_ORDER.get(layer, 999))
+        tech["sources"] = tech.get("sources") or []
+        tech["evidence"] = tech.get("evidence") or []
+        tech["modules"] = tech.get("modules") or []
+        tech["module_count"] = int(tech.get("module_count") or len(tech["modules"]))
+        techs.append(tech)
+    normalized["techs"] = techs
+    return normalized
+
+
+def save_report(report: dict, storage: Any = None) -> Path:
+    normalized = normalize_report(report)
     config.REPORTS_DIR.mkdir(parents=True, exist_ok=True)
-    path = report_path(report["run_id"])
-    path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+    path = report_path(normalized["run_id"])
+    path.write_text(json.dumps(normalized, ensure_ascii=False, indent=2), encoding="utf-8")
+    if storage is not None:
+        try:
+            storage.save_report(normalized)
+        except Exception:
+            # 文件报告已经保存；SQLite 失败不应让分析失败。
+            pass
     return path
 
 
-def load_report(run_id: str) -> dict | None:
-    try:
-        path = report_path(run_id)
-    except ValueError:
-        return None
-    if not path.exists():
-        return None
-    try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return None
+def load_report(run_id: str, storage: Any = None) -> dict | None:
+    data: dict | None = None
+    if storage is not None:
+        try:
+            data = storage.load_report(run_id)
+        except Exception:
+            data = None
+    if data is None:
+        try:
+            path = report_path(run_id)
+        except ValueError:
+            return None
+        if not path.exists():
+            return None
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return None
+    return normalize_report(data) if isinstance(data, dict) else None
 
 
 def list_reports(limit: int = 40) -> list[dict]:
@@ -633,6 +695,7 @@ def list_reports(limit: int = 40) -> list[dict]:
         items.append(
             {
                 "run_id": data.get("run_id", path.stem),
+                "schema_version": data.get("schema_version", 1),
                 "repo_name": data.get("repo_name", path.stem),
                 "source": data.get("source", ""),
                 "source_type": data.get("source_type", ""),

@@ -21,7 +21,7 @@ import time
 import traceback
 from typing import Any, Iterator
 
-from langchain_core.messages import AIMessageChunk, HumanMessage
+from langchain_core.messages import AIMessage, AIMessageChunk, HumanMessage
 from langgraph.types import Command
 
 from . import config
@@ -90,7 +90,7 @@ def run_analysis(ctx: AnalysisContext) -> None:
     try:
         ctx.emit("phase", {"stage": "report", "label": "合并扫描事实与 AI 解读"})
         report = build_report(ctx, insight, ai_error)
-        save_report(report)
+        save_report(report, storage=ctx.storage)
     except Exception as exc:  # noqa: BLE001
         message = f"生成报告失败：{exc}"
         ctx.emit("error", {"message": message})
@@ -316,8 +316,21 @@ def stream_chat(ctx: AnalysisContext, message: str, agent: Any = None) -> Iterat
         config_ = {"configurable": {"thread_id": f"chat-{ctx.run_id}"}, "recursion_limit": 60}
         yield {"type": "meta", "data": {"model": cfg.display_name}}
 
+        # 进程重启后 checkpointer 是空的；用 SQLite 里的聊天记录恢复上下文。
+        history: list = []
+        if not ctx.chat_seeded:
+            for item in (ctx.chat_history or [])[-24:]:
+                content = str(item.get("content") or "").strip()
+                if not content:
+                    continue
+                if item.get("role") == "user":
+                    history.append(HumanMessage(content=content))
+                elif item.get("role") == "assistant":
+                    history.append(AIMessage(content=content))
+            ctx.chat_seeded = True
+
         for mode, chunk in agent.stream(
-            {"messages": [HumanMessage(content=message)]},
+            {"messages": [*history, HumanMessage(content=message)]},
             config=config_,
             stream_mode=["messages", "updates"],
         ):

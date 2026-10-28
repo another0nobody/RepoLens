@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import threading
 import time
+from collections.abc import Callable
 from typing import Any
 
 
@@ -22,15 +23,22 @@ class EventBus:
     """一个分析任务（run）对应一个 EventBus。
 
     线程安全：后台线程写、HTTP 线程读，用 Condition 做同步。
+    on_event 可选：把事件同步写入 SQLite，进程重启后仍可回放。
     """
 
-    def __init__(self, run_id: str, max_events: int = 4000) -> None:
+    def __init__(
+        self,
+        run_id: str,
+        max_events: int = 4000,
+        on_event: Callable[[dict[str, Any]], None] | None = None,
+    ) -> None:
         self.run_id = run_id
         self._events: list[dict[str, Any]] = []
         self._condition = threading.Condition()
         self._closed = False
         self._max_events = max_events
         self._next_seq = 0  # 单调递增，即使旧事件被裁剪也不会重复
+        self._on_event = on_event
 
     # ------------------------------------------------------------------ 写
     def publish(self, event_type: str, data: Any = None) -> dict[str, Any]:
@@ -49,6 +57,12 @@ class EventBus:
                 del self._events[:keep_from]
             self._events.append(event)
             self._condition.notify_all()
+        if self._on_event is not None:
+            try:
+                self._on_event(event)
+            except Exception:
+                # 持久化失败不能影响正在运行的分析。
+                pass
         return event
 
     def close(self) -> None:

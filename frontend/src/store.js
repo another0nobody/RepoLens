@@ -1,6 +1,6 @@
 import { computed, reactive } from "vue";
 
-import { fetchJSON, streamChatRequest } from "./api";
+import { fetchChatHistory, fetchJSON, streamChatRequest } from "./api";
 import {
   DEFAULT_STYLE,
   STYLE_KEYS,
@@ -564,6 +564,24 @@ function showReport(report) {
   state.pendingTab = "";
   updateURL(urlWithTab(state.tab));
   window.scrollTo({ top: 0, behavior: "smooth" });
+  restoreChat(report.run_id);
+}
+
+async function restoreChat(runId) {
+  try {
+    const data = await fetchChatHistory(runId);
+    if (state.report?.run_id !== runId || state.chat.streaming || state.chat.messages.length) return;
+    const items = (data.items || [])
+      .filter((item) => item.role === "user" || item.role === "assistant")
+      .map((item) => ({
+        role: item.role,
+        content: String(item.content || ""),
+      }))
+      .filter((item) => item.content.trim());
+    if (items.length) state.chat.messages = items;
+  } catch {
+    // 历史聊天读取失败不影响报告本身。
+  }
 }
 
 export async function resumeRun(runId) {

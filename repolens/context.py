@@ -33,7 +33,12 @@ class AnalysisContext:
     bus: EventBus
     store: Any = None
     checkpointer: Any = None
+    storage: Any = None
     model_display: str = ""
+
+    # 追问历史：进程重启后从 SQLite 恢复，首次对话时注入 Agent。
+    chat_history: list[dict] = field(default_factory=list)
+    chat_seeded: bool = False
 
     # 仓库
     repo_root: Path | None = None

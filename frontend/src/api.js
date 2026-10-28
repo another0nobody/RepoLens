@@ -1,5 +1,10 @@
 /** 与 Python 后端通信的薄封装。 */
 
+/** 读取一次运行的历史追问（SQLite 持久化后，刷新页面仍能恢复）。 */
+export async function fetchChatHistory(runId) {
+  return fetchJSON(`/api/chat/history?run_id=${encodeURIComponent(runId)}`);
+}
+
 export async function fetchJSON(url, options = {}) {
   const response = await fetch(url, options);
   const type = response.headers.get("content-type") || "";
