@@ -773,43 +773,6 @@ function copyLink() {
   }
 }
 
-.function-group {
-  margin-top: 14px;
-
-  &:first-of-type {
-    margin-top: 10px;
-  }
-}
-
-.function-head {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin-bottom: 6px;
-  padding-left: 3px;
-  border-left: 1px solid var(--line-strong);
-
-  h4 {
-    margin: 0;
-    padding-left: 7px;
-    color: var(--muted);
-    font-family: var(--font-ui);
-    font-size: 10px;
-    font-weight: 400;
-  }
-
-  .count {
-    color: var(--faint);
-    font-size: 8px;
-  }
-
-  .line {
-    flex: 1;
-    height: 1px;
-    background: var(--line);
-  }
-}
-
 .tab-panel {
   animation: fade-up 0.25s @ease-out;
 }
