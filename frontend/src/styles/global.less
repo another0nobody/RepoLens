@@ -854,16 +854,6 @@ p {
   pointer-events: none;
 }
 
-.bg-grid {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(var(--grid-line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
-  background-size: 56px 56px;
-  mask-image: radial-gradient(ellipse 82% 62% at 50% 0%, #000 32%, transparent 100%);
-}
-
 .bg-glow {
   position: absolute;
   border-radius: 50%;
@@ -1405,4 +1395,313 @@ p {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+// ============================================================================
+// DESIGN BRANCH: Contact Sheet
+// A proof sheet is the interface: black darkroom ground, photo-white frames,
+// silver metadata, and one grease-pencil red reserved for action/selection.
+// ============================================================================
+@font-face {
+  font-family: "RepoLens Grotesk";
+  src: url("/fonts/montserrat-regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "RepoLens Grotesk";
+  src: url("/fonts/montserrat-medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+html[data-theme="dark"],
+html[data-style][data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #0b0b0a;
+  --bg-2: #121210;
+  --panel: #171614;
+  --panel-solid: #1b1916;
+  --panel-soft: rgba(242, 238, 226, 0.055);
+  --panel-hover: rgba(242, 238, 226, 0.09);
+  --line: rgba(242, 238, 226, 0.18);
+  --line-strong: rgba(242, 238, 226, 0.36);
+  --text: #f2eee2;
+  --muted: #bdb7a9;
+  --faint: #8d877a;
+  --accent: #e04435;
+  --accent-2: #d4cec0;
+  --accent-3: #f2eee2;
+  --accent-soft: rgba(224, 68, 53, 0.12);
+  --accent-line: rgba(224, 68, 53, 0.48);
+  --good: #b7d2a5;
+  --good-soft: rgba(183, 210, 165, 0.1);
+  --warn: #e4b45c;
+  --warn-soft: rgba(228, 180, 92, 0.1);
+  --bad: #e04435;
+  --bad-soft: rgba(224, 68, 53, 0.12);
+  --grad-a: #f2eee2;
+  --grad-b: #d4cec0;
+  --grad-c: #e04435;
+  --grad-d: #f2eee2;
+  --shadow: 0 30px 70px -48px rgba(0, 0, 0, 1);
+  --shadow-soft: 0 18px 40px -30px rgba(0, 0, 0, 0.95);
+  --scroll-thumb: rgba(242, 238, 226, 0.24);
+  --grid-line: rgba(242, 238, 226, 0.05);
+  --topbar-bg: #0b0b0a;
+  --drawer-bg: #151412;
+  --code-bg: rgba(242, 238, 226, 0.07);
+  --hero-glow: transparent;
+  --overlay: rgba(0, 0, 0, 0.8);
+  --toast-bg: #1b1916;
+  --input-bg: #11110f;
+  --font-ui: "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-display: "RepoLens Grotesk", "Arial Narrow", "PingFang SC", sans-serif;
+  --page-bg: #0b0b0a;
+  --texture-color: transparent;
+  --texture-opacity: 0;
+}
+
+html[data-theme="light"],
+html[data-style][data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #e9e5d8;
+  --bg-2: #e2ddce;
+  --panel: #f5f1e5;
+  --panel-solid: #fbf7ea;
+  --panel-soft: rgba(18, 17, 14, 0.055);
+  --panel-hover: rgba(18, 17, 14, 0.08);
+  --line: rgba(18, 17, 14, 0.2);
+  --line-strong: rgba(18, 17, 14, 0.36);
+  --text: #171613;
+  --muted: #5b574d;
+  --faint: #817b6d;
+  --accent: #bd2f24;
+  --accent-2: #171613;
+  --accent-3: #5b574d;
+  --accent-soft: rgba(189, 47, 36, 0.1);
+  --accent-line: rgba(189, 47, 36, 0.38);
+  --good: #3d6b3e;
+  --good-soft: rgba(61, 107, 62, 0.1);
+  --warn: #8a5a16;
+  --warn-soft: rgba(138, 90, 22, 0.1);
+  --bad: #b42c22;
+  --bad-soft: rgba(180, 44, 34, 0.1);
+  --grad-a: #171613;
+  --grad-b: #5b574d;
+  --grad-c: #bd2f24;
+  --grad-d: #817b6d;
+  --shadow: 0 24px 50px -40px rgba(23, 22, 19, 0.42);
+  --shadow-soft: 0 14px 30px -26px rgba(23, 22, 19, 0.3);
+  --scroll-thumb: rgba(18, 17, 14, 0.24);
+  --grid-line: rgba(18, 17, 14, 0.06);
+  --topbar-bg: #e9e5d8;
+  --drawer-bg: #f5f1e5;
+  --code-bg: rgba(18, 17, 14, 0.06);
+  --hero-glow: transparent;
+  --overlay: rgba(23, 22, 19, 0.36);
+  --toast-bg: #fbf7ea;
+  --input-bg: #fbf7ea;
+  --font-ui: "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-display: "RepoLens Grotesk", "Arial Narrow", "PingFang SC", sans-serif;
+  --page-bg: #e9e5d8;
+  --texture-color: transparent;
+  --texture-opacity: 0;
+}
+
+html[data-style] body {
+  background: var(--bg) !important;
+}
+
+html .app-bg {
+  display: none;
+}
+
+body {
+  font-family: var(--font-ui);
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+.brand-text strong,
+.tech-name,
+.stat-card .v {
+  font-family: var(--font-display);
+  letter-spacing: -0.035em;
+}
+
+::selection {
+  background: var(--accent);
+  color: #fff8ec;
+}
+
+* {
+  scrollbar-color: var(--scroll-thumb) transparent;
+}
+
+// Frames, not rounded dashboard cards.
+.tech-card,
+.summary-card,
+.stat-card,
+.input-card,
+.rail-card,
+.live-panel,
+.tech-group,
+.module-group,
+.chat-card,
+.bubble,
+.drawer,
+.modal,
+.history-item,
+.concept,
+.feature-card,
+.step-card,
+.search-wrap,
+.btn,
+.icon-btn,
+.model-pill,
+.tag,
+.chip,
+.kind-pill,
+.example-chip,
+.tech-row,
+.architecture-card,
+.risk-card,
+.learning-card {
+  border-radius: 0 !important;
+}
+
+.btn,
+.icon-btn,
+.nav-btn,
+.chip,
+.tag {
+  box-shadow: none !important;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff8ec;
+  border-color: var(--accent);
+}
+
+.btn-primary:hover {
+  background: color-mix(in srgb, var(--accent) 82%, #000);
+  border-color: color-mix(in srgb, var(--accent) 82%, #000);
+}
+
+.tech-card::before {
+  display: none !important;
+}
+
+.summary-card {
+  background: var(--panel);
+  border-color: var(--line-strong);
+}
+
+.tabs {
+  background: var(--bg);
+  border-bottom-color: var(--line-strong);
+}
+
+.tab.active {
+  border-bottom-color: var(--accent);
+}
+
+.tab.active::after {
+  display: none;
+}
+
+.app-bg .bg-grid,
+.app-bg .bg-glow {
+  display: none;
+}
+
+// Contact-sheet browser surfaces and state colors.
+input,
+textarea {
+  caret-color: var(--accent);
+}
+
+:focus-visible {
+  outline-color: var(--accent);
+}
+
+.progress-bar span,
+.reading-progress span {
+  background: var(--accent) !important;
+}
+
+.status-dot,
+.live-dot,
+.model-pill.ok .dot,
+.typing-dot {
+  box-shadow: none !important;
+  animation: none !important;
+}
+
+.run-status,
+.model-pill,
+.status-pill,
+.tag {
+  background: transparent !important;
+}
+
+.run-status {
+  border-color: var(--line-strong) !important;
+}
+
+.drawer,
+.modal,
+.hitl-panel {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.done-box,
+.error-box {
+  border-radius: 0 !important;
+}
+
+.foot {
+  border-top-color: var(--line-strong) !important;
+}
+
+.run-status,
+.status-pill {
+  border-radius: 0 !important;
+}
+
+// Contact-sheet: all remaining chat/module surfaces are frames, not pills.
+.deep-dive,
+.dd-card,
+.dd-select,
+.chat-card,
+.chat-form input,
+.chat-suggestions .chip,
+.chat-messages .bubble,
+.empty-icon,
+.module-group,
+.module-table,
+.tech-row,
+.tech-drawer,
+.drawer-card,
+.history-item,
+.concept-item {
+  border-radius: 0 !important;
+}
+
+.info-grid .ig,
+.evidence li,
+.module,
+.notice,
+.hint {
+  border-radius: 0 !important;
 }

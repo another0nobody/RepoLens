@@ -6,7 +6,6 @@ import ConceptsDrawer from "./components/ConceptsDrawer.vue";
 import HistoryDrawer from "./components/HistoryDrawer.vue";
 import HitlModal from "./components/HitlModal.vue";
 import Icon from "./components/Icon.vue";
-import StylePicker from "./components/StylePicker.vue";
 import TechDrawer from "./components/TechDrawer.vue";
 import ToastHost from "./components/ToastHost.vue";
 import HomeView from "./views/HomeView.vue";
@@ -18,7 +17,6 @@ import {
   initApp,
   openConcepts,
   openHistory,
-  openStyles,
   state,
   toggleTheme,
 } from "./store";
@@ -78,7 +76,6 @@ onBeforeUnmount(() => {
       :health="state.health"
       :theme="state.theme"
       @brand="goHome"
-      @styles="openStyles"
       @history="openHistory"
       @concepts="openConcepts"
       @toggle-theme="toggleTheme"
@@ -93,19 +90,16 @@ onBeforeUnmount(() => {
     </main>
 
     <footer class="foot">
-      <span>RepoLens · 一个用来学习 LangChain Agent 的小项目</span>
-      <span class="foot-right">
-        <span>扫描在本地完成 · 只有必要的事实会发送给模型</span>
-        <a href="https://github.com/another0nobody/RepoLens" target="_blank" rel="noreferrer noopener">
-          <Icon name="github" :size="14" /> GitHub
-        </a>
-      </span>
+      <span>RepoLens · 证据先于解释</span>
+      <span>本地只读扫描 · 敏感信息脱敏 · 每一步都可核对</span>
+      <a href="https://github.com/another0nobody/RepoLens" target="_blank" rel="noreferrer noopener">
+        <Icon name="github" :size="13" /> GitHub
+      </a>
     </footer>
 
     <TechDrawer />
     <HistoryDrawer />
     <ConceptsDrawer />
-    <StylePicker />
     <HitlModal />
     <ToastHost />
   </div>

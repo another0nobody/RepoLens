@@ -101,7 +101,7 @@ repolens/
    ..\.venv\Scripts\python.exe check_secrets.py
    git diff --cached --check
    ```
-8. **提交**：说明改动与影响；不要提交 `.env`、`data/`、`node_modules`、截图 chrome profile。
+8. **提交**：提交说明必须使用中文，写清改动与影响；不要提交 `.env`、`data/`、`node_modules`、截图 chrome profile。
 
 ---
 

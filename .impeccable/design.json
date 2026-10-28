@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-26T22:00:00+08:00",
+  "title": "Design System: RepoLens Contact Sheet",
+  "extensions": {
+    "colorMeta": {
+      "darkroom-black": { "role": "neutral", "displayName": "Darkroom Black", "canonical": "#0b0b0a", "tonalRamp": ["#000000", "#0b0b0a", "#1b1916", "#2a2722", "#3e3a33", "#5a554b", "#7c7668", "#a39b8b"] },
+      "photo-white": { "role": "neutral", "displayName": "Photo White", "canonical": "#f2eee2", "tonalRamp": ["#4a463e", "#676157", "#847d70", "#a49c8c", "#c5bdad", "#ddd6c8", "#f2eee2", "#faf7ed"] },
+      "grease-red": { "role": "primary", "displayName": "Grease Red", "canonical": "#e04435", "tonalRamp": ["#3d0d08", "#621710", "#89221a", "#b32e23", "#e04435", "#f2725f", "#f7a093", "#fbd0c7"] },
+      "silver": { "role": "secondary", "displayName": "Silver Metadata", "canonical": "#bdb7a9", "tonalRamp": ["#3c3933", "#555149", "#6f6a60", "#898276", "#a49d90", "#bdb7a9", "#d7d1c4", "#ede8dd"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Compact Grotesque", "purpose": "Home promise, repository names, frame names." },
+      "body": { "displayName": "Quiet UI Sans", "purpose": "Roles, report prose, labels on controls." },
+      "label": { "displayName": "Edge Code Mono", "purpose": "Frame numbers, edge codes, counts, versions." }
+    },
+    "shadows": [],
+    "motion": [{ "name": "frame-in", "value": "opacity 0.3s cubic-bezier(0.2,0.7,0.2,1)", "purpose": "Technology frames enter; no movement." }],
+    "breakpoints": [{ "name": "md", "value": "820px" }, { "name": "sm", "value": "560px" }]
+  },
+  "components": [
+    { "name": "Primary button", "kind": "button", "refersTo": "button-primary", "description": "The only filled action on the proof sheet.", "html": "<button class=\"ds-btn\">开始分析 →</button>", "css": ".ds-btn { background: #e04435; color: #fff8ec; border: 1px solid #e04435; border-radius: 0; padding: 11px 14px; font: 500 12px/1 \"Segoe UI\", sans-serif; cursor: pointer; } .ds-btn:hover { background: #b83226; border-color: #b83226; } .ds-btn:focus-visible { outline: 2px solid #e04435; outline-offset: 2px; }" },
+    { "name": "Source roll", "kind": "input", "refersTo": "source-roll", "description": "Framed source entry that behaves like a roll label.", "html": "<div class=\"ds-roll\"><span>ROLL / SOURCE</span><input placeholder=\"本地路径或 GitHub 地址\" /></div>", "css": ".ds-roll { background: #1b1916; border: 1px solid rgba(242,238,226,.36); border-radius: 0; padding: 12px; color: #f2eee2; } .ds-roll span { display: block; margin-bottom: 8px; font: 400 9px/1 \"Cascadia Code\", monospace; letter-spacing: .1em; color: #8d877a; } .ds-roll input { width: 100%; background: transparent; border: 0; color: #f2eee2; font: 400 16px/1.4 \"Cascadia Code\", monospace; outline: 0; }" },
+    { "name": "Report tab", "kind": "nav", "refersTo": "tab-active", "description": "Horizontal proof-sheet section tab.", "html": "<button class=\"ds-tab is-active\">技术栈</button>", "css": ".ds-tab { padding: 10px 14px; border: 0; border-right: 1px solid rgba(242,238,226,.18); border-radius: 0; background: transparent; color: #bdb7a9; font: 400 11px/1 \"Segoe UI\", sans-serif; } .ds-tab.is-active { background: #e044351f; color: #e04435; } .ds-tab:focus-visible { outline: 2px solid #e04435; }" },
+    { "name": "Technology frame", "kind": "custom", "refersTo": "tech-frame", "description": "A numbered proof frame for one technology.", "html": "<div class=\"ds-frame\"><div class=\"ds-frame-top\"><span>01</span><span>■ 前端框架</span></div><strong>React</strong><p>构建订单页面。</p><div class=\"ds-frame-foot\">置信度 高 · 2 模块 · 2 证据 ↗</div></div>", "css": ".ds-frame { border: 1px solid rgba(242,238,226,.18); border-radius: 0; padding: 9px 10px; background: #1b1916; color: #f2eee2; } .ds-frame-top, .ds-frame-foot { display: flex; justify-content: space-between; gap: 8px; padding: 7px 0; border-bottom: 1px solid rgba(242,238,226,.12); color: #8d877a; font: 400 8px/1 \"Cascadia Code\", monospace; } .ds-frame-foot { border-bottom: 0; border-top: 1px solid rgba(242,238,226,.12); margin-top: 10px; } .ds-frame strong { display: block; margin-top: 9px; font: 500 18px/1.1 \"RepoLens Grotesk\", \"Arial Narrow\", sans-serif; letter-spacing: -.03em; } .ds-frame p { margin: 6px 0 0; color: #bdb7a9; font: 400 11px/1.65 \"Segoe UI\", sans-serif; }" }
+  ],
+  "narrative": {
+    "northStar": "The Proof Sheet",
+    "overview": "RepoLens is a darkroom where a repository is developed into evidence. The interface is a contact sheet: black ground, white frame borders, silver edge codes, and a single grease-pencil red that marks what can be pressed or what is currently selected. Every technology is a numbered frame; the agent's run is a strip of exposures; the report is the proof sheet you read after the roll is developed.",
+    "keyCharacteristics": ["Flat darkroom black and photo-paper white with silver metadata.", "One grease red reserved for actions and active selection.", "Contact-sheet frames, edge codes, and numbered technology cards.", "Self-hosted compact geometric grotesque; typewriter for data.", "No glass, glow, gradient text, or rounded dashboard cards."],
+    "rules": [
+      { "name": "The Grease Pencil Rule", "body": "Red is a mark, not a mood. Use it for the action, the active state, and the selected frame; never for a headline, an inactive icon, or a decorative wash.", "section": "colors" },
+      { "name": "The Frame Rule", "body": "Every panel is a rectangle with a 1px rule. No rounded card, no glass, no floating shadow.", "section": "shapes" },
+      { "name": "The Edge-Code Rule", "body": "Mono is reserved for data that behaves like a frame number, coordinate, version, or count. Do not set body copy in mono to signal technical.", "section": "typography" }
+    ],
+    "dos": ["Do use red only for action, selection, and active state.", "Do keep every frame square and bordered at 1px.", "Do number frames and use mono for counts, versions, and edge codes.", "Do keep the proof strip horizontal at desktop and stack it at mobile."],
+    "donts": ["Don't introduce rounded cards, glass, glow, gradient text, or a colored left stripe.", "Don't use red for headings or inactive icons.", "Don't turn the contact sheet into a simulated camera or terminal.", "Don't add a second display face or a system display face.", "Don't replace the report table with a grid of equal cards."]
+  }
+}

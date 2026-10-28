@@ -2,27 +2,14 @@
 import { computed, ref } from "vue";
 
 import { detectSource, truncate } from "../utils";
-import { openConcepts, startAnalysis, state } from "../store";
+import { openConcepts, openHistory, startAnalysis, state } from "../store";
 import Icon from "../components/Icon.vue";
 
 const input = ref(state.source || "");
 const focused = ref(false);
-const mouse = ref({ x: 50, y: 28 });
 const kind = computed(() => detectSource(input.value));
 const canStart = computed(() => input.value.trim().length > 0);
-
-const heroStyle = computed(() => ({
-  "--mx": `${mouse.value.x}%`,
-  "--my": `${mouse.value.y}%`,
-}));
-
-function trackMouse(event) {
-  const rect = event.currentTarget.getBoundingClientRect();
-  mouse.value = {
-    x: Math.round(((event.clientX - rect.left) / rect.width) * 100),
-    y: Math.round(((event.clientY - rect.top) / rect.height) * 100),
-  };
-}
+const recent = computed(() => (state.history || []).slice(0, 3));
 
 function submit() {
   if (!canStart.value) return;
@@ -44,203 +31,254 @@ function onKeydown(event) {
 
 <template>
   <section class="home">
-    <div class="hero" :style="heroStyle" @mousemove="trackMouse">
-      <div class="hero-glow" aria-hidden="true"></div>
+    <div class="contact-hero">
+      <div class="hero-copy">
+        <h1>冲洗一个<br /><span>陌生仓库</span></h1>
+        <p class="lede">
+          输入本地目录或 GitHub 地址。Agent 先扫描事实，再逐项核实技术被哪些模块使用，
+          最后给你一张可以继续追问的证据表。
+        </p>
 
-      <p class="eyebrow">
-        <span class="eyebrow-dot"></span>
-        YOUR FIRST LANGCHAIN AGENT PROJECT
-      </p>
-      <h1>
-        输入一个仓库，<br />
-        <span class="grad">看清它的技术栈</span>
-      </h1>
-      <p class="lede">
-        本地目录或 GitHub 地址都可以。Agent 会扫描依赖与 import，核实每一项技术被哪些模块使用，
-        再生成一份可以继续追问的中文报告。
-      </p>
+        <div class="source-card" :class="{ focused }">
+          <div class="source-label">
+            <span>ROLL / SOURCE</span>
+            <span class="kind-pill" :class="kind.kind">
+              <Icon :name="kind.kind === 'github' ? 'github' : kind.kind === 'ambiguous' ? 'code' : 'folder'" :size="11" />
+              {{ kind.label }}
+            </span>
+          </div>
 
-      <div class="hero-badges">
-        <span class="tag good"><Icon name="terminal" :size="13" /> 本地只读扫描</span>
-        <span class="tag"><Icon name="layers" :size="13" /> 模块级定位</span>
-        <span class="tag"><Icon name="spark" :size="13" /> LangChain Agent</span>
+          <div class="input-row">
+            <span class="input-mark" aria-hidden="true">↳</span>
+            <input
+              id="repo-source"
+              v-model="input"
+              type="text"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="本地路径或 GitHub 地址"
+              aria-label="代码仓库路径或 GitHub 地址"
+              @focus="focused = true"
+              @blur="focused = false"
+              @keydown="onKeydown"
+            />
+            <button class="btn btn-primary analyze-btn" type="button" :disabled="state.analyzing || !canStart" @click="submit">
+              <span v-if="state.analyzing" class="btn-spinner"></span>
+              <template v-else>
+                开始分析 <Icon name="arrowRight" :size="15" />
+              </template>
+            </button>
+          </div>
+
+          <div class="source-meta">
+            <span><kbd>Enter</kbd> 开始</span>
+            <span>密钥自动脱敏</span>
+            <span>不修改仓库</span>
+          </div>
+
+          <div v-if="state.examples.length" class="examples">
+            <button
+              v-for="example in state.examples"
+              :key="example.value"
+              class="example-chip"
+              type="button"
+              :title="example.description"
+              @click="useExample(example)"
+            >
+              <Icon :name="example.kind === 'github' ? 'github' : 'folder'" :size="11" />
+              <b>{{ example.label }}</b>
+              <span v-if="example.description">{{ truncate(example.description, 28) }}</span>
+            </button>
+          </div>
+        </div>
+
+        <div v-if="recent.length" class="recent-strip">
+          <span class="strip-label">RECENT ROLLS</span>
+          <button v-for="item in recent" :key="item.run_id" class="recent-item" type="button" @click="openHistory">
+            <b>{{ item.repo_name || item.source }}</b>
+            <span class="mono">{{ item.source }}</span>
+          </button>
+          <button class="strip-more" type="button" @click="openHistory">打开历史 →</button>
+        </div>
       </div>
+
+      <aside class="contact-strip" aria-label="分析流程">
+        <div class="strip-head">
+          <span>PROOF STRIP / 001</span>
+          <span>3 FRAMES</span>
+        </div>
+
+        <article class="frame">
+          <div class="frame-top"><span>01</span><span>SCAN</span></div>
+          <div class="frame-art frame-art-scan" aria-hidden="true">
+            <span></span><span></span><span></span><span></span>
+            <span></span><span></span><span></span><span></span>
+          </div>
+          <h3>扫描事实</h3>
+          <p>遍历目录、统计语言、解析依赖清单与 import。</p>
+        </article>
+
+        <article class="frame">
+          <div class="frame-top"><span>02</span><span>AGENT</span></div>
+          <div class="frame-art frame-art-agent" aria-hidden="true">
+            <i></i><i></i><i></i><i></i><i></i>
+          </div>
+          <h3>核实证据</h3>
+          <p>模型拿着事实清单逐项核实，定位每个技术被哪些模块使用。</p>
+        </article>
+
+        <article class="frame">
+          <div class="frame-top"><span>03</span><span>PROOF</span></div>
+          <div class="frame-art frame-art-proof" aria-hidden="true">
+            <span></span><span></span><span></span>
+            <b></b><b></b><b></b>
+          </div>
+          <h3>生成证据表</h3>
+          <p>技术栈、模块地图、架构、风险与学习路径，全部可继续追问。</p>
+        </article>
+
+        <div class="strip-foot">
+          <span>NO FRAME WITHOUT A SOURCE</span>
+          <span>↗</span>
+        </div>
+      </aside>
     </div>
 
-    <div class="input-card" :class="{ focused }">
-      <div class="input-row">
-        <span class="input-icon" aria-hidden="true">
-          <Icon name="terminal" :size="18" />
-        </span>
-        <input
-          id="repo-source"
-          v-model="input"
-          type="text"
-          autocomplete="off"
-          spellcheck="false"
-          placeholder="C:\code\my-project   或   https://github.com/owner/repo"
-          aria-label="代码仓库路径或 GitHub 地址"
-          @focus="focused = true"
-          @blur="focused = false"
-          @keydown="onKeydown"
-        />
-        <button class="btn btn-primary analyze-btn" type="button" :disabled="state.analyzing || !canStart" @click="submit">
-          <span v-if="state.analyzing" class="btn-spinner"></span>
-          <template v-else>
-            开始分析
-            <Icon name="arrowRight" :size="16" />
-          </template>
-        </button>
+    <section class="proof-index" aria-label="报告能力">
+      <div class="index-head">
+        <span>INDEX / WHAT YOU GET</span>
+        <span>03 PROOFS</span>
       </div>
-
-      <div class="input-info">
-        <span class="kind-pill" :class="kind.kind">
-          <Icon :name="kind.kind === 'github' ? 'github' : kind.kind === 'ambiguous' ? 'code' : 'folder'" :size="12" />
-          {{ kind.label }}
-        </span>
-        <span class="shortcut"><kbd>Enter</kbd> 快速开始</span>
-        <span class="input-note">只读扫描 · 密钥自动脱敏</span>
-      </div>
-
-      <div v-if="state.examples.length" class="examples">
-        <button
-          v-for="example in state.examples"
-          :key="example.value"
-          class="chip example-chip"
-          type="button"
-          :title="example.description"
-          @click="useExample(example)"
-        >
-          <Icon :name="example.kind === 'github' ? 'github' : 'folder'" :size="12" />
-          <b>{{ example.label }}</b>
-          <span v-if="example.description" class="example-desc">{{ truncate(example.description, 34) }}</span>
-        </button>
-      </div>
-    </div>
-
-    <div class="step-strip">
-      <article v-for="(step, index) in [
-        { no: '01', title: '扫描事实', text: '遍历目录、统计语言、解析 requirements.txt / package.json / pom.xml，提取 import 语句。' },
-        { no: '02', title: 'Agent 核实', text: '大模型拿着事实清单，逐项核实技术，定位每个技术被哪些模块使用。' },
-        { no: '03', title: '生成报告', text: '合并成技术栈全景、模块地图、架构解读、风险与学习路径，并支持继续追问。' },
-      ]" :key="step.no" class="step-card">
-        <span class="step-no">{{ step.no }}</span>
-        <h3>{{ step.title }}</h3>
-        <p>{{ step.text }}</p>
-        <span v-if="index < 2" class="step-arrow" aria-hidden="true">→</span>
-      </article>
-    </div>
-
-    <div class="feature-grid">
-      <article class="feature-card">
-        <span class="feature-icon"><Icon name="layers" :size="18" /></span>
-        <h3>技术栈全景</h3>
-        <p>按前后端、数据库、AI、基础设施等分类展示，标注版本、证据和置信度。</p>
-      </article>
-      <article class="feature-card">
-        <span class="feature-icon"><Icon name="code" :size="18" /></span>
-        <h3>模块级定位</h3>
-        <p>精确到文件与行号：哪个模块 import 了它、在项目里承担什么角色。</p>
-      </article>
-      <article class="feature-card">
-        <span class="feature-icon"><Icon name="spark" :size="18" /></span>
-        <h3>报告追问</h3>
-        <p>基于这份报告继续问「Redis 用在哪里」「先读哪个文件」，带多轮记忆。</p>
-      </article>
-      <article class="feature-card">
-        <span class="feature-icon"><Icon name="book" :size="18" /></span>
-        <h3>知识点透明</h3>
-        <p>Tool、结构化输出、中间件、人机协同、记忆，每个能力都标注对应教程章节。</p>
-      </article>
-    </div>
+      <table>
+        <tbody>
+          <tr>
+            <th scope="row">技术栈全景</th>
+            <td>按类别展示技术、版本、职责、证据和置信度。</td>
+            <td class="mono">STACK</td>
+          </tr>
+          <tr>
+            <th scope="row">模块级定位</th>
+            <td>精确到文件与行号，并说明每个文件大概在做什么。</td>
+            <td class="mono">MODULES</td>
+          </tr>
+          <tr>
+            <th scope="row">技术深挖与追问</th>
+            <td>优势、难点、相似方案、为什么选它；回答区分事实与推断。</td>
+            <td class="mono">AGENT</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
 
     <p class="home-foot">
-      这个项目把教程第 5~9 章的 Agent 知识点串了起来。
-      <button class="link-btn" type="button" @click="openConcepts">看看每个功能用了什么 →</button>
+      这是一个用来学习 LangChain Agent 的小项目，不是另一个只会聊天的 AI。
+      <button class="link-btn" type="button" @click="openConcepts">查看每个能力对应的教程知识点 →</button>
     </p>
   </section>
 </template>
 
 <style scoped lang="less">
 .home {
-  padding-top: 28px;
+  padding-top: 22px;
 }
 
-.hero {
-  position: relative;
-  max-width: 900px;
-  padding: 26px 0 30px;
-  overflow: hidden;
-
-  .hero-glow {
-    position: absolute;
-    inset: -80px -60px;
-    background: radial-gradient(circle at var(--mx) var(--my), var(--hero-glow), transparent 46%);
-    pointer-events: none;
-    z-index: -1;
-    transition: background 0.15s ease-out;
-  }
+.contact-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.65fr);
+  gap: 28px;
+  align-items: start;
 }
 
-.eyebrow {
-  display: inline-flex;
+.hero-copy {
+  min-width: 0;
+}
+
+.strip-head,
+.index-head,
+.strip-label {
+  display: flex;
   align-items: center;
-  gap: 9px;
-  margin: 0 0 20px;
-  color: var(--accent);
-  font-size: 11px;
-  letter-spacing: 2.2px;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--faint);
+  .mono();
+  font-size: 9px;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
-.eyebrow-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 14px var(--accent);
-}
-
 h1 {
-  margin: 0;
-  font-size: clamp(40px, 6.2vw, 72px);
-  line-height: 1.04;
-  letter-spacing: -2.4px;
-  font-weight: 720;
-}
+  margin: 2px 0 0;
+  font-size: clamp(48px, 7.3vw, 96px);
+  line-height: 0.93;
+  letter-spacing: -0.045em;
+  font-weight: 500;
+  text-transform: uppercase;
 
-.grad {
-  .gradient-text();
+  span {
+    display: inline-block;
+    color: var(--text);
+    padding-bottom: 2px;
+    border-bottom: 4px solid var(--accent);
+  }
 }
 
 .lede {
-  max-width: 760px;
-  margin: 22px 0 0;
+  max-width: 620px;
+  margin: 24px 0 0;
   color: var(--muted);
-  font-size: 17px;
-  line-height: 1.75;
+  font-size: 15.5px;
+  line-height: 1.8;
 }
 
-.hero-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 20px;
-}
-
-.input-card {
-  position: relative;
-  margin-top: 30px;
-  padding: 16px;
-  border-radius: @radius-xl;
-  background: linear-gradient(160deg, color-mix(in srgb, var(--panel-solid) 88%, transparent), var(--panel));
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow);
-  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+.source-card {
+  margin-top: 28px;
+  border: 1px solid var(--line-strong);
+  background: var(--panel);
+  transition: border-color 0.16s, background 0.16s;
 
   &.focused {
-    border-color: var(--accent-line);
-    box-shadow: 0 0 0 4px var(--accent-soft), var(--shadow);
+    border-color: var(--accent);
+  }
+}
+
+.source-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--line);
+  color: var(--faint);
+  .mono();
+  font-size: 9px;
+  letter-spacing: 0.1em;
+}
+
+.kind-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 9px;
+  letter-spacing: 0;
+  text-transform: none;
+
+  &.github {
+    color: #a9c7e8;
+    border-color: #56728d;
+  }
+
+  &.ambiguous {
+    color: var(--warn);
+    border-color: var(--warn);
+  }
+
+  &.local {
+    color: var(--good);
+    border-color: color-mix(in srgb, var(--good) 55%, var(--line));
   }
 }
 
@@ -248,235 +286,413 @@ h1 {
   display: flex;
   align-items: center;
   gap: 10px;
+  padding: 12px;
 }
 
-.input-icon {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
+.input-mark {
   color: var(--accent);
+  .mono();
+  font-size: 18px;
   flex: none;
 }
 
 #repo-source {
   flex: 1;
   min-width: 0;
-  padding: 12px 2px;
+  padding: 8px 0;
   border: 0;
   outline: none;
   background: transparent;
+  color: var(--text);
   font-size: 16px;
   .mono();
 
   &::placeholder {
     color: var(--faint);
-    font-family: @font-sans;
+    font-family: var(--font-ui);
   }
 }
 
 .analyze-btn {
-  min-width: 132px;
-  padding: 12px 18px;
+  min-width: 122px;
+  padding: 11px 14px;
+  font-size: 12px;
 }
 
 .btn-spinner {
-  width: 14px;
-  height: 14px;
+  width: 13px;
+  height: 13px;
   border-radius: 50%;
-  border: 2px solid rgba(4, 18, 26, 0.25);
-  border-top-color: #04121a;
+  border: 2px solid rgba(255, 248, 236, 0.25);
+  border-top-color: #fff8ec;
   animation: spin 0.8s linear infinite;
 }
 
-.input-info {
+.source-meta {
   display: flex;
-  align-items: center;
   flex-wrap: wrap;
-  gap: 8px 16px;
-  padding: 10px 6px 2px;
+  gap: 8px 18px;
+  padding: 9px 12px;
+  border-top: 1px solid var(--line);
   color: var(--faint);
-  font-size: 11.5px;
-}
-
-.kind-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 9px;
-  border-radius: @radius-pill;
-  border: 1px solid var(--line);
-  background: var(--panel-soft);
-  color: var(--muted);
-
-  &.github {
-    color: var(--accent-2);
-    border-color: color-mix(in srgb, var(--accent-2) 30%, transparent);
-  }
-
-  &.ambiguous {
-    color: var(--warn);
-    border-color: color-mix(in srgb, var(--warn) 30%, transparent);
-  }
-
-  &.local {
-    color: var(--accent);
-    border-color: var(--accent-line);
-  }
-}
-
-.shortcut {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+  font-size: 10.5px;
 
   kbd {
     .mono();
-    padding: 1px 5px;
-    border-radius: 5px;
+    padding: 1px 4px;
     border: 1px solid var(--line);
-    background: var(--panel-soft);
-    color: var(--faint);
-    font-size: 10px;
+    color: var(--muted);
+    font-size: 9px;
   }
-}
-
-.input-note {
-  margin-left: auto;
 }
 
 .examples {
   display: flex;
   flex-wrap: wrap;
-  gap: 7px;
-  margin-top: 12px;
+  gap: 0;
+  border-top: 1px solid var(--line);
 }
 
 .example-chip {
-  gap: 6px;
-  font-size: 11.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   max-width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  font-size: 10.5px;
+  text-align: left;
 
   b {
     color: var(--text);
-    font-weight: 600;
+    font-weight: 500;
+  }
+
+  span {
+    color: var(--faint);
+    .truncate();
+    max-width: 150px;
+  }
+
+  &:hover {
+    background: var(--panel-soft);
+    color: var(--text);
   }
 }
 
-.example-desc {
+.recent-strip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px 14px;
+  margin-top: 14px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.strip-label {
+  min-width: 100%;
+  justify-content: flex-start;
+  font-size: 8.5px;
+}
+
+.recent-item {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 10.5px;
+  text-align: left;
+
+  b {
+    max-width: 110px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  span {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--faint);
+    font-size: 9px;
+  }
+
+  &:hover b {
+    color: var(--accent);
+  }
+}
+
+.strip-more {
+  margin-left: auto;
+  border: 0;
+  background: none;
   color: var(--faint);
-  max-width: 190px;
-  .truncate();
-}
+  font-size: 9.5px;
+  .mono();
 
-.step-strip {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-  margin: 34px 0 20px;
-}
-
-.step-card {
-  position: relative;
-  padding: 20px;
-  border-radius: @radius-lg;
-  border: 1px solid var(--line);
-  background: var(--panel);
-  overflow: hidden;
-
-  &::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(140deg, var(--accent-soft), transparent 55%);
-    pointer-events: none;
+  &:hover {
+    color: var(--accent);
   }
+}
+
+.contact-strip {
+  border: 1px solid var(--line-strong);
+  background: var(--panel);
+  padding: 9px;
+}
+
+.strip-head,
+.strip-foot {
+  padding: 0 3px 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.strip-foot {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding: 8px 3px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 0;
+  color: var(--faint);
+  .mono();
+  font-size: 8px;
+  letter-spacing: 0.1em;
+}
+
+.frame {
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-top: 0;
+  background: color-mix(in srgb, var(--panel) 82%, var(--bg));
 
   h3 {
-    margin: 8px 0 6px;
-    font-size: 15px;
+    margin: 8px 0 2px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0;
   }
 
   p {
     margin: 0;
     color: var(--muted);
-    font-size: 12.5px;
-    line-height: 1.7;
+    font-size: 10.5px;
+    line-height: 1.55;
   }
 }
 
-.step-no {
-  .mono();
-  font-size: 11px;
-  color: var(--accent);
-  letter-spacing: 2px;
-}
-
-.step-arrow {
-  position: absolute;
-  right: 14px;
-  top: 18px;
+.frame-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
   color: var(--faint);
-  font-size: 14px;
+  .mono();
+  font-size: 8px;
+  letter-spacing: 0.12em;
 }
 
-.feature-grid {
+.frame-art {
+  height: 52px;
+  margin-top: 7px;
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  position: relative;
+  overflow: hidden;
+}
+
+.frame-art-scan {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-}
+  gap: 3px;
+  padding: 7px;
 
-.feature-card {
-  padding: 19px;
-  border-radius: @radius-lg;
-  border: 1px solid var(--line);
-  background: var(--panel);
-  .card-lift();
-
-  h3 {
-    margin: 10px 0 5px;
-    font-size: 14.5px;
+  span {
+    border: 1px solid var(--line);
+    background: var(--panel-soft);
   }
 
-  p {
-    margin: 0;
-    color: var(--muted);
-    font-size: 12.5px;
-    line-height: 1.7;
+  span:nth-child(3),
+  span:nth-child(6) {
+    background: var(--accent-soft);
+    border-color: var(--accent-line);
   }
 }
 
-.feature-icon {
+.frame-art-agent {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 8px;
+
+  i {
+    width: 7px;
+    height: 7px;
+    background: var(--line-strong);
+
+    &:nth-child(1) {
+      background: var(--accent);
+    }
+
+    &:nth-child(2) {
+      height: 18px;
+    }
+
+    &:nth-child(3) {
+      height: 29px;
+      background: var(--text);
+    }
+
+    &:nth-child(4) {
+      height: 13px;
+    }
+  }
+}
+
+.frame-art-proof {
   display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  color: var(--accent);
-  background: var(--accent-soft);
-  border: 1px solid var(--accent-line);
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 4px;
+  padding: 8px;
+
+  span {
+    height: 5px;
+    background: var(--line-strong);
+    align-self: start;
+  }
+
+  b {
+    height: 22px;
+    border: 1px solid var(--line);
+    grid-row: 2;
+  }
+
+  b:nth-child(5) {
+    border-color: var(--accent-line);
+  }
+}
+
+.proof-index {
+  margin-top: 38px;
+  border-top: 1px solid var(--line-strong);
+}
+
+.index-head {
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.proof-index table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th,
+  td {
+    padding: 13px 12px;
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+    vertical-align: top;
+  }
+
+  th {
+    width: 24%;
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0;
+  }
+
+  td {
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.6;
+  }
+
+  td:last-child {
+    width: 90px;
+    color: var(--faint);
+    font-size: 9px;
+    text-align: right;
+  }
 }
 
 .home-foot {
-  margin: 30px 0 0;
-  text-align: center;
+  margin: 26px 0 0;
   color: var(--faint);
-  font-size: 12.5px;
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.link-btn {
+  border: 0;
+  background: none;
+  color: var(--accent);
+  padding: 0;
+  font-size: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 @media (max-width: @bp-lg) {
-  .feature-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .contact-hero {
+    grid-template-columns: minmax(0, 1.15fr) minmax(270px, 0.85fr);
+    gap: 18px;
   }
 }
 
 @media (max-width: @bp-md) {
-  .home {
-    padding-top: 6px;
+  .contact-hero {
+    grid-template-columns: 1fr;
   }
 
-  .lede {
-    font-size: 15px;
+  .contact-strip {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
+    padding: 8px;
+  }
+
+  .strip-head,
+  .strip-foot {
+    grid-column: 1 / -1;
+  }
+
+  .frame {
+    border-top: 1px solid var(--line);
+    border-left: 0;
+
+    &:nth-of-type(2) {
+      border-left: 1px solid var(--line);
+    }
+
+    &:nth-of-type(3) {
+      border-left: 1px solid var(--line);
+    }
+
+    p {
+      display: none;
+    }
+
+    h3 {
+      font-size: 11px;
+    }
+  }
+
+  .frame-art {
+    height: 38px;
   }
 
   .input-row {
@@ -491,17 +707,62 @@ h1 {
     width: 100%;
   }
 
-  .input-note {
-    margin-left: 0;
+  .recent-item span {
+    display: none;
   }
 
-  .step-strip,
-  .feature-grid {
+  .proof-index {
+    th {
+      width: 34%;
+      font-size: 12px;
+    }
+
+    td:last-child {
+      display: none;
+    }
+  }
+}
+
+@media (max-width: @bp-sm) {
+  h1 {
+    font-size: clamp(42px, 14vw, 64px);
+  }
+
+  .contact-strip {
     grid-template-columns: 1fr;
   }
 
-  .step-arrow {
+  .frame {
+    border-left: 0 !important;
+
+    &:nth-of-type(2),
+    &:nth-of-type(3) {
+      border-left: 0;
+      border-top: 1px solid var(--line);
+    }
+
+    p {
+      display: block;
+    }
+  }
+
+  .frame-art {
+    height: 44px;
+  }
+
+  .example-chip span {
     display: none;
+  }
+
+  .proof-index table {
+    th,
+    td {
+      padding: 10px 6px;
+    }
+
+    th {
+      width: 42%;
+    }
   }
 }
 </style>

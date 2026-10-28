@@ -54,7 +54,7 @@ const filteredTechs = computed(() => {
       tech.layer,
       tech.function,
       tech.role,
-      ...(tech.modules || []).map((module) => `${module.path} ${module.snippet} ${module.role}`),
+      ...(tech.modules || []).map((module) => `${module.path} ${module.snippet} ${module.role} ${module.summary || ""}`),
     ]
       .join(" ")
       .toLowerCase()
@@ -165,7 +165,7 @@ function copyLink() {
           <button class="btn back-btn" type="button" @click="goHome">
             <Icon name="arrowLeft" :size="14" /> 新分析
           </button>
-          <span class="tag" :class="aiState.cls"><Icon name="spark" :size="12" /> {{ aiState.text }}</span>
+          <span class="ai-state" :class="aiState.cls"><i></i>{{ aiState.text }}</span>
         </div>
         <h2>{{ report.repo_name }}</h2>
         <a v-if="sourceHref" class="source mono" :href="sourceHref" target="_blank" rel="noreferrer noopener">
@@ -175,56 +175,48 @@ function copyLink() {
       </div>
 
       <div class="actions">
-        <button class="btn icon-action" type="button" title="复制报告链接" @click="copyLink">
-          <Icon name="copy" :size="14" /> 链接
-        </button>
-        <button class="btn" type="button" @click="reanalyze">
-          <Icon name="refresh" :size="14" /> 重新分析
-        </button>
-        <button class="btn" type="button" @click="exportMarkdown">
-          <Icon name="download" :size="14" /> Markdown
-        </button>
-        <button class="btn" type="button" @click="exportJSON">
-          <Icon name="download" :size="14" /> JSON
-        </button>
+        <button class="text-action" type="button" @click="copyLink">复制链接</button>
+        <button class="text-action" type="button" @click="reanalyze">重新分析</button>
+        <button class="text-action" type="button" @click="exportMarkdown">Markdown</button>
+        <button class="text-action" type="button" @click="exportJSON">JSON</button>
       </div>
     </header>
 
-    <div class="stat-row">
-      <div class="stat-card">
-        <span class="v">{{ fmtNumber(stats.file_count) }}</span>
+    <div class="stat-strip">
+      <div class="stat">
         <span class="l">文件总数</span>
+        <span class="v">{{ fmtNumber(stats.file_count) }}</span>
       </div>
-      <div class="stat-card">
-        <span class="v">{{ fmtNumber(stats.code_file_count) }}</span>
+      <div class="stat">
         <span class="l">代码文件</span>
+        <span class="v">{{ fmtNumber(stats.code_file_count) }}</span>
       </div>
-      <div class="stat-card">
-        <span class="v">{{ fmtNumber(stats.total_loc) }}</span>
+      <div class="stat">
         <span class="l">代码行数</span>
+        <span class="v">{{ fmtNumber(stats.total_loc) }}</span>
       </div>
-      <div class="stat-card">
-        <span class="v">{{ fmtNumber(techs.length) }}</span>
+      <div class="stat">
         <span class="l">技术项</span>
+        <span class="v">{{ fmtNumber(techs.length) }}</span>
       </div>
-      <div class="stat-card">
-        <span class="v">{{ fmtNumber(codeLanguages) }}</span>
+      <div class="stat">
         <span class="l">编程语言</span>
+        <span class="v">{{ fmtNumber(codeLanguages) }}</span>
       </div>
-      <div class="stat-card">
-        <span class="v">{{ scanSeconds < 0.1 ? "<0.1" : scanSeconds.toFixed(1) }}s</span>
+      <div class="stat">
         <span class="l">扫描耗时</span>
+        <span class="v">{{ scanSeconds < 0.1 ? "<0.1" : scanSeconds.toFixed(1) }}s</span>
       </div>
     </div>
 
-    <div class="summary-card">
-      <div class="summary-top">
-        <h3><Icon name="spark" :size="14" /> 一句话看懂</h3>
+    <div class="proof-note">
+      <div class="proof-note-head">
+        <span class="mono">PROOF NOTE / 01</span>
         <span class="muted">{{ summaryNote }}</span>
       </div>
       <p>{{ report.summary }}</p>
       <div v-if="(report.highlights || []).length" class="highlights">
-        <span v-for="(item, index) in report.highlights" :key="index" class="chip">{{ item }}</span>
+        <span v-for="(item, index) in report.highlights" :key="index">{{ item }}</span>
       </div>
     </div>
 
@@ -294,13 +286,13 @@ function copyLink() {
           <section v-for="layer in groups" :key="layer.name" class="tech-group layer-group">
             <div class="group-head">
               <h3>{{ layer.name }}</h3>
-              <span class="count mono">{{ layer.techCount }}</span>
+              <span class="count mono">{{ layer.techCount }} FRAMES</span>
               <span class="line"></span>
             </div>
             <div v-for="fn in layer.functions" :key="fn.name" class="function-group">
               <div class="function-head">
                 <h4>{{ fn.name }}</h4>
-                <span class="count">{{ fn.items.length }}</span>
+                <span class="count mono">{{ fn.items.length }}</span>
                 <span class="line"></span>
               </div>
               <div class="tech-grid">
@@ -352,7 +344,7 @@ function copyLink() {
   span {
     display: block;
     height: 100%;
-    background: linear-gradient(90deg, var(--accent), var(--accent-2), var(--accent-3));
+    background: var(--accent);
     transition: width 0.1s linear;
   }
 }
@@ -363,7 +355,8 @@ function copyLink() {
   justify-content: space-between;
   gap: 24px;
   flex-wrap: wrap;
-  padding: 8px 0 22px;
+  padding: 10px 0 18px;
+  border-bottom: 1px solid var(--line-strong);
 }
 
 .head-main {
@@ -371,9 +364,10 @@ function copyLink() {
 
   h2 {
     margin: 10px 0 0;
-    font-size: clamp(28px, 4vw, 42px);
-    line-height: 1.1;
-    letter-spacing: -1px;
+    font-size: clamp(32px, 4.6vw, 52px);
+    line-height: 0.98;
+    letter-spacing: -0.04em;
+    font-weight: 500;
     word-break: break-word;
   }
 }
@@ -386,8 +380,32 @@ function copyLink() {
 }
 
 .back-btn {
-  padding: 7px 10px;
-  font-size: 11.5px;
+  padding: 6px 9px;
+  font-size: 10.5px;
+}
+
+.ai-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--faint);
+  .mono();
+  font-size: 9px;
+  letter-spacing: 0.04em;
+
+  i {
+    width: 5px;
+    height: 5px;
+    background: var(--faint);
+  }
+
+  &.good i {
+    background: var(--good);
+  }
+
+  &.warn i {
+    background: var(--warn);
+  }
 }
 
 .source {
@@ -395,8 +413,8 @@ function copyLink() {
   align-items: center;
   gap: 5px;
   margin: 8px 0 0;
-  color: var(--muted);
-  font-size: 11.5px;
+  color: var(--faint);
+  font-size: 10px;
   word-break: break-all;
 
   &:hover {
@@ -406,106 +424,123 @@ function copyLink() {
 
 .actions {
   display: flex;
-  gap: 7px;
+  gap: 0;
   flex-wrap: wrap;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
 
-  .btn {
-    font-size: 11.5px;
-    padding: 8px 11px;
+.text-action {
+  padding: 7px 9px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  background: none;
+  color: var(--muted);
+  font-family: var(--font-ui);
+  font-size: 10.5px;
+  cursor: pointer;
+
+  &:last-child {
+    border-right: 0;
+  }
+
+  &:hover {
+    color: var(--accent);
+    background: var(--panel-soft);
   }
 }
 
-.stat-row {
+.stat-strip {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: 9px;
-  margin-bottom: 14px;
+  margin: 18px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
 }
 
-.stat-card {
-  padding: 13px 15px;
-  border-radius: @radius-md;
-  border: 1px solid var(--line);
-  background: var(--panel);
-  transition: border-color 0.2s, transform 0.2s;
+.stat {
+  min-width: 0;
+  padding: 10px 12px;
+  border-right: 1px solid var(--line);
 
-  &:hover {
-    border-color: var(--line-strong);
-    transform: translateY(-2px);
+  &:last-child {
+    border-right: 0;
+  }
+
+  .l {
+    display: block;
+    color: var(--faint);
+    font-size: 9px;
+    letter-spacing: 0.06em;
   }
 
   .v {
     display: block;
+    margin-top: 2px;
+    color: var(--text);
     .mono();
-    font-size: 21px;
-    font-weight: 600;
-    letter-spacing: -0.5px;
-  }
-
-  .l {
-    color: var(--faint);
-    font-size: 10.5px;
+    font-size: 19px;
+    line-height: 1.2;
+    white-space: nowrap;
   }
 }
 
-.summary-card {
-  position: relative;
-  padding: 20px 22px;
-  border-radius: @radius-xl;
-  border: 1px solid var(--accent-line);
-  background:
-    radial-gradient(900px 160px at 0% 0%, var(--accent-soft), transparent 70%),
-    var(--panel);
+.proof-note {
+  padding: 16px 18px;
+  border: 1px solid var(--line-strong);
+  background: var(--panel);
   margin-bottom: 14px;
+
+  > p {
+    max-width: 74ch;
+    margin: 12px 0 0;
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.8;
+  }
 }
 
-.summary-top {
+.proof-note-head {
   display: flex;
-  align-items: center;
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
-
-  h3 {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    margin: 0;
-    color: var(--accent);
-    font-size: 12px;
-  }
+  color: var(--faint);
+  font-size: 9px;
+  letter-spacing: 0.08em;
 
   .muted {
-    font-size: 10.5px;
+    color: var(--faint);
+    font-size: 9px;
   }
-}
-
-.summary-card > p {
-  margin: 10px 0 0;
-  font-size: 15.5px;
-  line-height: 1.8;
 }
 
 .highlights {
   display: flex;
   flex-wrap: wrap;
-  gap: 7px;
-  margin-top: 14px;
+  gap: 5px 14px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
 
-  .chip {
-    cursor: default;
-    color: var(--text);
+  span {
+    color: var(--muted);
+    font-size: 11px;
+
+    &::before {
+      content: "—";
+      color: var(--accent);
+      margin-right: 5px;
+    }
   }
 }
 
 .warnings {
-  padding: 12px 15px;
-  border-radius: @radius-md;
-  border: 1px solid color-mix(in srgb, var(--warn) 26%, transparent);
-  background: var(--warn-soft);
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--warn) 40%, var(--line));
   color: var(--warn);
   margin-bottom: 14px;
-  font-size: 11.5px;
+  font-size: 10.5px;
   line-height: 1.7;
 
   p {
@@ -518,47 +553,36 @@ function copyLink() {
 
 .tabs {
   position: sticky;
-  top: @topbar-h;
+  top: 78px;
   z-index: 30;
   display: flex;
-  gap: 3px;
-  margin: 18px 0 18px;
+  gap: 0;
+  margin: 16px 0 18px;
   padding: 0;
-  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line-strong);
+  background: var(--bg);
   overflow-x: auto;
-  .glass();
-  background: var(--topbar-bg);
 }
 
 .tab {
-  position: relative;
   border: 0;
+  border-right: 1px solid var(--line);
   background: none;
-  padding: 11px 15px;
+  padding: 10px 14px;
   color: var(--muted);
-  font-size: 12.5px;
+  font-size: 11px;
   white-space: nowrap;
-  border-bottom: 2px solid transparent;
-  transition: color 0.16s;
+  transition: color 0.16s, background 0.16s;
 
   &:hover {
     color: var(--text);
+    background: var(--panel-soft);
   }
 
   &.active {
-    color: var(--text);
-    border-bottom-color: var(--accent);
-
-    &::after {
-      content: "";
-      position: absolute;
-      left: 13px;
-      right: 13px;
-      bottom: -2px;
-      height: 2px;
-      background: linear-gradient(90deg, var(--accent), var(--accent-2));
-      box-shadow: 0 0 14px var(--accent);
-    }
+    color: var(--accent);
+    background: var(--accent-soft);
   }
 }
 
@@ -605,26 +629,46 @@ function copyLink() {
 .chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 0;
+  border: 1px solid var(--line);
+}
+
+.chip {
+  padding: 5px 8px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  font-size: 10px;
+
+  &:last-child {
+    border-right: 0;
+  }
+
+  &:hover {
+    color: var(--text);
+    background: var(--panel-soft);
+  }
+
+  &.active {
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
 }
 
 .search-wrap {
-  position: relative;
   display: flex;
   align-items: center;
   gap: 6px;
-  width: 250px;
+  width: 240px;
   max-width: 100%;
-  padding: 0 10px;
-  border-radius: @radius-sm;
+  padding: 0 9px;
   border: 1px solid var(--line);
   background: var(--input-bg);
   color: var(--faint);
-  transition: border-color 0.18s, box-shadow 0.18s;
 
   &:focus-within {
-    border-color: var(--accent-line);
-    box-shadow: 0 0 0 3px var(--accent-soft);
+    border-color: var(--accent);
   }
 
   input {
@@ -633,8 +677,9 @@ function copyLink() {
     border: 0;
     outline: 0;
     background: transparent;
-    padding: 9px 0;
-    font-size: 12px;
+    padding: 7px 0;
+    color: var(--text);
+    font-size: 11px;
   }
 }
 
@@ -654,23 +699,28 @@ function copyLink() {
 .tech-groups {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 26px;
 }
 
 .group-head {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 9px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
 
   h3 {
     margin: 0;
     font-size: 14px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
   }
 
   .count {
     color: var(--faint);
-    font-size: 10.5px;
+    font-size: 8px;
+    letter-spacing: 0.08em;
   }
 
   .line {
@@ -682,8 +732,45 @@ function copyLink() {
 
 .tech-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(272px, 1fr));
-  gap: 11px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.function-group {
+  margin-top: 14px;
+
+  &:first-of-type {
+    margin-top: 10px;
+  }
+}
+
+.function-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+  padding-left: 3px;
+  border-left: 1px solid var(--line-strong);
+
+  h4 {
+    margin: 0;
+    padding-left: 7px;
+    color: var(--muted);
+    font-family: var(--font-ui);
+    font-size: 10px;
+    font-weight: 400;
+  }
+
+  .count {
+    color: var(--faint);
+    font-size: 8px;
+  }
+
+  .line {
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+  }
 }
 
 .function-group {
@@ -724,7 +811,7 @@ function copyLink() {
 }
 
 .tab-panel {
-  animation: fade-up 0.3s @ease-out;
+  animation: fade-up 0.25s @ease-out;
 }
 
 .report-loading {
@@ -732,14 +819,13 @@ function copyLink() {
 }
 
 .skeleton {
-  border-radius: @radius-lg;
   background: linear-gradient(90deg, var(--panel-soft) 25%, var(--panel-hover) 37%, var(--panel-soft) 63%);
   background-size: 400% 100%;
   animation: shimmer 1.4s ease infinite;
 }
 
 .hero-skeleton {
-  height: 220px;
+  height: 160px;
   margin-bottom: 14px;
 }
 
@@ -751,7 +837,7 @@ function copyLink() {
 }
 
 .stat-skeleton {
-  height: 64px;
+  height: 52px;
 }
 
 .body-skeleton {
@@ -759,18 +845,23 @@ function copyLink() {
 }
 
 @media (max-width: @bp-xl) {
-  .stat-row {
+  .stat-strip {
     grid-template-columns: repeat(3, 1fr);
+    row-gap: 0;
   }
 
-  .skeleton-row {
-    grid-template-columns: repeat(3, 1fr);
+  .stat:nth-child(3) {
+    border-right: 0;
+  }
+
+  .stat:nth-child(n + 4) {
+    border-top: 1px solid var(--line);
   }
 }
 
 @media (max-width: @bp-lg) {
   .tech-grid {
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -783,8 +874,25 @@ function copyLink() {
     width: 100%;
   }
 
-  .stat-row {
+  .text-action {
+    flex: 1;
+    text-align: center;
+  }
+
+  .stat-strip {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .stat:nth-child(2n) {
+    border-right: 0;
+  }
+
+  .stat:nth-child(3) {
+    border-right: 1px solid var(--line);
+  }
+
+  .stat:nth-child(n + 3) {
+    border-top: 1px solid var(--line);
   }
 
   .search-wrap {
@@ -792,15 +900,15 @@ function copyLink() {
   }
 
   .tabs {
-    top: 64px;
+    top: 70px;
   }
 
   .tech-grid {
     grid-template-columns: 1fr;
   }
 
-  .summary-card {
-    padding: 17px;
+  .proof-note {
+    padding: 14px;
   }
 }
 </style>

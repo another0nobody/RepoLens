@@ -2,7 +2,7 @@
 
 > 记录日期：2026-10-27
 > 范围：本地单机产品、Agent 工程质量、报告阅读体验与可新增模块。
-> 当前设计状态：三套完整设计分别位于 `design/contact-sheet`、`design/type-index`、`design/field-map`，尚未选定最终基线。
+> 当前设计状态：已选定 **Contact Sheet** 为最终基线；`design/type-index` 与 `design/field-map` 保留为备选记录。
 
 ## 一句话判断
 
@@ -255,7 +255,7 @@ RepoLens 的差异点是 **扫描事实 + 可核对证据 + Agent 解释**。
 
 ## 六、待决策
 
-- [ ] 最终设计基线：Contact Sheet / Type Index / Field Map；
+- [x] 最终设计基线：Contact Sheet（2026-10-28 选定）；
 - [ ] 是否保留六风格选择器，还是收缩为单一设计系统；
 - [ ] 模块依赖图使用现有 import 数据，还是引入 tree-sitter；
 - [ ] SQLite 持久化先做 run/event/chat 哪一部分；

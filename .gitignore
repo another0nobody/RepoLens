@@ -39,3 +39,8 @@ docs/.chrome-*/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Impeccable generated audit artifacts
+.impeccable/detect-*.json
+.impeccable/review/
+.impeccable/build/
