@@ -2,7 +2,7 @@
 
 > 本文是 RepoLens 的**产品需求与功能契约**，用于防止后续维护或 AI Agent 修改时丢失已实现特性。
 >
-> - 文档版本：1.8
+> - 文档版本：1.9
 > - 适用基线：`main` 分支（文档创建时最新提交）
 > - 产品版本：后端 `1.0.0`，前端 `repolens-web@2.0.0`
 > - 实现说明：[CODE_DOCUMENTATION.md](CODE_DOCUMENTATION.md)
@@ -133,6 +133,7 @@
 | SCN-14 | P0 | 代码使用补充 | 除清单/import 外，识别代码里的强技术符号与连接串（如 `RedisCache`、`redis.Redis`、`redis://`、`postgresql://`）；记录用途标签（缓存/消息/会话/数据访问）和行号；Python 用 AST，避免把注释/docstring 当成使用；其他语言用强名称正则 |
 | SCN-15 | P0 | 功能归类 | 每项技术带项目功能 `function` 与排序 `function_order`：开发语言、提供后端接口、持久化业务数据、提供数据缓存、构建前端界面、调用后端接口、编排 Agent、验证代码行为、运行与部署等；用户先看功能，再看技术 |
 | SCN-16 | P0 | 层级归类 | 每项技术带 `layer` / `layer_order`：前端、后端、数据与存储、Agent / AI、语言与运行时、基础设施、工程效率、其他；形成“层级 → 功能 → 技术”的可展开层级 |
+| SCN-17 | P0 | 模块依赖图 | 根据仓库内 import 生成文件级有向图：节点含 path/dir/language/loc/role/in_degree/out_degree/cycle/entry；边只连仓库内文件；返回 stats；最多 160 节点、1200 边，超限标记 truncated |
 | SCN-06 | P0 | 版本与置信度 | 版本来自清单且按主依赖优先；置信度高/中/低；AI 推断项标记 `ai_inferred` |
 | SCN-07 | P0 | 扫描上限 | 最多 8000 文件、2600 个文件内容、单文件 600KB；超限设置 `truncated` 并在报告 warning |
 | SCN-08 | P1 | 技术词典 | 12 个分类、252 项技术；支持别名和大小写归一 |
@@ -212,7 +213,8 @@
 | RPT-15 | P1 | 旧报告兼容 | 缺少新字段的旧 JSON 不导致页面崩溃；有默认值 |
 | RPT-16 | P0 | 功能优先技术栈 | 技术栈 Tab 按 `layer` 分组，组内按 `function` 分组（如“前端 → 构建前端界面 → React”）；旧报告缺少层级字段时回退按 category/function 分组；分类筛选和搜索保留 |
 | RPT-17 | P0 | 技术栈层级图 | 技术栈 Tab 提供“分组 / 层级图”切换；层级图以三列节点和连线展示“层级 → 功能 → 技术”，桌面可点击技术节点，窄屏改为纵向树；不依赖第三方图库 |
-| RPT-18 | P0 | 报告 Schema | 报告根字段包含 `schema_version`；当前为 2；旧报告加载时补齐 function/layer 等字段，不因缺字段崩溃 |
+| RPT-18 | P0 | 报告 Schema | 报告根字段包含 `schema_version`；当前为 3；旧报告加载时补齐 function/layer/module_graph 等字段，不因缺字段崩溃 |
+| RPT-19 | P0 | 模块依赖图 Tab | 报告新增“依赖图”Tab；默认目录聚合，可切文件视角；支持搜索、点击节点看入边/出边、循环回边标记；窄屏显示目录列表；旧报告显示“重新分析”空态 |
 
 ### 4.7 追问（CHAT）
 
@@ -264,7 +266,7 @@
 | DATA-05 | P1 | 缓存复用 | 同一 GitHub URL 复用 `data/repos`；不完整目录清理重来 |
 | DATA-06 | P2 | 内存上限 | 运行超过 30 个时清理最旧完成项；事件 4000；报告列表 40；前端 feed 160 |
 | DATA-07 | P0 | SQLite 持久化 | `data/repolens.db` 保存 runs/events/messages/reports；数据库不可用时自动回退 JSON 报告，不影响启动 |
-| DATA-08 | P0 | 报告 Schema 版本 | `schema_version` 当前为 2；旧报告加载时补齐 function/layer、usage_tags 等字段；保存时写当前版本 |
+| DATA-08 | P0 | 报告 Schema 版本 | `schema_version` 当前为 3；旧报告加载时补齐 function/layer/module_graph、usage_tags 等字段；保存时写当前版本 |
 
 ### 4.10 安全与隐私（SEC）
 
@@ -453,11 +455,11 @@ resolved（SSE interrupt_resolved；关闭弹窗）
 
 - [ ] **SRC-01/02** 本地 + GitHub 两种来源；
 - [ ] **SRC-03** 路径安全拒绝；
-- [ ] **SCN-01~07 / SCN-14~16** 扫描、清单、import、证据、模块、版本/置信度、代码使用补充、功能与层级归类、上限；
+- [ ] **SCN-01~07 / SCN-14~17** 扫描、清单、import、证据、模块、版本/置信度、代码使用补充、功能与层级归类、模块依赖图、上限；
 - [ ] **AGT-01~07** Agent 流程、6 工具、结构化输出、无 Key/AI 异常降级、调用限制、事实约束；
 - [ ] **RUN-01~09 / RUN-13~14** 创建、状态、时间线、工具流、待办、Token、重连、恢复、后台、错误重试、SQLite 持久化；
 - [ ] **HITL-01~07** 克隆审批、倒计时、批准/拒绝、Esc 禁止、重复提交防护；
-- [ ] **RPT-01~12 / RPT-16~18** 报告、统计、摘要、技术卡、详情、筛选、模块地图、架构、警告、导出、分享、历史、层级图、schema；
+- [ ] **RPT-01~12 / RPT-16~19** 报告、统计、摘要、技术卡、详情、筛选、模块地图、架构、警告、导出、分享、历史、层级图、schema、模块依赖图；
 - [ ] **CHAT-01~05 / CHAT-11~14** 流式追问、报告依据、技术深挖模板与答案质量、无报告/无 Key 错误、多轮记忆、历史报告追问、聊天持久化；
 - [ ] **UI-01~06 / UI-13~15** 三视图、双主题、Contact Sheet 设计、技术栈层级阅读、响应式、Header、抽屉/弹窗、Toast；
 - [ ] **DATA-01~04 / DATA-07~08** 报告落盘/读取/历史摘要/data 不提交、SQLite 持久化、schema 版本；
@@ -671,3 +673,4 @@ resolved（SSE interrupt_resolved；关闭弹窗）
 | 1.6 | 2026-10-27 | 技术栈改为“功能 → 技术”分组（SCN-15 / RPT-16），例如“提供数据缓存 → Redis”；增加 function/function_order |
 | 1.7 | 2026-10-27 | 技术栈增加“层级 → 功能 → 技术”（SCN-16）和“分组 / 层级图”切换（RPT-17）；层级如前端、后端、数据与存储、Agent / AI |
 | 1.8 | 2026-10-28 | 新增自动化测试（OPS-10）、报告 schema_version（RPT-18）、SQLite 运行/事件/聊天/报告索引（RUN-13/14、CHAT-14、DATA-07/08）；Contact Sheet 定为设计基线 |
+| 1.9 | 2026-10-29 | 新增文件级模块依赖图（SCN-17 / RPT-19），报告 schema 升至 3；依赖图支持目录/文件视图、搜索、入边出边与循环标记 |

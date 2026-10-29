@@ -70,6 +70,10 @@
 
 ![层级图](docs/design/contact-sheet/stack-graph.png)
 
+模块依赖图：
+
+![依赖图](docs/design/contact-sheet/dependency-dir.png)
+
 右上角太阳/月亮切换深色与浅色，选择会保存在本地。
 
 ---
@@ -82,6 +86,7 @@
 | GitHub 仓库分析 | 输入 `https://github.com/owner/repo` 或简写 `owner/repo`，克隆前会弹窗让你批准 |
 | 技术栈识别 | 依赖清单（requirements/pyproject/package.json/pom.xml/go.mod/Cargo.toml/compose/Dockerfile…）+ 源码 import 双路识别 |
 | 模块级定位 | 精确到「哪个文件、哪一行、导入了什么」，并推测角色（接口层/数据模型/测试…）和**文件的大概功能**；代码里的符号调用/连接串也会补进技术栈 |
+| 模块依赖图 | 根据仓库内 import 生成文件级有向图，支持“目录 / 文件”两种视角、搜索、点击查看入边/出边、循环依赖标记 |
 | 实时进度 | 扫描进度、工具调用、模型计划、Agent 待办清单、Token 用量全部实时推送 |
 | AI 解读 | 项目摘要、架构分层、风险建议、学习路径；没有 API Key 时自动降级为纯规则报告 |
 | 报告追问 | 基于报告继续问项目问题；针对任意技术可一键深挖「优势 / 难点易错点 / 相似方案差异 / 为什么选它」，带多轮记忆 |
@@ -265,6 +270,7 @@ npm run build    # 输出到 ../static/dist
 
 - **技术栈**：按**层级 → 功能 → 技术**组织，例如“前端 → 构建前端界面 → React”“后端 → 提供后端接口 → FastAPI”“数据与存储 → 提供数据缓存 → Redis”；支持“分组 / 层级图”切换，层级图用三列节点和连线展示关系；除了依赖清单和 import，还会识别代码里的技术符号与连接串（如 `RedisCache`、`redis.Redis(...)`、`redis://`）；卡片显示用途、版本、置信度、职责、模块数、证据数；
 - **模块地图**：按技术展开文件:行号、模块角色、**大概功能**、import 片段；支持全部展开 / 收起、复制路径、搜索；
+- **依赖图**：把仓库内文件 import 画成有向图；默认按目录聚合，可切到文件视角；点击节点查看入边/出边，循环依赖用虚线和回边计数标记；
 - **架构解读**：摘要、亮点、架构分层、风险建议、学习路径、关键文件与目录规模；
 - **追问**：多轮对话，有记忆；回答前会先查报告（工具调用），逐字流式输出；
 - **技术深挖**：在追问页选择任意技术，或直接点四个模板——优势与场景、难点与易错点、相似方案差异、为什么选它；回答会区分项目事实和通用技术判断，并给出 2–3 个同类方案对比；
@@ -628,7 +634,7 @@ repolens/
 │       ├── theme.js          # 主题元数据、theme-color、深浅模式
 │       ├── styles/           # tokens.less / mixins.less / global.less（风格变量）
 │       ├── views/            # HomeView / RunView / ReportView
-│       └── components/       # 头栏、时间线、技术卡片、层级图、抽屉、审批弹窗…
+│       └── components/       # 头栏、时间线、技术卡片、层级图、依赖图、抽屉、审批弹窗…
 ├── repolens/
 │   ├── config.py             # 模型/端口/克隆限制配置
 │   ├── events.py             # 进程内事件总线（线程安全）
@@ -669,7 +675,7 @@ repolens/
 7. `repolens/middleware.py`、`report.py`：进度事件如何产生、事实与 AI 如何合并；
 8. `frontend/src/main.js` → `App.vue`：Vue 应用如何挂载、切换三个视图；
 9. `frontend/src/store.js`：前端状态、SSE 重连、深链路、追问和 HITL 决策；
-10. `frontend/src/views/` 与 `components/`：首页、运行页、报告页、层级图和各个交互组件；
+10. `frontend/src/views/` 与 `components/`：首页、运行页、报告页、技术栈层级图、模块依赖图和各个交互组件；
 11. `frontend/src/theme.js` 与 `styles/`：主题元数据、CSS 变量、字体、纹理和深浅模式。
 
 ---

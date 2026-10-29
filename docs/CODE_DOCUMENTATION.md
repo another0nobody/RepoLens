@@ -121,7 +121,7 @@ run_analysis(ctx)
 | `repolens/events.py` | 线程安全事件总线 | `EventBus.publish/snapshot/wait_for_new` |
 | `repolens/context.py` | 一次分析的共享上下文 | `AnalysisContext.emit/progress/wait_for_decision` |
 | `repolens/catalog.py` | 252 项技术词典、12 个分类、别名匹配 | `CATALOG`, `CATEGORIES`, `lookup()` |
-| `repolens/scanner.py` | 纯 Python 扫描器：文件、语言、清单、import、技术聚合 | `scan_repository()`, `Snapshot`, `TechHit` |
+| `repolens/scanner.py` | 纯 Python 扫描器：文件、语言、清单、import、技术聚合、模块依赖图 | `scan_repository()`, `Snapshot`, `TechHit`, `_build_module_graph()` |
 | `repolens/schemas.py` | 结构化输出模型 | `RepoInsight`, `TechFinding`, `structured_output_error_handler` |
 | `repolens/tools.py` | 6 个分析工具 | `build_tools()`, `repo_overview()` |
 | `repolens/middleware.py` | 进度、脱敏、工具事件 | `ProgressMiddleware`, `SecretMaskingMiddleware` |
@@ -149,6 +149,7 @@ run_analysis(ctx)
 | `frontend/src/views/HomeView.vue` | 首页 hero、输入、示例、步骤/能力介绍、鼠标光晕 |
 | `frontend/src/views/RunView.vue` | 分析页布局、状态胶囊、计时、错误/完成操作 |
 | `frontend/src/views/ReportView.vue` | 报告头、统计、摘要、警告、Tab、分类筛选、搜索、技术卡片 |
+| `frontend/src/components/DependencyGraph.vue` | 模块依赖图：目录/文件视图、圆形布局、搜索、入边/出边详情 |
 | `frontend/src/components/StageTimeline.vue` | 四阶段时间线与进度 |
 | `frontend/src/components/LiveFeed.vue` | 事件流筛选、自动滚动、过渡 |
 | `frontend/src/components/TodoList.vue` | Agent 待办状态 |
@@ -381,7 +382,7 @@ Agent 调 clone_github_repository
 
 ```json
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "run_id": "1730000000-abcd1234",
   "generated_at": "2026-10-25T00:00:00+08:00",
   "repo_name": "demo_shop",
@@ -430,6 +431,13 @@ Agent 调 clone_github_repository
     }
   ],
   "categories": [{"name": "后端框架", "icon": "🧱", "count": 3, "module_count": 5}],
+  "module_graph": {
+    "nodes": [
+      {"id": "backend/app/main.py", "path": "backend/app/main.py", "label": "main.py", "dir": "backend/app", "language": "Python", "loc": 15, "role": "入口", "entry": true, "in_degree": 1, "out_degree": 2, "cycle": false}
+    ],
+    "edges": [{"source": "backend/app/main.py", "target": "backend/app/db.py", "kind": "import", "line": 10}],
+    "stats": {"file_count": 10, "node_count": 10, "edge_count": 11, "cycle_count": 0, "truncated": false}
+  },
   "warnings": [],
   "ai": {
     "used": true,
@@ -453,14 +461,14 @@ Agent 调 clone_github_repository
 
 #### 报告 Schema
 
-- `REPORT_SCHEMA_VERSION = 2`；报告根字段 `schema_version`；
+- `REPORT_SCHEMA_VERSION = 3`；报告根字段 `schema_version`；
 - `normalize_report()` 是唯一的兼容入口：
   - 缺 `function` 时按 category/name/usage_tags 补；
   - 缺 `layer` 时按 function 补；
   - 补 `function_order/layer_order/usage_tags/sources/evidence/modules/module_count`；
   - 不删除旧字段；
 - `save_report()` 保存前 normalize；`load_report()` 读取后 normalize；
-- 版本 1（没有 schema_version）的报告会被补到版本 2，前端无需单独分支。
+- 版本 1/2 的报告会被补到版本 3，补 `module_graph` 空图；前端无需单独分支。
 
 #### JSON 与 SQLite
 
@@ -551,6 +559,20 @@ Agent 调 clone_github_repository
 - 用途标签会进入 `default_role()`，例如 Redis 显示“在项目中作为缓存使用”。
 
 已知边界：动态拼接的字符串、反射调用、间接依赖无法保证识别；见 §17。
+
+### 7.4.2 模块依赖图（SCN-17）
+
+`extract_local_imports()` 保留可能指向仓库内文件的 import（相对路径、同仓包名、`@/` 别名），再由 `_build_module_graph()` 解析成文件级有向图：
+
+- 支持 Python、JS/TS/Vue/Svelte、Java/Kotlin/C#、Go、Rust、Ruby/PHP、C/C++ 的常见写法；
+- 解析顺序：精确文件 → 扩展名 → `__init__.py` / `index.*` → 仓库路径后缀匹配；
+- 节点字段：`id/path/label/dir/language/loc/role/entry/in_degree/out_degree/cycle`；
+- 边字段：`source/target/kind/line`；只保留本地边，不把 `requests`、`react` 等外部依赖画进来；
+- 上限：160 节点、1200 边；超限 `stats.truncated=true`；
+- DFS 回边统计 `cycle_count`，并标记参与循环的节点；
+- 报告字段 `module_graph`，旧报告缺少时由 `normalize_report()` 补空图。
+
+已知边界：动态 import、运行时拼接的模块名、路径别名配置（tsconfig/webpack）不做完整解析；无法确定时宁可省略边，不连错。
 
 ### 7.5 功能归类（功能 → 技术）
 
