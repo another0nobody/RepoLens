@@ -18,8 +18,13 @@ export async function fetchJSON(url, options = {}) {
 
 /**
  * 读取 POST 的 SSE 响应（追问接口使用）。
- * @param {{runId:string,message:string,signal?:AbortSignal}} payload
- * @param {(event:{type:string,data:any})=>void} onEvent
+ *
+ * @param {Object} payload 请求参数
+ * @param {string} payload.runId 分析运行 ID
+ * @param {string} payload.message 用户追问内容
+ * @param {AbortSignal} [payload.signal] 可选的取消信号
+ * @param {Function} onEvent 收到 SSE 事件时调用
+ * @returns {Promise<void>} 流读取完成
  */
 export async function streamChatRequest(payload, onEvent) {
   const response = await fetch("/api/chat", {
