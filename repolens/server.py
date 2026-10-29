@@ -71,7 +71,7 @@ class Run:
     source_type: str
     ctx: AnalysisContext
     thread: threading.Thread | None = None
-    status: str = "running"  # running / done / error
+    status: str = "running"  # 状态：running / done / error
     created_at: float = field(default_factory=time.time)
     chat_agent: Any = None
     chat_lock: threading.Lock = field(default_factory=threading.Lock)

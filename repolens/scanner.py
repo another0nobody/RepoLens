@@ -604,7 +604,7 @@ def _dep_from_spec(spec: str, path: str, line: int, ecosystem: str) -> DepRef | 
         return None
     # 去掉环境标记（; python_version > "3.8"）
     text = text.split(";", 1)[0].strip()
-    # extras：[all]
+    # 可选依赖 extras：[all]
     text = re.sub(r"\[[^\]]*\]", "", text)
     match = re.match(r"^([A-Za-z0-9@][A-Za-z0-9@._/\-]*)\s*(.*)$", text)
     if not match:
