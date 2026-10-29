@@ -559,7 +559,7 @@ function showReport(report) {
   state.search = "";
   state.chat = { messages: [], streaming: false, status: "" };
   state.view = "report";
-  const validTabs = ["stack", "modules", "architecture", "chat", "process"];
+  const validTabs = ["stack", "modules", "deps", "architecture", "chat", "process"];
   state.tab = validTabs.includes(state.pendingTab) ? state.pendingTab : "stack";
   state.pendingTab = "";
   updateURL(urlWithTab(state.tab));
@@ -614,7 +614,7 @@ export async function resumeRun(runId) {
 }
 
 export function switchTab(tab) {
-  if (!["stack", "modules", "architecture", "chat", "process"].includes(tab)) return;
+  if (!["stack", "modules", "deps", "architecture", "chat", "process"].includes(tab)) return;
   state.tab = tab;
   if (state.report) updateURL(urlWithTab(tab));
 }

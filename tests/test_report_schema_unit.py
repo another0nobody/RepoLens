@@ -29,6 +29,7 @@ class ReportSchemaTests(unittest.TestCase):
         redis = next(tech for tech in report["techs"] if tech["name"] == "Redis")
         self.assertEqual(redis["function"], "提供数据缓存")
         self.assertEqual(redis["layer"], "数据与存储")
+        self.assertGreater(report["module_graph"]["stats"]["edge_count"], 0)
 
     def test_legacy_report_is_normalized(self):
         legacy = {

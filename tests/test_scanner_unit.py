@@ -20,6 +20,11 @@ class ScannerTests(unittest.TestCase):
         names = {tech.name for tech in snapshot.techs}
         self.assertTrue({"FastAPI", "React", "SQLAlchemy", "Redis", "Docker"} <= names)
 
+        graph = snapshot.module_graph
+        self.assertGreater(graph["stats"]["node_count"], 0)
+        self.assertGreater(graph["stats"]["edge_count"], 0)
+        self.assertTrue(all(edge["source"] != edge["target"] for edge in graph["edges"]))
+
     def test_scanner_detects_code_usage_beyond_import(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

@@ -23,6 +23,7 @@ from __future__ import annotations
 import ast
 import json
 import os
+import posixpath
 import re
 import time
 import tomllib
@@ -40,6 +41,8 @@ MAX_CONTENT_FILES = 2600
 MAX_FILE_BYTES = 600_000
 MAX_MODULES_PER_TECH = 20
 MAX_EVIDENCE_PER_TECH = 8
+MAX_GRAPH_NODES = 160
+MAX_GRAPH_EDGES = 1200
 
 IGNORE_DIRS = {
     ".git",
@@ -345,6 +348,7 @@ class Snapshot:
     entry_points: list[str]
     readme: str
     scan_seconds: float
+    module_graph: dict = field(default_factory=dict)
     omitted_dependencies: int = 0
 
     def to_dict(self) -> dict:
@@ -371,6 +375,7 @@ class Snapshot:
             "top_dirs": self.top_dirs,
             "entry_points": self.entry_points,
             "readme": self.readme,
+            "module_graph": self.module_graph,
         }
 
 
@@ -1178,6 +1183,264 @@ def extract_imports(text: str, language: str) -> list[ImportRef]:
     return refs
 
 
+# 本地依赖图需要保留相对 import / 同仓 import；上面的 extract_imports 只服务“技术识别”，
+# 会跳过相对路径和标准库。这里单独提取“可能指向仓库内文件”的 import。
+_LOCAL_PY_IMPORT = re.compile(
+    r"^[ \t]*(?:from\s+(\.+[A-Za-z0-9_.]*|[A-Za-z_][\w.]*)\s+import|import\s+([A-Za-z_][\w.]*))",
+    re.M,
+)
+_LOCAL_RUST_IMPORT = re.compile(r"^[ \t]*(?:use|extern\s+crate)\s+([A-Za-z0-9_:]+)", re.M)
+
+
+def extract_local_imports(text: str, language: str, source_path: str = "") -> list[tuple[str, int, str]]:
+    """提取可能指向仓库内文件的 import，返回 (module, line, kind)。"""
+    refs: list[tuple[str, int, str]] = []
+    seen: set[tuple[str, int]] = set()
+    lines = text.splitlines()
+
+    def line_at(position: int) -> int:
+        return text.count("\n", 0, position) + 1
+
+    def add(module: str, position: int, kind: str = "import") -> None:
+        module = module.strip().rstrip(",")
+        if not module:
+            return
+        line = line_at(position)
+        key = (module, line)
+        if key in seen:
+            return
+        seen.add(key)
+        snippet = lines[line - 1].strip() if line - 1 < len(lines) else module
+        refs.append((module, line, kind if snippet else kind))
+
+    if language in {"Python", "Jupyter Notebook"}:
+        for match in _LOCAL_PY_IMPORT.finditer(text):
+            module = match.group(1) or match.group(2) or ""
+            if not module:
+                continue
+            # Python 标准库通常在 resolver 阶段用文件名匹配自然过滤；这里保留绝对 import。
+            add(module, match.start(1) if match.group(1) else match.start(2))
+    elif language in {"JavaScript", "TypeScript", "Vue", "Svelte"}:
+        for match in _JS_IMPORT.finditer(text):
+            module = match.group(1) or match.group(2) or ""
+            if not module:
+                continue
+            add(module, match.start(1) if match.group(1) else match.start(2), "relative" if module.startswith(".") else "alias")
+    elif language in {"Java", "Kotlin", "C#"}:
+        for match in _JAVA_IMPORT.finditer(text):
+            add(match.group(1), match.start(1))
+    elif language == "Go":
+        for number, raw in enumerate(lines, start=1):
+            for module in _GO_QUOTED.findall(raw):
+                if "/" in module and not GO_STDLIB_HINT.match(module):
+                    line = number
+                    key = (module, line)
+                    if key not in seen:
+                        seen.add(key)
+                        refs.append((module, line, "import"))
+    elif language == "Rust":
+        for match in _LOCAL_RUST_IMPORT.finditer(text):
+            module = match.group(1)
+            if module.startswith(("crate::", "super::", "self::")):
+                add(module, match.start(1), "relative")
+    elif language in {"Ruby", "PHP"}:
+        pattern = _RUBY_REQUIRE if language == "Ruby" else _PHP_USE
+        for match in pattern.finditer(text):
+            add(match.group(1), match.start(1), "relative" if language == "Ruby" else "import")
+    elif language in {"C", "C++"}:
+        for match in _C_INCLUDE.finditer(text):
+            module = match.group(1)
+            if module.startswith((".", "/")) or "/" in module:
+                add(module, match.start(1), "relative")
+    return refs
+
+
+# ============================================================================
+# 本地模块依赖图
+# ============================================================================
+_GRAPH_EXTENSIONS = {
+    ".py", ".pyi", ".js", ".jsx", ".ts", ".tsx", ".vue", ".svelte",
+    ".java", ".kt", ".go", ".rs", ".rb", ".php", ".cs", ".c", ".cc", ".cpp", ".h", ".hpp",
+}
+
+
+def _strip_code_extension(path: str) -> str:
+    for suffix in _GRAPH_EXTENSIONS:
+        if path.endswith(suffix):
+            return path[: -len(suffix)]
+    return path
+
+
+def _resolve_local_module(
+    source: str,
+    spec: str,
+    code_files: list[str],
+    no_ext_map: dict[str, str],
+) -> str | None:
+    """把 import specifier 解析成仓库内文件路径；解析不到就忽略。"""
+    spec = spec.split("#", 1)[0].split("?", 1)[0].strip()
+    if not spec or spec.startswith("node:"):
+        return None
+    source_dir = posixpath.dirname(source)
+    candidates: list[str] = []
+
+    if spec.startswith("."):
+        # Python 和 JS 的 "." 语义不同，但都可以用路径规范化处理。
+        candidate = posixpath.normpath(posixpath.join(source_dir, spec))
+        candidates.append(candidate.lstrip("./"))
+    elif spec.startswith(("@/", "~/")):
+        candidates.append(posixpath.normpath(spec[2:]))
+        candidates.append(posixpath.normpath(posixpath.join("src", spec[2:])))
+    elif spec.startswith("/"):
+        candidates.append(spec.lstrip("/"))
+    else:
+        raw = spec.replace("::", "/").replace("\\", "/")
+        candidates.append(raw)
+        candidates.append(raw.replace(".", "/"))
+        # Java/Go 的包路径可能包含仓库根目录前缀，允许后缀匹配。
+        candidates.append(raw.replace(".", "/").split("/")[-1])
+
+    for candidate in candidates:
+        clean = candidate.strip("/")
+        if not clean:
+            continue
+        # 精确文件、常见扩展名、包 __init__.py / index.*
+        if clean in no_ext_map:
+            return no_ext_map[clean]
+        for ext in _GRAPH_EXTENSIONS:
+            if clean + ext in code_files:
+                return clean + ext
+        if clean in code_files:
+            return clean
+        for ext in (".py", ".js", ".ts", ".tsx", ".jsx", ".vue", ".svelte", ".go", ".rs", ".java", ".kt"):
+            init_path = posixpath.join(clean, "index" + ext)
+            if init_path in code_files:
+                return init_path
+        init_path = posixpath.join(clean, "__init__.py")
+        if init_path in code_files:
+            return init_path
+
+        # 后缀匹配：例如 backend.app.services -> backend/app/services.py
+        matches = [
+            path
+            for path in code_files
+            if _strip_code_extension(path) == clean
+            or _strip_code_extension(path).endswith("/" + clean)
+            or path.endswith("/" + clean)
+        ]
+        if matches:
+            # 选择最短、最稳定的路径，避免把同名文件随机连错。
+            return sorted(matches, key=lambda item: (len(item), item))[0]
+    return None
+
+
+def _build_module_graph(
+    files: list[str],
+    local_imports: dict[str, list[tuple[str, int, str]]],
+    file_loc: dict[str, int],
+    entry_points: list[str],
+) -> dict:
+    """构建文件级依赖图（有向图），供报告中的“依赖图”Tab 使用。"""
+    code_files = [
+        path
+        for path in files
+        if Path(path).suffix.lower() in _GRAPH_EXTENSIONS
+    ]
+    code_file_set = set(code_files)
+    no_ext_map = { _strip_code_extension(path): path for path in code_files }
+
+    edge_map: dict[tuple[str, str], dict] = {}
+    for source, imports in local_imports.items():
+        if source not in code_file_set:
+            continue
+        for spec, line, kind in imports:
+            target = _resolve_local_module(source, spec, code_files, no_ext_map)
+            if not target or target == source:
+                continue
+            key = (source, target)
+            if key not in edge_map:
+                edge_map[key] = {"source": source, "target": target, "kind": kind, "line": line}
+
+    degree: dict[str, dict[str, int]] = {path: {"in": 0, "out": 0} for path in code_files}
+    for source, target in edge_map:
+        degree[source]["out"] += 1
+        degree[target]["in"] += 1
+
+    ranked = sorted(
+        code_files,
+        key=lambda path: (
+            path not in entry_points,
+            -(degree[path]["in"] + degree[path]["out"]),
+            path,
+        ),
+    )
+    selected = set(ranked[:MAX_GRAPH_NODES])
+    edges = [
+        edge
+        for (source, target), edge in sorted(edge_map.items())
+        if source in selected and target in selected
+    ][:MAX_GRAPH_EDGES]
+    truncated = len(code_files) > len(selected) or len(edge_map) > len(edges)
+
+    nodes = []
+    for path in sorted(selected):
+        language_info = LANGUAGE_BY_SUFFIX.get(Path(path).suffix.lower())
+        language = language_info[0] if language_info else ""
+        nodes.append(
+            {
+                "id": path,
+                "path": path,
+                "label": posixpath.basename(path),
+                "dir": posixpath.dirname(path) or "(root)",
+                "language": language,
+                "loc": file_loc.get(path, 0),
+                "role": guess_module_role(path),
+                "entry": path in entry_points,
+                "in_degree": degree[path]["in"],
+                "out_degree": degree[path]["out"],
+                "cycle": False,
+            }
+        )
+
+    # 用 DFS 找回边；cycle_count 是回边数量，cycle_nodes 标记参与的节点。
+    adjacency: dict[str, list[str]] = {path: [] for path in selected}
+    for edge in edges:
+        adjacency.setdefault(edge["source"], []).append(edge["target"])
+    color: dict[str, int] = {path: 0 for path in selected}
+    cycle_nodes: set[str] = set()
+    cycle_count = 0
+
+    def visit(node: str) -> None:
+        nonlocal cycle_count
+        color[node] = 1
+        for nxt in adjacency.get(node, []):
+            if color.get(nxt, 0) == 1:
+                cycle_count += 1
+                cycle_nodes.add(node)
+                cycle_nodes.add(nxt)
+            elif color.get(nxt, 0) == 0:
+                visit(nxt)
+        color[node] = 2
+
+    for path in sorted(selected):
+        if color[path] == 0:
+            visit(path)
+    for node in nodes:
+        node["cycle"] = node["path"] in cycle_nodes
+
+    return {
+        "nodes": nodes,
+        "edges": edges,
+        "stats": {
+            "file_count": len(code_files),
+            "node_count": len(nodes),
+            "edge_count": len(edges),
+            "cycle_count": cycle_count,
+            "truncated": truncated,
+        },
+    }
+
+
 # 这些名字出现在**代码**里时，已经足够说明技术在项目中被使用。
 # 只收强信号，避免把普通变量名（例如 cache）当成 Redis。
 _USAGE_CODE_NAMES = re.compile(
@@ -1387,6 +1650,8 @@ def scan_repository(
     language_stats: dict[str, dict] = {}
     manifests: list[Manifest] = []
     imports: dict[str, list[ImportRef]] = {}
+    local_imports: dict[str, list[tuple[str, int, str]]] = {}
+    file_loc: dict[str, int] = {}
     usages: dict[str, list[UsageRef]] = {}
     file_summaries: dict[str, str] = {}
     total_size = 0
@@ -1443,11 +1708,12 @@ def scan_repository(
                 usages[relative] = code_usages
 
             if is_code and language != "Jupyter Notebook":
-                file_loc = _count_loc(text)
-                total_loc += file_loc
+                loc = _count_loc(text)
+                file_loc[relative] = loc
+                total_loc += loc
                 code_file_count += 1
                 if language in language_stats:
-                    language_stats[language]["loc"] += file_loc
+                    language_stats[language]["loc"] += loc
 
             # 读取 README（只取根目录或一级目录下的第一个）
             if not readme_text and lowered.startswith("readme") and suffix in {".md", ".rst", ".txt"}:
@@ -1461,15 +1727,20 @@ def scan_repository(
             if is_code:
                 if language == "Jupyter Notebook":
                     notebook_text, notebook_loc = _notebook_code(text)
+                    file_loc[relative] = notebook_loc
                     total_loc += notebook_loc
                     code_file_count += 1
                     if language in language_stats:
                         language_stats[language]["loc"] += notebook_loc
                     refs = extract_imports(notebook_text, "Python")
+                    local = extract_local_imports(notebook_text, "Python", relative)
                 else:
                     refs = extract_imports(text, language)
+                    local = extract_local_imports(text, language, relative)
                 if refs:
                     imports[relative] = refs
+                if local:
+                    local_imports[relative] = local
 
             if len(files) % 400 == 0 and progress:
                 progress(f"已扫描 {len(files)} 个文件…")
@@ -1489,6 +1760,7 @@ def scan_repository(
     top_dirs = _build_top_dirs(files)
     entry_points = _find_entry_points(files)
     techs, omitted_dependencies = _build_techs(languages, manifests, imports, usages, file_summaries, progress)
+    module_graph = _build_module_graph(files, local_imports, file_loc, entry_points)
 
     snapshot = Snapshot(
         root=root,
@@ -1508,6 +1780,7 @@ def scan_repository(
         entry_points=entry_points,
         readme=readme_text,
         scan_seconds=time.time() - started,
+        module_graph=module_graph,
         omitted_dependencies=omitted_dependencies,
     )
     if progress:

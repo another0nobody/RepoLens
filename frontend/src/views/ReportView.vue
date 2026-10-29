@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 
 import ArchitectureTab from "../components/ArchitectureTab.vue";
 import ChatTab from "../components/ChatTab.vue";
+import DependencyGraph from "../components/DependencyGraph.vue";
 import Icon from "../components/Icon.vue";
 import ModuleMap from "../components/ModuleMap.vue";
 import ProcessTab from "../components/ProcessTab.vue";
@@ -314,6 +315,10 @@ function copyLink() {
 
       <section v-show="state.tab === 'modules'" class="tab-panel">
         <ModuleMap />
+      </section>
+
+      <section v-show="state.tab === 'deps'" class="tab-panel">
+        <DependencyGraph :graph="report.module_graph" />
       </section>
 
       <section v-show="state.tab === 'architecture'" class="tab-panel">

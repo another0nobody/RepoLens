@@ -27,8 +27,9 @@ MAX_FACTS_CHARS = 7000
 
 # 报告结构版本：
 #   1：早期没有版本号的报告；
-#   2：增加 function/function_order、layer/layer_order 等展示字段。
-REPORT_SCHEMA_VERSION = 2
+#   2：增加 function/function_order、layer/layer_order 等展示字段；
+#   3：增加 module_graph（文件级依赖图）。
+REPORT_SCHEMA_VERSION = 3
 
 
 # ============================================================================
@@ -583,6 +584,7 @@ def build_report(ctx: AnalysisContext, insight: Any = None, ai_error: str | None
         "entry_points": snapshot.entry_points,
         "techs": tech_dicts,
         "categories": categories,
+        "module_graph": snapshot.module_graph,
         "warnings": warnings,
         "ai": {
             "used": insight is not None,
@@ -623,6 +625,7 @@ def normalize_report(report: dict) -> dict:
     normalized.setdefault("stats", {})
     normalized.setdefault("ai", {})
     normalized.setdefault("categories", [])
+    normalized.setdefault("module_graph", {"nodes": [], "edges": [], "stats": {}})
 
     techs: list[dict] = []
     for raw in normalized.get("techs") or []:

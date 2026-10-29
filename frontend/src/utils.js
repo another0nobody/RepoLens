@@ -64,6 +64,7 @@ export const STAGES = [
 export const TABS = [
   { key: "stack", label: "技术栈" },
   { key: "modules", label: "模块地图" },
+  { key: "deps", label: "依赖图" },
   { key: "architecture", label: "架构解读" },
   { key: "chat", label: "追问" },
   { key: "process", label: "分析过程" },
