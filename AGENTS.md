@@ -31,6 +31,7 @@ repolens/
 │   ├── catalog.py             # 252 项技术词典
 │   ├── report.py              # 事实 + AI 合并、schema、落盘
 │   ├── storage.py             # SQLite run/event/chat/report 索引
+│   ├── diff.py                # 两份报告的差异计算
 │   ├── sources.py             # 本地路径/GitHub 克隆
 │   ├── security.py            # 脱敏/敏感文件
 │   ├── schemas.py             # RepoInsight / TechFinding
@@ -77,6 +78,7 @@ repolens/
 - 报告页技术卡/详情抽屉/模块地图/架构/风险/学习路径/警告；技术栈按**层级 → 功能 → 技术**分组（如“数据与存储 → 提供数据缓存 → Redis”），并支持“分组 / 层级图”切换；
 - 历史、JSON/Markdown 导出、分享链接；
 - **模块依赖图**：文件级本地 import 有向图，目录/文件视图、搜索、入边/出边、循环标记；
+- **报告对比**：当前报告 vs 历史报告，技术/依赖/风险/架构/统计差异，排除纯职责文案噪声；
 - 追问流式输出、报告依据、多轮记忆；**技术深挖四模板**（优势/难点/相似方案/为什么选它）+ `technology_deep_dive` 工具 + 事实/推断分离；
 - **Contact Sheet 设计基线 × 深/浅模式**；
 - 响应式、Toast、抽屉、HITL 弹窗；
@@ -171,6 +173,7 @@ Invoke-RestMethod "http://127.0.0.1:8765/api/report?run_id=$($run.run_id)"
 - [ ] `npm run build` 成功，`static/dist` 更新；
 - [ ] `python -m unittest discover -s tests -v` 通过；
 - [ ] 报告包含 `schema_version` 与 `module_graph`；SQLite `data/repolens.db` 可写入并重启恢复；
+- [ ] `/api/diff` 与「对比历史」可用；同 run 400、缺失 404；
 - [ ] `python run.py` 启动，`/` 与 `/assets/*` 200；
 - [ ] 本地示例完整走通：首页 → 运行 → 报告 → 模块（每行有大概功能）→ 架构 → 追问（含技术深挖 4 模板）→ 历史；
 - [ ] 无 Key 时本地规则报告仍可生成；
