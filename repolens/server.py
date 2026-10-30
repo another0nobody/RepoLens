@@ -20,6 +20,7 @@ Python 自带的 http.server 虽然朴素，但足够支撑：
     POST /api/hitl              批准/拒绝克隆
     GET  /api/report?run_id=    读取报告
     GET  /api/history           历史报告
+    GET  /api/diff              对比两份报告
     GET  /api/chat/history      追问历史
     GET  /api/memory            长期记忆
     POST /api/chat              追问（SSE 流式回答）
@@ -46,6 +47,7 @@ from langgraph.store.memory import InMemoryStore
 
 from . import __version__, config
 from .context import AnalysisContext
+from .diff import build_diff
 from .events import EventBus
 from .pipeline import run_analysis, stream_chat
 from .report import list_reports, load_report
@@ -317,6 +319,8 @@ class RepoLensHandler(BaseHTTPRequestHandler):
             self._json({"items": self.app.examples()})
         elif path == "/api/history":
             self._json({"items": self.app.history()})
+        elif path == "/api/diff":
+            self._handle_diff(parsed)
         elif path == "/api/chat/history":
             self._handle_chat_history(parsed)
         elif path == "/api/report":
@@ -624,6 +628,24 @@ class RepoLensHandler(BaseHTTPRequestHandler):
                     self.wfile.flush()
         except (BrokenPipeError, ConnectionResetError, OSError):
             pass
+
+    # ------------------------------------------------------------- 对比
+    def _handle_diff(self, parsed) -> None:
+        query = parse_qs(parsed.query)
+        base_id = (query.get("base") or [""])[0].strip()
+        target_id = (query.get("target") or [""])[0].strip()
+        if not base_id or not target_id:
+            self._json({"error": "缺少 base 或 target"}, HTTPStatus.BAD_REQUEST)
+            return
+        if base_id == target_id:
+            self._json({"error": "不能比较同一份报告"}, HTTPStatus.BAD_REQUEST)
+            return
+        base = self.app.get_report(base_id)
+        target = self.app.get_report(target_id)
+        if base is None or target is None:
+            self._json({"error": "其中一份报告不存在"}, HTTPStatus.NOT_FOUND)
+            return
+        self._json(build_diff(base, target))
 
     # ------------------------------------------------------------- 追问
     def _handle_chat_history(self, parsed) -> None:

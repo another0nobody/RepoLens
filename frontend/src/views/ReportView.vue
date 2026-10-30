@@ -15,6 +15,7 @@ import {
   exportJSON,
   exportMarkdown,
   goHome,
+  openCompare,
   openTech,
   setCategory,
   setScrollProgress,
@@ -176,6 +177,7 @@ function copyLink() {
       </div>
 
       <div class="actions">
+        <button class="text-action" type="button" @click="openCompare">对比历史</button>
         <button class="text-action" type="button" @click="copyLink">复制链接</button>
         <button class="text-action" type="button" @click="reanalyze">重新分析</button>
         <button class="text-action" type="button" @click="exportMarkdown">Markdown</button>

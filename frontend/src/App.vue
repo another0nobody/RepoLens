@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, watch } from "vue";
 
 import AppHeader from "./components/AppHeader.vue";
+import CompareDrawer from "./components/CompareDrawer.vue";
 import ConceptsDrawer from "./components/ConceptsDrawer.vue";
 import HistoryDrawer from "./components/HistoryDrawer.vue";
 import HitlModal from "./components/HitlModal.vue";
@@ -27,6 +28,7 @@ const overlayOpen = computed(
     state.drawers.history ||
     state.drawers.concepts ||
     state.drawers.styles ||
+    state.drawers.compare ||
     Boolean(state.drawers.techKey)
 );
 
@@ -38,7 +40,13 @@ function onKeydown(event) {
 
   if (event.key === "Escape") {
     if (state.hitl) return; // 审批必须明确选择
-    if (state.drawers.history || state.drawers.concepts || state.drawers.styles || state.drawers.techKey) {
+    if (
+      state.drawers.history ||
+      state.drawers.concepts ||
+      state.drawers.styles ||
+      state.drawers.compare ||
+      state.drawers.techKey
+    ) {
       closeOverlays();
     }
     return;
@@ -99,6 +107,7 @@ onBeforeUnmount(() => {
 
     <TechDrawer />
     <HistoryDrawer />
+    <CompareDrawer />
     <ConceptsDrawer />
     <HitlModal />
     <ToastHost />

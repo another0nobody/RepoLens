@@ -1,6 +1,6 @@
 import { computed, reactive } from "vue";
 
-import { fetchChatHistory, fetchJSON, streamChatRequest } from "./api";
+import { fetchChatHistory, fetchDiff, fetchJSON, streamChatRequest } from "./api";
 import {
   DEFAULT_STYLE,
   STYLE_KEYS,
@@ -65,9 +65,10 @@ export const state = reactive({
 
   chat: { messages: [], streaming: false, status: "" },
 
-  drawers: { history: false, concepts: false, styles: false, techKey: null },
+  drawers: { history: false, concepts: false, styles: false, compare: false, techKey: null },
   history: [],
   historyLoading: false,
+  diff: { baseId: "", loading: false, data: null, error: "" },
   concepts: [],
   conceptsLoading: false,
 
@@ -558,6 +559,8 @@ function showReport(report) {
   state.category = "全部";
   state.search = "";
   state.chat = { messages: [], streaming: false, status: "" };
+  state.diff = { baseId: "", loading: false, data: null, error: "" };
+  state.drawers.compare = false;
   state.view = "report";
   const validTabs = ["stack", "modules", "deps", "architecture", "chat", "process"];
   state.tab = validTabs.includes(state.pendingTab) ? state.pendingTab : "stack";
@@ -702,10 +705,44 @@ export async function loadConcepts() {
   }
 }
 
+export async function openCompare() {
+  if (!state.report) return;
+  state.drawers.compare = true;
+  if (!state.history.length) await loadHistory();
+  const candidates = state.history.filter((item) => item.run_id !== state.report.run_id);
+  if (!candidates.length) {
+    state.diff = { baseId: "", loading: false, data: null, error: "" };
+    return;
+  }
+  const preferred = candidates[0].run_id;
+  state.diff.baseId = preferred;
+  await loadDiff(preferred);
+}
+
+export function closeCompare() {
+  state.drawers.compare = false;
+}
+
+export async function loadDiff(baseId) {
+  if (!state.report || !baseId || baseId === state.report.run_id) return;
+  state.diff.baseId = baseId;
+  state.diff.loading = true;
+  state.diff.error = "";
+  try {
+    state.diff.data = await fetchDiff(baseId, state.report.run_id);
+  } catch (error) {
+    state.diff.data = null;
+    state.diff.error = error.message;
+  } finally {
+    state.diff.loading = false;
+  }
+}
+
 export function closeOverlays() {
   if (state.drawers.history) state.drawers.history = false;
   if (state.drawers.concepts) state.drawers.concepts = false;
   if (state.drawers.styles) state.drawers.styles = false;
+  if (state.drawers.compare) state.drawers.compare = false;
   if (state.drawers.techKey) state.drawers.techKey = null;
 }
 
