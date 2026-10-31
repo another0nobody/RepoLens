@@ -21,6 +21,7 @@ Python 自带的 http.server 虽然朴素，但足够支撑：
     GET  /api/report?run_id=    读取报告
     GET  /api/history           历史报告
     GET  /api/diff              对比两份报告
+    GET  /api/file              读取证据对应代码片段
     GET  /api/chat/history      追问历史
     GET  /api/memory            长期记忆
     POST /api/chat              追问（SSE 流式回答）
@@ -46,6 +47,7 @@ from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 from langgraph.store.memory import InMemoryStore
 
 from . import __version__, config
+from .codeview import CodeViewError, read_code_window
 from .context import AnalysisContext
 from .diff import build_diff
 from .events import EventBus
@@ -321,6 +323,8 @@ class RepoLensHandler(BaseHTTPRequestHandler):
             self._json({"items": self.app.history()})
         elif path == "/api/diff":
             self._handle_diff(parsed)
+        elif path == "/api/file":
+            self._handle_file(parsed)
         elif path == "/api/chat/history":
             self._handle_chat_history(parsed)
         elif path == "/api/report":
@@ -628,6 +632,36 @@ class RepoLensHandler(BaseHTTPRequestHandler):
                     self.wfile.flush()
         except (BrokenPipeError, ConnectionResetError, OSError):
             pass
+
+    # ------------------------------------------------------------- 证据代码
+    def _handle_file(self, parsed) -> None:
+        query = parse_qs(parsed.query)
+        run_id = (query.get("run_id") or [""])[0].strip()
+        relative_path = (query.get("path") or [""])[0].strip()
+        if not run_id or not relative_path:
+            self._json({"error": "缺少 run_id 或 path"}, HTTPStatus.BAD_REQUEST)
+            return
+        try:
+            line = int((query.get("line") or ["1"])[0])
+            context = int((query.get("context") or ["8"])[0])
+        except ValueError:
+            self._json({"error": "line/context 必须是整数"}, HTTPStatus.BAD_REQUEST)
+            return
+        report = self.app.get_report(run_id)
+        if report is None:
+            self._json({"error": "报告不存在"}, HTTPStatus.NOT_FOUND)
+            return
+        run = self.app.get_run(run_id)
+        root = Path(str(report.get("local_path") or ""))
+        if not root.is_dir() and run is not None and run.ctx.repo_root is not None:
+            root = run.ctx.repo_root
+        if not root.is_dir():
+            self._json({"error": "仓库目录不可用，无法读取代码"}, HTTPStatus.CONFLICT)
+            return
+        try:
+            self._json(read_code_window(root, relative_path, line=line, context=context))
+        except CodeViewError as exc:
+            self._json({"error": str(exc)}, exc.status)
 
     # ------------------------------------------------------------- 对比
     def _handle_diff(self, parsed) -> None:

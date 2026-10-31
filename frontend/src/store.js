@@ -1,6 +1,6 @@
 import { computed, reactive } from "vue";
 
-import { fetchChatHistory, fetchDiff, fetchJSON, streamChatRequest } from "./api";
+import { fetchChatHistory, fetchCode, fetchDiff, fetchJSON, streamChatRequest } from "./api";
 import {
   DEFAULT_STYLE,
   STYLE_KEYS,
@@ -69,6 +69,7 @@ export const state = reactive({
   history: [],
   historyLoading: false,
   diff: { baseId: "", loading: false, data: null, error: "" },
+  codeViewer: { open: false, loading: false, path: "", line: 1, data: null, error: "" },
   concepts: [],
   conceptsLoading: false,
 
@@ -560,6 +561,7 @@ function showReport(report) {
   state.search = "";
   state.chat = { messages: [], streaming: false, status: "" };
   state.diff = { baseId: "", loading: false, data: null, error: "" };
+  state.codeViewer = { open: false, loading: false, path: "", line: 1, data: null, error: "" };
   state.drawers.compare = false;
   state.view = "report";
   const validTabs = ["stack", "modules", "deps", "architecture", "chat", "process"];
@@ -705,6 +707,35 @@ export async function loadConcepts() {
   }
 }
 
+export async function openCode(path, line = 1) {
+  if (!state.report || !path) return;
+  state.drawers.techKey = null;
+  state.drawers.history = false;
+  state.drawers.compare = false;
+  state.codeViewer = {
+    open: true,
+    loading: true,
+    path,
+    line: Number(line) || 1,
+    data: null,
+    error: "",
+  };
+  try {
+    const data = await fetchCode(state.report.run_id, path, Number(line) || 1);
+    if (state.codeViewer.open && state.codeViewer.path === path) {
+      state.codeViewer.data = data;
+    }
+  } catch (error) {
+    if (state.codeViewer.open) state.codeViewer.error = error.message;
+  } finally {
+    state.codeViewer.loading = false;
+  }
+}
+
+export function closeCode() {
+  state.codeViewer.open = false;
+}
+
 export async function openCompare() {
   if (!state.report) return;
   state.drawers.compare = true;
@@ -743,6 +774,7 @@ export function closeOverlays() {
   if (state.drawers.concepts) state.drawers.concepts = false;
   if (state.drawers.styles) state.drawers.styles = false;
   if (state.drawers.compare) state.drawers.compare = false;
+  if (state.codeViewer.open) state.codeViewer.open = false;
   if (state.drawers.techKey) state.drawers.techKey = null;
 }
 

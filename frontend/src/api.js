@@ -1,5 +1,12 @@
 /** 与 Python 后端通信的薄封装。 */
 
+/** 读取证据对应的一小段源码。 */
+export async function fetchCode(runId, path, line = 1) {
+  return fetchJSON(
+    `/api/file?run_id=${encodeURIComponent(runId)}&path=${encodeURIComponent(path)}&line=${encodeURIComponent(line)}`
+  );
+}
+
 /** 对比两份报告。 */
 export async function fetchDiff(baseId, targetId) {
   return fetchJSON(

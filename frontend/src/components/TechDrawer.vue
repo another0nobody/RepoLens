@@ -3,7 +3,7 @@ import { computed } from "vue";
 
 import BaseDrawer from "./BaseDrawer.vue";
 import Icon from "./Icon.vue";
-import { closeTech, copy, currentTech, state } from "../store";
+import { closeTech, currentTech, openCode, state } from "../store";
 import { categoryColor, fmtNumber, sourceLabel } from "../utils";
 
 const tech = computed(() => currentTech.value);
@@ -54,7 +54,12 @@ const color = computed(() => categoryColor(tech.value?.category || ""));
       <h4>证据（依赖清单 / import / 代码使用）</h4>
       <ul v-if="evidence.length" class="evidence">
         <li v-for="(item, index) in evidence" :key="index">
-          <button class="loc mono" type="button" @click="copy(`${item.path}:${item.line}`, '位置')">
+          <button
+            class="loc mono"
+            type="button"
+            title="查看代码片段"
+            @click="openCode(item.path, item.line)"
+          >
             {{ item.path }}{{ item.line ? `:${item.line}` : "" }}
           </button>
           <span class="kind">{{ item.kind }}</span>
@@ -67,7 +72,12 @@ const color = computed(() => categoryColor(tech.value?.category || ""));
       <div v-if="modules.length" class="modules">
         <div v-for="module in modules" :key="`${module.path}:${module.line}`" class="module">
           <div class="module-head">
-            <button class="loc mono" type="button" @click="copy(`${module.path}:${module.line}`, '位置')">
+            <button
+              class="loc mono"
+              type="button"
+              title="查看代码片段"
+              @click="openCode(module.path, module.line)"
+            >
               {{ module.path }}:{{ module.line }}
             </button>
             <span class="role-tag">{{ module.role || "源码" }}</span>

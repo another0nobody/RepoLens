@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, watch } from "vue";
 
 import AppHeader from "./components/AppHeader.vue";
+import CodeViewer from "./components/CodeViewer.vue";
 import CompareDrawer from "./components/CompareDrawer.vue";
 import ConceptsDrawer from "./components/ConceptsDrawer.vue";
 import HistoryDrawer from "./components/HistoryDrawer.vue";
@@ -29,6 +30,7 @@ const overlayOpen = computed(
     state.drawers.concepts ||
     state.drawers.styles ||
     state.drawers.compare ||
+    state.codeViewer.open ||
     Boolean(state.drawers.techKey)
 );
 
@@ -45,6 +47,7 @@ function onKeydown(event) {
       state.drawers.concepts ||
       state.drawers.styles ||
       state.drawers.compare ||
+      state.codeViewer.open ||
       state.drawers.techKey
     ) {
       closeOverlays();
@@ -108,6 +111,7 @@ onBeforeUnmount(() => {
     <TechDrawer />
     <HistoryDrawer />
     <CompareDrawer />
+    <CodeViewer />
     <ConceptsDrawer />
     <HitlModal />
     <ToastHost />

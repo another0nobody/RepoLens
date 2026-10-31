@@ -2,7 +2,7 @@
 import { computed, ref, watch } from "vue";
 
 import Icon from "./Icon.vue";
-import { copy, setSearch, state } from "../store";
+import { openCode, setSearch, state } from "../store";
 import { fmtNumber, truncate } from "../utils";
 
 const openKeys = ref(new Set());
@@ -107,7 +107,12 @@ function toggleAll() {
               <tbody>
                 <tr v-for="module in tech.modules" :key="`${module.path}:${module.line}`">
                   <td class="path">
-                    <button class="copy-path" type="button" title="复制文件路径" @click.stop="copy(module.path, '文件路径')">
+                    <button
+                      class="copy-path"
+                      type="button"
+                      title="查看代码片段"
+                      @click.stop="openCode(module.path, module.line)"
+                    >
                       {{ module.path }}
                     </button>
                   </td>
