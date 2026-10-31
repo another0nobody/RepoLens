@@ -130,6 +130,7 @@ run_analysis(ctx)
 | `repolens/report.py` | 事实 + AI 合并、报告 schema、报告持久化、历史摘要 | `build_report()`, `save_report()`, `load_report()`, `normalize_report()`, `list_reports()` |
 | `repolens/storage.py` | SQLite：run、事件、聊天、报告索引 | `SQLiteStore.upsert_run/append_event/add_message/save_report` |
 | `repolens/diff.py` | 两份报告的差异计算 | `build_diff()` |
+| `repolens/codeview.py` | 安全读取证据代码片段 | `read_code_window()`, `CodeViewError` |
 | `tests/` | 标准库 unittest 测试 | 扫描器、报告 schema、SQLite、事件、历史恢复 |
 | `repolens/sources.py` | 本地路径校验、GitHub 解析/克隆、体积检查 | `validate_local_path()`, `clone_github()` |
 | `repolens/security.py` | 正则脱敏、敏感文件判断 | `mask_secrets()`, `is_sensitive_path()` |
@@ -152,6 +153,7 @@ run_analysis(ctx)
 | `frontend/src/views/ReportView.vue` | 报告头、统计、摘要、警告、Tab、分类筛选、搜索、技术卡片 |
 | `frontend/src/components/DependencyGraph.vue` | 模块依赖图：目录/文件视图、圆形布局、搜索、入边/出边详情 |
 | `frontend/src/components/CompareDrawer.vue` | 报告对比抽屉：选择基准报告、统计差、技术/依赖/风险/架构差异 |
+| `frontend/src/components/CodeViewer.vue` | 证据代码查看器：行号、高亮、脱敏、复制位置/片段 |
 | `frontend/src/components/StageTimeline.vue` | 四阶段时间线与进度 |
 | `frontend/src/components/LiveFeed.vue` | 事件流筛选、自动滚动、过渡 |
 | `frontend/src/components/TodoList.vue` | Agent 待办状态 |
@@ -525,6 +527,21 @@ Agent 调 clone_github_repository
 
 前端入口：报告头「对比历史」→ `CompareDrawer` → `GET /api/diff`。
 
+### 6.6 证据代码查看器
+
+`codeview.read_code_window(repo_root, path, line, context)` 返回证据行附近的只读代码窗口：
+
+- 路径必须 resolve 后位于仓库根内，拒绝 `..` 越界；
+- `.env`、私钥等敏感文件拒绝；
+- 文件上限 400KB，二进制（NUL）拒绝；
+- 内容经过 `mask_secrets()`，返回 `masked` 标记；
+- 每行最多 500 字符，前后默认各 8 行，最多 20 行上下文；
+- 返回 `path/line/start/end/language/lines/total_lines/truncated`。
+
+API 读取报告里的 `local_path`，不向浏览器返回绝对路径；仓库目录不可用时 409。
+
+前端入口：技术抽屉的证据/模块路径、模块地图文件路径 → `CodeViewer`。
+
 ---
 
 ## 7. 扫描器细节
@@ -719,6 +736,7 @@ Agent 调 clone_github_repository
 | `/api/examples` | `{items:[{label,value,kind,description}]}` | 首页示例 |
 | `/api/history` | `{items:[摘要]}` | SQLite 索引 + 磁盘 JSON，最多 40 条 |
 | `/api/diff?base=&target=` | 结构化报告差异 | 缺参数/同 run 400；报告不存在 404 |
+| `/api/file?run_id=&path=&line=` | 证据代码窗口 | 越界/敏感文件 403；不存在 404；目录不可用 409 |
 | `/api/report?run_id=` | 完整报告（含 `schema_version`） | 缺失 400，找不到 404 |
 | `/api/run?run_id=` | `{run_id,source,source_type,status,report_ready,elapsed_seconds,repo_name,error?}` | 刷新/重启恢复；可回退 SQLite 行 |
 | `/api/events?run_id=&from=` | `text/event-stream` | SSE；内存优先，重启后回放 SQLite |
@@ -1076,6 +1094,7 @@ cd repolens
 - `test_storage_unit.py`：run 生命周期、事件裁剪、聊天、报告索引、stale run；
 - `test_events_unit.py`：EventBus 持久化 sink；
 - `test_diff_unit.py`：同报告无变化、技术/依赖/风险增删、架构变化；
+- `test_codeview_unit.py`：代码窗口、路径越界、敏感文件、缺失文件；
 - `test_app_persistence_unit.py`：历史合并、重启后聊天恢复。
 
 ### 14.4 最小冒烟测试
