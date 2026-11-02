@@ -33,6 +33,7 @@ repolens/
 │   ├── storage.py             # SQLite run/event/chat/report 索引
 │   ├── diff.py                # 两份报告的差异计算
 │   ├── codeview.py            # 安全的只读代码片段
+│   ├── adr.py                 # 技术选型 ADR Markdown
 │   ├── sources.py             # 本地路径/GitHub 克隆
 │   ├── security.py            # 脱敏/敏感文件
 │   ├── schemas.py             # RepoInsight / TechFinding
@@ -82,6 +83,7 @@ repolens/
 - **报告对比**：当前报告 vs 历史报告，技术/依赖/风险/架构/统计差异，排除纯职责文案噪声；
 - **证据代码查看器**：证据/模块路径可打开只读代码片段，高亮行、脱敏、拒绝敏感文件与越界路径；
 - **先看什么**：报告头给出入口文件、核心依赖、风险和阅读路线，文件/技术可直接打开；
+- **技术选型 ADR**：基于报告事实生成中文 Markdown，含同类方案、后果、证据、待确认；可复制/下载；
 - 追问流式输出、报告依据、多轮记忆；**技术深挖四模板**（优势/难点/相似方案/为什么选它）+ `technology_deep_dive` 工具 + 事实/推断分离；
 - **Contact Sheet 设计基线 × 深/浅模式**；
 - 响应式、Toast、抽屉、HITL 弹窗；
@@ -179,6 +181,7 @@ Invoke-RestMethod "http://127.0.0.1:8765/api/report?run_id=$($run.run_id)"
 - [ ] `/api/diff` 与「对比历史」可用；同 run 400、缺失 404；
 - [ ] `/api/file` 与证据代码查看器可用；路径越界/敏感文件 403；
 - [ ] 报告头“先看什么”正常；文件打开代码、技术打开抽屉；
+- [ ] `/api/adr` 与 ADR 抽屉可用；未知技术 404；下载文件名为 `.md`；
 - [ ] `python run.py` 启动，`/` 与 `/assets/*` 200；
 - [ ] 本地示例完整走通：首页 → 运行 → 报告 → 模块（每行有大概功能）→ 架构 → 追问（含技术深挖 4 模板）→ 历史；
 - [ ] 无 Key 时本地规则报告仍可生成；

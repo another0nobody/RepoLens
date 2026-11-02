@@ -131,6 +131,7 @@ run_analysis(ctx)
 | `repolens/storage.py` | SQLite：run、事件、聊天、报告索引 | `SQLiteStore.upsert_run/append_event/add_message/save_report` |
 | `repolens/diff.py` | 两份报告的差异计算 | `build_diff()` |
 | `repolens/codeview.py` | 安全读取证据代码片段 | `read_code_window()`, `CodeViewError` |
+| `repolens/adr.py` | 技术选型 ADR Markdown | `build_adr()`, `AdrError` |
 | `tests/` | 标准库 unittest 测试 | 扫描器、报告 schema、SQLite、事件、历史恢复 |
 | `repolens/sources.py` | 本地路径校验、GitHub 解析/克隆、体积检查 | `validate_local_path()`, `clone_github()` |
 | `repolens/security.py` | 正则脱敏、敏感文件判断 | `mask_secrets()`, `is_sensitive_path()` |
@@ -154,6 +155,7 @@ run_analysis(ctx)
 | `frontend/src/components/DependencyGraph.vue` | 模块依赖图：目录/文件视图、圆形布局、搜索、入边/出边详情 |
 | `frontend/src/components/CompareDrawer.vue` | 报告对比抽屉：选择基准报告、统计差、技术/依赖/风险/架构差异 |
 | `frontend/src/components/CodeViewer.vue` | 证据代码查看器：行号、高亮、脱敏、复制位置/片段 |
+| `frontend/src/components/AdrDrawer.vue` | ADR 抽屉：技术选择、Markdown 预览、复制/下载 |
 | `frontend/src/components/StageTimeline.vue` | 四阶段时间线与进度 |
 | `frontend/src/components/LiveFeed.vue` | 事件流筛选、自动滚动、过渡 |
 | `frontend/src/components/TodoList.vue` | Agent 待办状态 |
@@ -553,6 +555,20 @@ API 读取报告里的 `local_path`，不向浏览器返回绝对路径；仓库
 
 文件按钮调用 `openCode(path, 1)`，技术按钮调用 `openTech(key)`；旧报告缺依赖图时仍可基于 `key_modules` 回退。
 
+### 6.8 技术选型 ADR
+
+`adr.build_adr(report, tech)` 不调用模型，只把报告事实整理成中文 Markdown：
+
+- 背景：项目、技术分类、模块数、证据数、用途；
+- 决策：把技术视为某个功能的实现，并说明使用范围；
+- 备选方案：从 `catalog.CATALOG` 同分类候选中取最多 5 项，优先项目未使用的；标注“项目内已有/未识别”；
+- 后果：基于事实的正面影响、代价与风险；没有性能/成本/团队数据时不编造；
+- 证据与使用模块：来自报告；
+- 待确认：选型动机、版本维护、迁移计划、合规/成本等。
+
+输出 `{tech, filename, markdown, alternatives, generated_at}`。文件名经过安全清洗，只保留字母、数字、中文和连字符。
+前端入口：技术抽屉「生成技术选型 ADR」→ `AdrDrawer` → `GET /api/adr`。
+
 ---
 
 ## 7. 扫描器细节
@@ -748,6 +764,7 @@ API 读取报告里的 `local_path`，不向浏览器返回绝对路径；仓库
 | `/api/history` | `{items:[摘要]}` | SQLite 索引 + 磁盘 JSON，最多 40 条 |
 | `/api/diff?base=&target=` | 结构化报告差异 | 缺参数/同 run 400；报告不存在 404 |
 | `/api/file?run_id=&path=&line=` | 证据代码窗口 | 越界/敏感文件 403；不存在 404；目录不可用 409 |
+| `/api/adr?run_id=&tech=` | ADR Markdown | 缺参数 400；报告/技术不存在 404 |
 | `/api/report?run_id=` | 完整报告（含 `schema_version`） | 缺失 400，找不到 404 |
 | `/api/run?run_id=` | `{run_id,source,source_type,status,report_ready,elapsed_seconds,repo_name,error?}` | 刷新/重启恢复；可回退 SQLite 行 |
 | `/api/events?run_id=&from=` | `text/event-stream` | SSE；内存优先，重启后回放 SQLite |
@@ -1106,6 +1123,7 @@ cd repolens
 - `test_events_unit.py`：EventBus 持久化 sink；
 - `test_diff_unit.py`：同报告无变化、技术/依赖/风险增删、架构变化；
 - `test_codeview_unit.py`：代码窗口、路径越界、敏感文件、缺失文件；
+- `test_adr_unit.py`：ADR 内容、同类方案、未知技术、安全文件名；
 - `test_app_persistence_unit.py`：历史合并、重启后聊天恢复。
 
 ### 14.4 最小冒烟测试
