@@ -15,6 +15,7 @@ import {
   exportJSON,
   exportMarkdown,
   goHome,
+  openCode,
   openCompare,
   openTech,
   setCategory,
@@ -114,6 +115,73 @@ const summaryNote = computed(() => {
   return "由本地规则生成";
 });
 
+const readingGuide = computed(() => {
+  if (!report.value) return null;
+  const graphNodes = report.value.module_graph?.nodes || [];
+  const nodeMap = new Map(graphNodes.map((node) => [node.path, node]));
+  const files = [];
+  const seen = new Set();
+  const addFile = (path, reason) => {
+    if (!path || seen.has(path)) return;
+    const node = nodeMap.get(path);
+    // 只把真正参与依赖图的代码文件放进“先读”，跳过 Dockerfile/清单等配置。
+    if (!node) return;
+    seen.add(path);
+    files.push({
+      path,
+      reason,
+      role: node?.role || "代码文件",
+      meta: [node?.language, node?.loc ? `${node.loc} 行` : ""].filter(Boolean).join(" · "),
+      entry: Boolean(node?.entry),
+    });
+  };
+
+  (report.value.entry_points || []).forEach((path) => addFile(path, "项目入口"));
+  [...graphNodes]
+    .sort(
+      (a, b) =>
+        (b.in_degree || 0) + (b.out_degree || 0) - ((a.in_degree || 0) + (a.out_degree || 0))
+    )
+    .forEach((node) => {
+      if (files.length >= 3 || !(node.in_degree || node.out_degree)) return;
+      const reason = node.in_degree
+        ? `被 ${node.in_degree} 个模块引用`
+        : `连接 ${node.out_degree} 个依赖`;
+      addFile(node.path, reason);
+    });
+  techs.value.forEach((tech) => {
+    (tech.key_modules || []).forEach((path) => addFile(path, "核心技术模块"));
+  });
+
+  const coreTechs = [...techs.value]
+    .filter((tech) => tech.category !== "编程语言" && tech.category !== "其他依赖")
+    .sort((a, b) => {
+      const score = (tech) =>
+        (tech.modules || []).length * 3 +
+        (tech.confidence === "高" ? 2 : tech.confidence === "中" ? 1 : 0);
+      return score(b) - score(a) || String(a.name).localeCompare(String(b.name));
+    })
+    .slice(0, 3)
+    .map((tech) => ({
+      key: tech.key,
+      name: tech.name,
+      layer: tech.layer || tech.category,
+      function: tech.function || tech.category,
+      meta: (tech.modules || []).length
+        ? `${(tech.modules || []).length} 个模块直接使用`
+        : "仅在依赖清单中出现",
+    }));
+
+  return {
+    files: files.slice(0, 3),
+    techs: coreTechs,
+    risk: (report.value.risks || [])[0] || "",
+    steps: (report.value.learning_path || [])
+      .slice(0, 3)
+      .map((step) => String(step).replace(/^\s*\d+[.、)]\s*/, "")),
+  };
+});
+
 const sourceHref = computed(() => {
   if (!report.value) return "";
   if (report.value.source_type !== "github") return "";
@@ -211,6 +279,78 @@ function copyLink() {
         <span class="v">{{ scanSeconds < 0.1 ? "<0.1" : scanSeconds.toFixed(1) }}s</span>
       </div>
     </div>
+
+    <section v-if="readingGuide" class="read-first">
+      <div class="read-first-head">
+        <div>
+          <p class="eyebrow mono">READ FIRST / 先看什么</p>
+          <h3>用几分钟建立仓库地图</h3>
+        </div>
+        <p class="read-first-note">先读入口，再看核心依赖，最后带着风险意识往下看。</p>
+      </div>
+
+      <div class="read-first-grid">
+        <article class="read-block">
+          <div class="read-block-head">
+            <span class="read-index mono">01</span>
+            <span class="read-label">先读文件</span>
+            <span class="read-count mono">{{ readingGuide.files.length }}</span>
+          </div>
+          <div v-if="readingGuide.files.length" class="read-files">
+            <button
+              v-for="file in readingGuide.files"
+              :key="file.path"
+              type="button"
+              class="read-file"
+              @click="openCode(file.path, 1)"
+            >
+              <span class="read-file-name mono">{{ file.path }}</span>
+              <span class="read-file-meta">
+                <span v-if="file.entry" class="read-chip">入口</span>
+                {{ file.reason }}<template v-if="file.meta"> · {{ file.meta }}</template>
+              </span>
+            </button>
+          </div>
+          <p v-else class="read-empty">没有定位到入口文件，可以从模块地图继续。</p>
+        </article>
+
+        <article class="read-block">
+          <div class="read-block-head">
+            <span class="read-index mono">02</span>
+            <span class="read-label">核心依赖</span>
+            <span class="read-count mono">{{ readingGuide.techs.length }}</span>
+          </div>
+          <div v-if="readingGuide.techs.length" class="read-techs">
+            <button
+              v-for="tech in readingGuide.techs"
+              :key="tech.key"
+              type="button"
+              class="read-tech"
+              @click="openTech(tech.key)"
+            >
+              <b>{{ tech.name }}</b>
+              <span>{{ tech.layer }} · {{ tech.function }}</span>
+              <small>{{ tech.meta }}</small>
+            </button>
+          </div>
+          <p v-else class="read-empty">没有识别到核心依赖。</p>
+        </article>
+
+        <article class="read-block read-risk-block">
+          <div class="read-block-head">
+            <span class="read-index mono">03</span>
+            <span class="read-label">先注意</span>
+            <Icon name="warning" :size="13" />
+          </div>
+          <p v-if="readingGuide.risk" class="read-risk">{{ readingGuide.risk }}</p>
+          <p v-else class="read-empty">未发现明显风险，仍建议从入口文件开始读。</p>
+          <p v-if="readingGuide.steps.length" class="read-steps-label mono">30 分钟路线</p>
+          <ol v-if="readingGuide.steps.length" class="read-steps">
+            <li v-for="(step, index) in readingGuide.steps" :key="index">{{ step }}</li>
+          </ol>
+        </article>
+      </div>
+    </section>
 
     <div class="proof-note">
       <div class="proof-note-head">
@@ -489,6 +629,195 @@ function copyLink() {
     font-size: 19px;
     line-height: 1.2;
     white-space: nowrap;
+  }
+}
+
+.read-first {
+  margin-top: 22px;
+  border-top: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.read-first-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0 10px;
+
+  h3 {
+    margin: 3px 0 0;
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 500;
+  }
+}
+
+.read-first-note {
+  max-width: 380px;
+  margin: 0;
+  color: var(--faint);
+  font-size: 10px;
+  line-height: 1.55;
+  text-align: right;
+}
+
+.read-first-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr 0.95fr;
+  border-top: 1px solid var(--line);
+}
+
+.read-block {
+  min-width: 0;
+  padding: 10px 14px 12px 0;
+  border-right: 1px solid var(--line);
+
+  &:last-child {
+    padding-right: 0;
+    border-right: 0;
+  }
+
+  &:not(:first-child) {
+    padding-left: 14px;
+  }
+}
+
+.read-block-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding-bottom: 7px;
+  color: var(--faint);
+
+  .read-index {
+    color: var(--accent);
+    font-size: 8px;
+  }
+
+  .read-label {
+    color: var(--text);
+    font-family: var(--font-display);
+    font-size: 12px;
+  }
+
+  .read-count {
+    margin-left: auto;
+    font-size: 8px;
+  }
+
+  svg {
+    margin-left: auto;
+    color: var(--warn);
+  }
+}
+
+.read-files,
+.read-techs {
+  display: flex;
+  flex-direction: column;
+}
+
+.read-file,
+.read-tech {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 6px 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+
+  &:last-child {
+    border-bottom: 0;
+  }
+
+  &:hover {
+    color: var(--accent);
+  }
+}
+
+.read-file-name {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  .read-file:hover & {
+    color: var(--accent);
+  }
+}
+
+.read-file-meta {
+  color: var(--faint);
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.read-chip {
+  display: inline-block;
+  margin-right: 4px;
+  padding: 1px 4px;
+  border: 1px solid var(--line-strong);
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.read-tech {
+  b {
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  span {
+    color: var(--muted);
+    font-size: 9px;
+  }
+
+  small {
+    color: var(--faint);
+    font-size: 8.5px;
+  }
+}
+
+.read-risk {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.read-empty {
+  margin: 0;
+  color: var(--faint);
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.read-steps-label {
+  margin: 10px 0 3px;
+  color: var(--faint);
+  font-size: 8px;
+  letter-spacing: 0.06em;
+}
+
+.read-steps {
+  margin: 0;
+  padding-left: 16px;
+  color: var(--faint);
+  font-size: 9px;
+  line-height: 1.55;
+
+  li {
+    margin-bottom: 3px;
   }
 }
 
@@ -879,6 +1208,33 @@ function copyLink() {
 
   .proof-note {
     padding: 14px;
+  }
+
+  .read-first-head {
+    display: block;
+  }
+
+  .read-first-note {
+    margin-top: 5px;
+    text-align: left;
+  }
+
+  .read-first-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .read-block {
+    padding: 10px 0 12px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+
+    &:not(:first-child) {
+      padding-left: 0;
+    }
+
+    &:last-child {
+      border-bottom: 0;
+    }
   }
 }
 </style>
