@@ -1,5 +1,12 @@
 /** 与 Python 后端通信的薄封装。 */
 
+/** 生成某技术的 ADR Markdown。 */
+export async function fetchAdr(runId, tech) {
+  return fetchJSON(
+    `/api/adr?run_id=${encodeURIComponent(runId)}&tech=${encodeURIComponent(tech)}`
+  );
+}
+
 /** 读取证据对应的一小段源码。 */
 export async function fetchCode(runId, path, line = 1) {
   return fetchJSON(

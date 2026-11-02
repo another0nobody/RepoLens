@@ -22,6 +22,7 @@ Python 自带的 http.server 虽然朴素，但足够支撑：
     GET  /api/history           历史报告
     GET  /api/diff              对比两份报告
     GET  /api/file              读取证据对应代码片段
+    GET  /api/adr               生成技术选型 ADR
     GET  /api/chat/history      追问历史
     GET  /api/memory            长期记忆
     POST /api/chat              追问（SSE 流式回答）
@@ -47,6 +48,7 @@ from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 from langgraph.store.memory import InMemoryStore
 
 from . import __version__, config
+from .adr import AdrError, build_adr
 from .codeview import CodeViewError, read_code_window
 from .context import AnalysisContext
 from .diff import build_diff
@@ -325,6 +327,8 @@ class RepoLensHandler(BaseHTTPRequestHandler):
             self._handle_diff(parsed)
         elif path == "/api/file":
             self._handle_file(parsed)
+        elif path == "/api/adr":
+            self._handle_adr(parsed)
         elif path == "/api/chat/history":
             self._handle_chat_history(parsed)
         elif path == "/api/report":
@@ -632,6 +636,23 @@ class RepoLensHandler(BaseHTTPRequestHandler):
                     self.wfile.flush()
         except (BrokenPipeError, ConnectionResetError, OSError):
             pass
+
+    # ------------------------------------------------------------- ADR
+    def _handle_adr(self, parsed) -> None:
+        query = parse_qs(parsed.query)
+        run_id = (query.get("run_id") or [""])[0].strip()
+        tech = (query.get("tech") or [""])[0].strip()
+        if not run_id or not tech:
+            self._json({"error": "缺少 run_id 或 tech"}, HTTPStatus.BAD_REQUEST)
+            return
+        report = self.app.get_report(run_id)
+        if report is None:
+            self._json({"error": "报告不存在"}, HTTPStatus.NOT_FOUND)
+            return
+        try:
+            self._json(build_adr(report, tech))
+        except AdrError as exc:
+            self._json({"error": str(exc)}, exc.status)
 
     # ------------------------------------------------------------- 证据代码
     def _handle_file(self, parsed) -> None:

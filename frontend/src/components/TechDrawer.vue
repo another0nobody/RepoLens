@@ -3,7 +3,7 @@ import { computed } from "vue";
 
 import BaseDrawer from "./BaseDrawer.vue";
 import Icon from "./Icon.vue";
-import { closeTech, currentTech, openCode, state } from "../store";
+import { closeTech, currentTech, openAdr, openCode, state } from "../store";
 import { categoryColor, fmtNumber, sourceLabel } from "../utils";
 
 const tech = computed(() => currentTech.value);
@@ -45,6 +45,11 @@ const color = computed(() => categoryColor(tech.value?.category || ""));
       <p v-if="(tech.usage_tags || []).length" class="usage-line">
         用途：{{ tech.usage_tags.join("、") }}
       </p>
+
+      <button class="adr-action" type="button" @click="openAdr(tech.name)">
+        <Icon name="book" :size="14" />
+        生成技术选型 ADR
+      </button>
 
       <div v-if="tech.ai_inferred" class="notice">
         <Icon name="warning" :size="15" />
@@ -147,6 +152,24 @@ const color = computed(() => categoryColor(tech.value?.category || ""));
       color: var(--faint);
       font-size: 10px;
     }
+  }
+}
+
+.adr-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 6px 9px;
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  font-family: var(--font-ui);
+  font-size: 10px;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--accent-soft);
   }
 }
 

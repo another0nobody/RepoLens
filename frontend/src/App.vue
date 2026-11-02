@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, watch } from "vue";
 
+import AdrDrawer from "./components/AdrDrawer.vue";
 import AppHeader from "./components/AppHeader.vue";
 import CodeViewer from "./components/CodeViewer.vue";
 import CompareDrawer from "./components/CompareDrawer.vue";
@@ -31,6 +32,7 @@ const overlayOpen = computed(
     state.drawers.styles ||
     state.drawers.compare ||
     state.codeViewer.open ||
+    state.adr.open ||
     Boolean(state.drawers.techKey)
 );
 
@@ -48,6 +50,7 @@ function onKeydown(event) {
       state.drawers.styles ||
       state.drawers.compare ||
       state.codeViewer.open ||
+      state.adr.open ||
       state.drawers.techKey
     ) {
       closeOverlays();
@@ -112,6 +115,7 @@ onBeforeUnmount(() => {
     <HistoryDrawer />
     <CompareDrawer />
     <CodeViewer />
+    <AdrDrawer />
     <ConceptsDrawer />
     <HitlModal />
     <ToastHost />

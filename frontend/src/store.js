@@ -1,6 +1,6 @@
 import { computed, reactive } from "vue";
 
-import { fetchChatHistory, fetchCode, fetchDiff, fetchJSON, streamChatRequest } from "./api";
+import { fetchAdr, fetchChatHistory, fetchCode, fetchDiff, fetchJSON, streamChatRequest } from "./api";
 import {
   DEFAULT_STYLE,
   STYLE_KEYS,
@@ -70,6 +70,7 @@ export const state = reactive({
   historyLoading: false,
   diff: { baseId: "", loading: false, data: null, error: "" },
   codeViewer: { open: false, loading: false, path: "", line: 1, data: null, error: "" },
+  adr: { open: false, loading: false, tech: "", data: null, error: "" },
   concepts: [],
   conceptsLoading: false,
 
@@ -562,6 +563,7 @@ function showReport(report) {
   state.chat = { messages: [], streaming: false, status: "" };
   state.diff = { baseId: "", loading: false, data: null, error: "" };
   state.codeViewer = { open: false, loading: false, path: "", line: 1, data: null, error: "" };
+  state.adr = { open: false, loading: false, tech: "", data: null, error: "" };
   state.drawers.compare = false;
   state.view = "report";
   const validTabs = ["stack", "modules", "deps", "architecture", "chat", "process"];
@@ -707,6 +709,40 @@ export async function loadConcepts() {
   }
 }
 
+export async function openAdr(techName) {
+  if (!state.report || !techName) return;
+  state.drawers.techKey = null;
+  state.drawers.compare = false;
+  state.codeViewer.open = false;
+  state.adr = { open: true, loading: true, tech: techName, data: null, error: "" };
+  try {
+    state.adr.data = await fetchAdr(state.report.run_id, techName);
+  } catch (error) {
+    state.adr.error = error.message;
+  } finally {
+    state.adr.loading = false;
+  }
+}
+
+export async function loadAdr(techName) {
+  if (!state.report || !techName) return;
+  state.adr.tech = techName;
+  state.adr.loading = true;
+  state.adr.error = "";
+  try {
+    state.adr.data = await fetchAdr(state.report.run_id, techName);
+  } catch (error) {
+    state.adr.data = null;
+    state.adr.error = error.message;
+  } finally {
+    state.adr.loading = false;
+  }
+}
+
+export function closeAdr() {
+  state.adr.open = false;
+}
+
 export async function openCode(path, line = 1) {
   if (!state.report || !path) return;
   state.drawers.techKey = null;
@@ -775,6 +811,7 @@ export function closeOverlays() {
   if (state.drawers.styles) state.drawers.styles = false;
   if (state.drawers.compare) state.drawers.compare = false;
   if (state.codeViewer.open) state.codeViewer.open = false;
+  if (state.adr.open) state.adr.open = false;
   if (state.drawers.techKey) state.drawers.techKey = null;
 }
 
