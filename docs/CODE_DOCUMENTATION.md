@@ -542,6 +542,17 @@ API 读取报告里的 `local_path`，不向浏览器返回绝对路径；仓库
 
 前端入口：技术抽屉的证据/模块路径、模块地图文件路径 → `CodeViewer`。
 
+### 6.7 报告头「先看什么」
+
+`ReportView.readingGuide` 是纯前端派生，不新增 API 字段：
+
+- **文件**：优先 `entry_points`，再按依赖图 `in_degree + out_degree` 排序；只接受 `module_graph.nodes` 中存在代码文件，避免把 Dockerfile/依赖清单当入口；
+- **技术**：排除编程语言和其他依赖，按模块数 + 置信度排序，取前 3；
+- **风险**：取 `risks[0]`；
+- **路线**：取 `learning_path` 前 3 条，去掉已有编号后由 `<ol>` 重新编号。
+
+文件按钮调用 `openCode(path, 1)`，技术按钮调用 `openTech(key)`；旧报告缺依赖图时仍可基于 `key_modules` 回退。
+
 ---
 
 ## 7. 扫描器细节
