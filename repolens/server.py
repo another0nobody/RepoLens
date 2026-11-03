@@ -23,6 +23,7 @@ Python 自带的 http.server 虽然朴素，但足够支撑：
     GET  /api/diff              对比两份报告
     GET  /api/file              读取证据对应代码片段
     GET  /api/adr               生成技术选型 ADR
+    GET  /api/risks             风险面板
     GET  /api/chat/history      追问历史
     GET  /api/memory            长期记忆
     POST /api/chat              追问（SSE 流式回答）
@@ -55,6 +56,7 @@ from .diff import build_diff
 from .events import EventBus
 from .pipeline import run_analysis, stream_chat
 from .report import list_reports, load_report
+from .risk import build_risk_panel
 from .scanner import MAX_FILES
 from .sources import SourceError, looks_like_github, parse_github, validate_local_path
 from .storage import SQLiteStore
@@ -329,6 +331,8 @@ class RepoLensHandler(BaseHTTPRequestHandler):
             self._handle_file(parsed)
         elif path == "/api/adr":
             self._handle_adr(parsed)
+        elif path == "/api/risks":
+            self._handle_risks(parsed)
         elif path == "/api/chat/history":
             self._handle_chat_history(parsed)
         elif path == "/api/report":
@@ -636,6 +640,19 @@ class RepoLensHandler(BaseHTTPRequestHandler):
                     self.wfile.flush()
         except (BrokenPipeError, ConnectionResetError, OSError):
             pass
+
+    # ------------------------------------------------------------- 风险
+    def _handle_risks(self, parsed) -> None:
+        query = parse_qs(parsed.query)
+        run_id = (query.get("run_id") or [""])[0].strip()
+        if not run_id:
+            self._json({"error": "缺少 run_id"}, HTTPStatus.BAD_REQUEST)
+            return
+        report = self.app.get_report(run_id)
+        if report is None:
+            self._json({"error": "报告不存在"}, HTTPStatus.NOT_FOUND)
+            return
+        self._json(build_risk_panel(report))
 
     # ------------------------------------------------------------- ADR
     def _handle_adr(self, parsed) -> None:

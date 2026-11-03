@@ -1,5 +1,10 @@
 /** 与 Python 后端通信的薄封装。 */
 
+/** 读取报告的风险面板。 */
+export async function fetchRisks(runId) {
+  return fetchJSON(`/api/risks?run_id=${encodeURIComponent(runId)}`);
+}
+
 /** 生成某技术的 ADR Markdown。 */
 export async function fetchAdr(runId, tech) {
   return fetchJSON(

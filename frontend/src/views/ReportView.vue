@@ -7,6 +7,7 @@ import DependencyGraph from "../components/DependencyGraph.vue";
 import Icon from "../components/Icon.vue";
 import ModuleMap from "../components/ModuleMap.vue";
 import ProcessTab from "../components/ProcessTab.vue";
+import RiskPanel from "../components/RiskPanel.vue";
 import TechCard from "../components/TechCard.vue";
 import TechGraph from "../components/TechGraph.vue";
 import { TABS, categoryIcon, fmtNumber } from "../utils";
@@ -465,6 +466,10 @@ function copyLink() {
 
       <section v-show="state.tab === 'architecture'" class="tab-panel">
         <ArchitectureTab :report="report" />
+      </section>
+
+      <section v-show="state.tab === 'risks'" class="tab-panel">
+        <RiskPanel :report="report" />
       </section>
 
       <section v-show="state.tab === 'chat'" class="tab-panel">

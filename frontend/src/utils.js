@@ -66,6 +66,7 @@ export const TABS = [
   { key: "modules", label: "模块地图" },
   { key: "deps", label: "依赖图" },
   { key: "architecture", label: "架构解读" },
+  { key: "risks", label: "风险面板" },
   { key: "chat", label: "追问" },
   { key: "process", label: "分析过程" },
 ];
