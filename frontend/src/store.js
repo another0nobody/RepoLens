@@ -566,7 +566,7 @@ function showReport(report) {
   state.adr = { open: false, loading: false, tech: "", data: null, error: "" };
   state.drawers.compare = false;
   state.view = "report";
-  const validTabs = ["stack", "modules", "deps", "architecture", "risks", "chat", "process"];
+  const validTabs = ["stack", "modules", "deps", "architecture", "risks", "learn", "chat", "process"];
   state.tab = validTabs.includes(state.pendingTab) ? state.pendingTab : "stack";
   state.pendingTab = "";
   updateURL(urlWithTab(state.tab));
@@ -621,7 +621,7 @@ export async function resumeRun(runId) {
 }
 
 export function switchTab(tab) {
-  if (!["stack", "modules", "deps", "architecture", "risks", "chat", "process"].includes(tab)) return;
+  if (!["stack", "modules", "deps", "architecture", "risks", "learn", "chat", "process"].includes(tab)) return;
   state.tab = tab;
   if (state.report) updateURL(urlWithTab(tab));
 }

@@ -5,6 +5,7 @@ import ArchitectureTab from "../components/ArchitectureTab.vue";
 import ChatTab from "../components/ChatTab.vue";
 import DependencyGraph from "../components/DependencyGraph.vue";
 import Icon from "../components/Icon.vue";
+import LearningPath from "../components/LearningPath.vue";
 import ModuleMap from "../components/ModuleMap.vue";
 import ProcessTab from "../components/ProcessTab.vue";
 import RiskPanel from "../components/RiskPanel.vue";
@@ -470,6 +471,10 @@ function copyLink() {
 
       <section v-show="state.tab === 'risks'" class="tab-panel">
         <RiskPanel :report="report" />
+      </section>
+
+      <section v-show="state.tab === 'learn'" class="tab-panel">
+        <LearningPath :report="report" />
       </section>
 
       <section v-show="state.tab === 'chat'" class="tab-panel">
