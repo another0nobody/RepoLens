@@ -158,6 +158,7 @@ run_analysis(ctx)
 | `frontend/src/components/CodeViewer.vue` | 证据代码查看器：行号、高亮、脱敏、复制位置/片段 |
 | `frontend/src/components/AdrDrawer.vue` | ADR 抽屉：技术选择、Markdown 预览、复制/下载 |
 | `frontend/src/components/RiskPanel.vue` | 风险面板：严重度筛选、证据跳转、API 失败回退 |
+| `frontend/src/components/LearningPath.vue` | 学习路线：勾选进度、按 run_id 持久化、重置、步骤文件跳代码 |
 | `frontend/src/components/StageTimeline.vue` | 四阶段时间线与进度 |
 | `frontend/src/components/LiveFeed.vue` | 事件流筛选、自动滚动、过渡 |
 | `frontend/src/components/TodoList.vue` | Agent 待办状态 |
@@ -586,6 +587,19 @@ API 读取报告里的 `local_path`，不向浏览器返回绝对路径；仓库
 返回 `level`（high/medium/low/none）、`score`（0–100，按严重度加权）、`counts`、`total`、`findings`。
 每项含 `id/severity/severity_label/category/title/detail/action/tech/evidence`；证据可打开代码查看器。
 前端 API 失败时回退到 `report.risks`，不会空白。
+
+### 6.10 可交互学习路线
+
+`LearningPath.vue` 用报告里的 `learning_path`：
+
+- 去掉原始编号后展示完整步骤；
+- 用 `localStorage` 键 `repolens-learning:<run_id>` 保存勾选，刷新后恢复；
+- 进度百分比 = 完成步骤 / 总步骤；
+- 支持重置；
+- 每条步骤用正则提取文件路径，点击调用 `openCode(path, 1)`；
+- 空路线显示回退提示。
+
+不新增后端 API；隐私模式下 localStorage 失败会静默降级为仅当前会话。
 
 ---
 
