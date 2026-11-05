@@ -134,6 +134,8 @@ run_analysis(ctx)
 | `repolens/adr.py` | 技术选型 ADR Markdown | `build_adr()`, `AdrError` |
 | `repolens/risk.py` | 风险面板聚合 | `build_risk_panel()` |
 | `repolens/watch.py` | 本地仓库变化检测 | `repo_status()` |
+| `evals/harness.py` | 确定性多仓库评测 | `evaluate_snapshot()`, `run_cases()`, `render_markdown()` |
+| `scripts/evaluate.py` | 评测 CLI | `main()` |
 | `tests/` | 标准库 unittest 测试 | 扫描器、报告 schema、SQLite、事件、历史恢复 |
 | `repolens/sources.py` | 本地路径校验、GitHub 解析/克隆、体积检查 | `validate_local_path()`, `clone_github()` |
 | `repolens/security.py` | 正则脱敏、敏感文件判断 | `mask_secrets()`, `is_sensitive_path()` |
@@ -615,6 +617,24 @@ API 读取报告里的 `local_path`，不向浏览器返回绝对路径；仓库
 
 `WatchBanner.vue` 在报告头下方显示监听开关；开启后每 15 秒调用一次，变化时显示最新文件并提供「重新分析」。
 GitHub 报告显示不可用原因；轮询仅在前端开启时发生。
+
+### 6.12 多仓库评测 Harness
+
+`evals/harness.py` 只调用 `scanner.scan_repository`，不调用模型：
+
+- 用例来自 `evals/cases.json`；
+- 指标：技术召回、技术精度（信息性）、证据覆盖、语言、入口文件、文件数、LOC、依赖图节点/边、截断；
+- 通过条件：期望技术/语言/入口全部命中，文件/LOC/图达到下限，证据覆盖达到阈值；
+- `extra_techs` 只记录，不直接判失败；
+- 输出 JSON 与 Markdown，失败时 CLI 退出码 1；
+- 单个用例异常不会阻断其他仓库。
+
+当前夹具：
+
+- `demo_shop`：Python / FastAPI / React / PostgreSQL / Redis / Docker；
+- `node_api`：JavaScript / Express / Vitest；
+- `go_service`：Go / Gin / Docker；
+- `rust_cli`：Rust / serde。
 
 ---
 
@@ -1175,6 +1195,7 @@ cd repolens
 - `test_adr_unit.py`：ADR 内容、同类方案、未知技术、安全文件名；
 - `test_risk_unit.py`：风险聚合、循环证据、干净报告；
 - `test_watch_unit.py`：变化检测、未来基线、GitHub 不可监听、目录缺失；
+- `test_eval_unit.py`：夹具事实、缺失技术、Markdown、缺失目录隔离；
 - `test_app_persistence_unit.py`：历史合并、重启后聊天恢复。
 
 ### 14.4 最小冒烟测试

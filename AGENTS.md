@@ -46,6 +46,8 @@ repolens/
 │   └── src/{views,components,store.js,api.js,theme.js,styles}
 ├── static/dist/               # 已提交的构建产物（Python 直接托管）
 ├── examples/demo_shop/        # 内置演示仓库
+├── evals/                     # 多仓库评测 Harness + 夹具
+├── scripts/evaluate.py        # 评测 CLI
 ├── tests/                     # unittest 测试
 ├── docs/                      # 截图 + 本套文档
 └── data/                      # 运行时报告/克隆缓存（gitignore）
@@ -145,6 +147,9 @@ cd ..
 # 密钥扫描
 cd ..
 ..\.venv\Scripts\python.exe check_secrets.py
+
+# 多仓库评测（不调用模型）
+..\.venv\Scripts\python.exe scripts\evaluate.py
 ```
 
 最小 API 冒烟：
@@ -190,6 +195,7 @@ Invoke-RestMethod "http://127.0.0.1:8765/api/report?run_id=$($run.run_id)"
 - [ ] 风险面板可用；严重度筛选、证据代码跳转、API 失败回退正常；
 - [ ] 学习路线可用；勾选刷新后保持、重置有效、步骤文件打开代码；
 - [ ] Watch 可用；本地变化提示、重新分析、GitHub/目录不可用提示正常；
+- [ ] `scripts/evaluate.py` 四类用例全过；改动扫描器后无召回/入口/依赖图回归；
 - [ ] `python run.py` 启动，`/` 与 `/assets/*` 200；
 - [ ] 本地示例完整走通：首页 → 运行 → 报告 → 模块（每行有大概功能）→ 架构 → 追问（含技术深挖 4 模板）→ 历史；
 - [ ] 无 Key 时本地规则报告仍可生成；

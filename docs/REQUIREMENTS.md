@@ -2,7 +2,7 @@
 
 > 本文是 RepoLens 的**产品需求与功能契约**，用于防止后续维护或 AI Agent 修改时丢失已实现特性。
 >
-> - 文档版本：1.16
+> - 文档版本：1.17
 > - 适用基线：`main` 分支（文档创建时最新提交）
 > - 产品版本：后端 `1.0.0`，前端 `repolens-web@2.0.0`
 > - 实现说明：[CODE_DOCUMENTATION.md](CODE_DOCUMENTATION.md)
@@ -324,6 +324,7 @@
 | OPS-08 | P1 | CI | GitHub Actions secret-check 在 push/PR 运行 |
 | OPS-09 | P2 | 文档 | README、需求、代码文档、AGENTS 保持同步 |
 | OPS-10 | P0 | 自动化测试 | `python -m unittest discover -s tests -v` 通过；覆盖扫描、报告 schema、SQLite、事件、历史恢复 |
+| OPS-11 | P1 | 多仓库评测 | `python scripts/evaluate.py` 对 Python/Node/Go/Rust 用例输出技术召回、语言、入口、依赖图和证据覆盖；失败退出码 1；不调用模型 |
 
 ---
 
@@ -477,7 +478,7 @@ resolved（SSE interrupt_resolved；关闭弹窗）
 - [ ] **DATA-01~04 / DATA-07~08** 报告落盘/读取/历史摘要/data 不提交、SQLite 持久化、schema 版本；
 - [ ] **SEC-01~11** 只读、路径、审批、敏感文件、脱敏、PII、本地监听、Web 防护、发布扫描、不上传整仓、提示词注入防护；
 - [ ] **API-01~06** 分析/SSE/报告/运行/历史/HITL/Chat/静态托管契约；
-- [ ] **OPS-01~04 / OPS-10** Python 3.11+、无 FastAPI、仅 Python 可运行、前端可构建、自动化测试。
+- [ ] **OPS-01~04 / OPS-10~11** Python 3.11+、无 FastAPI、仅 Python 可运行、前端可构建、自动化测试、多仓库评测。
 
 ### 8.2 特别容易被“简化”掉的东西
 
@@ -693,3 +694,4 @@ resolved（SSE interrupt_resolved；关闭弹窗）
 | 1.14 | 2026-11-03 | 新增风险面板（RPT-24 / API-12）：风险聚合、严重度、筛选、循环/测试/CI/置信度/扫描限制与证据跳转 |
 | 1.15 | 2026-11-04 | 新增可交互学习路线（RPT-25）：勾选、进度、按报告持久化、重置、步骤文件跳代码 |
 | 1.16 | 2026-11-05 | 新增 Watch 模式（RPT-26 / API-13）：本地仓库 15 秒变化检测、最新文件提示、重新分析入口 |
+| 1.17 | 2026-11-05 | 新增多仓库评测 Harness（OPS-11）：Python/Node/Go/Rust 用例、技术召回/语言/入口/依赖图/证据覆盖、JSON+Markdown 输出 |

@@ -122,6 +122,7 @@ Watch 模式：
 | 风险面板 | 汇总报告风险、循环依赖、测试缺失、低置信度/推断技术、CI 缺失和扫描限制；按严重度筛选，证据可跳代码 |
 | 学习路线 | 把“前 30 分钟怎么读”做成可勾选清单：进度按报告持久化、可重置、步骤里的文件可打开代码 |
 | Watch 模式 | 本地报告可监听仓库文件变化，15 秒检查一次；变化后提示并一键重新分析 |
+| 多仓库评测 | 对 Python / Node / Go / Rust 用例跑确定性扫描指标：技术召回、语言、入口、依赖图、证据覆盖 |
 | 实时进度 | 扫描进度、工具调用、模型计划、Agent 待办清单、Token 用量全部实时推送 |
 | AI 解读 | 项目摘要、架构分层、风险建议、学习路径；没有 API Key 时自动降级为纯规则报告 |
 | 报告追问 | 基于报告继续问项目问题；针对任意技术可一键深挖「优势 / 难点易错点 / 相似方案差异 / 为什么选它」，带多轮记忆 |
@@ -182,6 +183,16 @@ cd repolens
 ```
 
 覆盖扫描器、报告 schema、SQLite 持久化、事件持久化和历史报告恢复。
+
+### 2.3.1 多仓库评测
+
+评测只跑扫描器，不调用模型、不消耗 API Key：
+
+```powershell
+..\.venv\Scripts\python.exe scripts\evaluate.py --out evals\latest.json --md evals\latest.md
+```
+
+当前覆盖 Python / FastAPI、JavaScript / Express、Go / Gin、Rust / serde 四类仓库；输出 JSON 和 Markdown 表格，失败时退出码为 1。详见 [evals/README.md](evals/README.md)。
 
 ### 2.4 配置模型
 
@@ -702,6 +713,8 @@ repolens/
 │   ├── index.html
 │   ├── favicon.svg
 │   └── assets/               # 带 hash 的 JS / CSS
+├── scripts/evaluate.py       # 多仓库确定性评测 CLI
+├── evals/                    # 评测 Harness、用例、Node/Go/Rust 夹具
 ├── examples/demo_shop/       # 自带演示仓库（FastAPI + React + Docker）
 └── data/
     ├── repos/                # GitHub 克隆缓存（gitignore）
