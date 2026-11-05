@@ -28,6 +28,10 @@ data/
 # 截图工具的临时浏览器目录
 docs/.chrome-*/
 
+# 评测临时结果
+evals/latest.json
+evals/latest.md
+
 # 日志
 *.log
 

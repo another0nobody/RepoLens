@@ -1,0 +1,60 @@
+{
+  "cases": [
+    {
+      "id": "demo_shop",
+      "path": "examples/demo_shop",
+      "expected": {
+        "techs": ["Python", "TypeScript", "React", "FastAPI", "SQLAlchemy", "PostgreSQL", "Redis", "Docker Compose", "GitHub Actions", "Vitest"],
+        "languages": ["Python", "TypeScript"],
+        "entry_points": ["backend/app/main.py", "frontend/src/App.tsx"],
+        "min_files": 15,
+        "min_loc": 150,
+        "min_graph_nodes": 8,
+        "min_graph_edges": 8,
+        "min_evidence_ratio": 0.8
+      }
+    },
+    {
+      "id": "node_api",
+      "path": "evals/fixtures/node_api",
+      "expected": {
+        "techs": ["JavaScript", "Express", "Vitest"],
+        "languages": ["JavaScript"],
+        "entry_points": ["src/server.js"],
+        "min_files": 3,
+        "min_loc": 5,
+        "min_graph_nodes": 2,
+        "min_graph_edges": 1,
+        "min_evidence_ratio": 0.8
+      }
+    },
+    {
+      "id": "go_service",
+      "path": "evals/fixtures/go_service",
+      "expected": {
+        "techs": ["Go", "Gin", "Docker"],
+        "languages": ["Go"],
+        "entry_points": ["main.go"],
+        "min_files": 3,
+        "min_loc": 8,
+        "min_graph_nodes": 2,
+        "min_graph_edges": 0,
+        "min_evidence_ratio": 0.8
+      }
+    },
+    {
+      "id": "rust_cli",
+      "path": "evals/fixtures/rust_cli",
+      "expected": {
+        "techs": ["Rust", "serde"],
+        "languages": ["Rust"],
+        "entry_points": ["src/main.rs"],
+        "min_files": 3,
+        "min_loc": 5,
+        "min_graph_nodes": 1,
+        "min_graph_edges": 0,
+        "min_evidence_ratio": 0.8
+      }
+    }
+  ]
+}

@@ -1842,8 +1842,9 @@ def _build_top_dirs(files: list[str]) -> list[dict]:
 def _find_entry_points(files: list[str]) -> list[str]:
     wanted = {
         "main.py", "app.py", "manage.py", "server.py", "run.py", "wsgi.py",
-        "asgi.py", "index.js", "index.ts", "main.js", "main.ts", "main.go",
-        "main.rs", "program.cs", "app.tsx", "app.vue", "dockerfile",
+        "asgi.py", "index.js", "index.ts", "main.js", "main.ts", "main.tsx",
+        "main.go", "main.rs", "program.cs", "app.js", "app.ts", "app.tsx",
+        "app.vue", "server.js", "server.ts", "server.tsx", "dockerfile",
         "docker-compose.yml", "docker-compose.yaml", "makefile", "pom.xml",
         "package.json", "pyproject.toml", "requirements.txt", "go.mod",
         "cargo.toml", "index.html",
