@@ -133,6 +133,7 @@ run_analysis(ctx)
 | `repolens/codeview.py` | 安全读取证据代码片段 | `read_code_window()`, `CodeViewError` |
 | `repolens/adr.py` | 技术选型 ADR Markdown | `build_adr()`, `AdrError` |
 | `repolens/risk.py` | 风险面板聚合 | `build_risk_panel()` |
+| `repolens/watch.py` | 本地仓库变化检测 | `repo_status()` |
 | `tests/` | 标准库 unittest 测试 | 扫描器、报告 schema、SQLite、事件、历史恢复 |
 | `repolens/sources.py` | 本地路径校验、GitHub 解析/克隆、体积检查 | `validate_local_path()`, `clone_github()` |
 | `repolens/security.py` | 正则脱敏、敏感文件判断 | `mask_secrets()`, `is_sensitive_path()` |
@@ -159,6 +160,7 @@ run_analysis(ctx)
 | `frontend/src/components/AdrDrawer.vue` | ADR 抽屉：技术选择、Markdown 预览、复制/下载 |
 | `frontend/src/components/RiskPanel.vue` | 风险面板：严重度筛选、证据跳转、API 失败回退 |
 | `frontend/src/components/LearningPath.vue` | 学习路线：勾选进度、按 run_id 持久化、重置、步骤文件跳代码 |
+| `frontend/src/components/WatchBanner.vue` | Watch 条：开关、15 秒轮询、变化提示、重新分析 |
 | `frontend/src/components/StageTimeline.vue` | 四阶段时间线与进度 |
 | `frontend/src/components/LiveFeed.vue` | 事件流筛选、自动滚动、过渡 |
 | `frontend/src/components/TodoList.vue` | Agent 待办状态 |
@@ -601,6 +603,19 @@ API 读取报告里的 `local_path`，不向浏览器返回绝对路径；仓库
 
 不新增后端 API；隐私模式下 localStorage 失败会静默降级为仅当前会话。
 
+### 6.11 Watch 模式
+
+`watch.repo_status(report)` 只遍历本地仓库的文件 mtime，不读取内容：
+
+- 仅 `source_type=local` 且 `local_path` 存在时可用；
+- 忽略 `IGNORE_DIRS` 与 `.git*`；
+- 最多检查 3000 个文件，超过标记 `truncated`；
+- 用 `latest_mtime` 与报告 `generated_at` 比较，差超过 1 秒视为变化；
+- 返回 `latest_path/files_checked/checked_at` 等。
+
+`WatchBanner.vue` 在报告头下方显示监听开关；开启后每 15 秒调用一次，变化时显示最新文件并提供「重新分析」。
+GitHub 报告显示不可用原因；轮询仅在前端开启时发生。
+
 ---
 
 ## 7. 扫描器细节
@@ -798,6 +813,7 @@ API 读取报告里的 `local_path`，不向浏览器返回绝对路径；仓库
 | `/api/file?run_id=&path=&line=` | 证据代码窗口 | 越界/敏感文件 403；不存在 404；目录不可用 409 |
 | `/api/adr?run_id=&tech=` | ADR Markdown | 缺参数 400；报告/技术不存在 404 |
 | `/api/risks?run_id=` | `{level,score,counts,total,findings}` | 缺参数 400；报告不存在 404 |
+| `/api/watch?run_id=` | `{available,changed,latest_path,files_checked,truncated,checked_at}` | 缺参数 400；报告不存在 404 |
 | `/api/report?run_id=` | 完整报告（含 `schema_version`） | 缺失 400，找不到 404 |
 | `/api/run?run_id=` | `{run_id,source,source_type,status,report_ready,elapsed_seconds,repo_name,error?}` | 刷新/重启恢复；可回退 SQLite 行 |
 | `/api/events?run_id=&from=` | `text/event-stream` | SSE；内存优先，重启后回放 SQLite |
@@ -1158,6 +1174,7 @@ cd repolens
 - `test_codeview_unit.py`：代码窗口、路径越界、敏感文件、缺失文件；
 - `test_adr_unit.py`：ADR 内容、同类方案、未知技术、安全文件名；
 - `test_risk_unit.py`：风险聚合、循环证据、干净报告；
+- `test_watch_unit.py`：变化检测、未来基线、GitHub 不可监听、目录缺失；
 - `test_app_persistence_unit.py`：历史合并、重启后聊天恢复。
 
 ### 14.4 最小冒烟测试
