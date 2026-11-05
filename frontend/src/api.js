@@ -1,5 +1,10 @@
 /** 与 Python 后端通信的薄封装。 */
 
+/** 检查本地仓库在报告生成后是否变化。 */
+export async function fetchWatch(runId) {
+  return fetchJSON(`/api/watch?run_id=${encodeURIComponent(runId)}`);
+}
+
 /** 读取报告的风险面板。 */
 export async function fetchRisks(runId) {
   return fetchJSON(`/api/risks?run_id=${encodeURIComponent(runId)}`);

@@ -11,6 +11,7 @@ import ProcessTab from "../components/ProcessTab.vue";
 import RiskPanel from "../components/RiskPanel.vue";
 import TechCard from "../components/TechCard.vue";
 import TechGraph from "../components/TechGraph.vue";
+import WatchBanner from "../components/WatchBanner.vue";
 import { TABS, categoryIcon, fmtNumber } from "../utils";
 import {
   copy,
@@ -281,6 +282,8 @@ function copyLink() {
         <span class="v">{{ scanSeconds < 0.1 ? "<0.1" : scanSeconds.toFixed(1) }}s</span>
       </div>
     </div>
+
+    <WatchBanner :report="report" />
 
     <section v-if="readingGuide" class="read-first">
       <div class="read-first-head">
