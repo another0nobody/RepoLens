@@ -28,6 +28,7 @@ Python 自带的 http.server 虽然朴素，但足够支撑：
     GET  /api/chat/history      追问历史
     GET  /api/memory            长期记忆
     POST /api/chat              追问（SSE 流式回答）
+    POST /api/ground            检查回答引用是否可核对
 """
 
 from __future__ import annotations
@@ -55,6 +56,7 @@ from .codeview import CodeViewError, read_code_window
 from .context import AnalysisContext
 from .diff import build_diff
 from .events import EventBus
+from .grounding import check_grounding
 from .pipeline import run_analysis, stream_chat
 from .report import list_reports, load_report
 from .risk import build_risk_panel
@@ -379,6 +381,8 @@ class RepoLensHandler(BaseHTTPRequestHandler):
             self._handle_analyze()
         elif parsed.path == "/api/hitl":
             self._handle_hitl()
+        elif parsed.path == "/api/ground":
+            self._handle_ground()
         elif parsed.path == "/api/chat":
             self._handle_chat()
         else:
@@ -744,6 +748,27 @@ class RepoLensHandler(BaseHTTPRequestHandler):
             self._json({"error": "缺少 run_id"}, HTTPStatus.BAD_REQUEST)
             return
         self._json({"items": self.app.storage.messages(run_id)})
+
+    def _handle_ground(self) -> None:
+        payload = self._read_json()
+        if payload is None:
+            return
+        run_id = str(payload.get("run_id", "")).strip()
+        text = str(payload.get("text", ""))
+        if not run_id:
+            self._json({"error": "缺少 run_id"}, HTTPStatus.BAD_REQUEST)
+            return
+        if not text.strip():
+            self._json({"error": "回答内容不能为空"}, HTTPStatus.BAD_REQUEST)
+            return
+        if len(text) > 20000:
+            self._json({"error": "回答内容过长"}, HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
+            return
+        report = self.app.get_report(run_id)
+        if report is None:
+            self._json({"error": "报告不存在"}, HTTPStatus.NOT_FOUND)
+            return
+        self._json(check_grounding(report, text))
 
     def _handle_chat(self) -> None:
         payload = self._read_json()

@@ -1,6 +1,6 @@
 import { computed, reactive } from "vue";
 
-import { fetchAdr, fetchChatHistory, fetchCode, fetchDiff, fetchJSON, streamChatRequest } from "./api";
+import { fetchAdr, fetchChatHistory, fetchCode, fetchDiff, fetchGrounding, fetchJSON, streamChatRequest } from "./api";
 import {
   DEFAULT_STYLE,
   STYLE_KEYS,
@@ -583,9 +583,21 @@ async function restoreChat(runId) {
       .map((item) => ({
         role: item.role,
         content: String(item.content || ""),
+        grounding: null,
       }))
       .filter((item) => item.content.trim());
-    if (items.length) state.chat.messages = items;
+    if (items.length) {
+      state.chat.messages = items;
+      for (let index = 0; index < state.chat.messages.length; index += 1) {
+        const message = state.chat.messages[index];
+        if (message.role !== "assistant") continue;
+        fetchGrounding(runId, message.content)
+          .then((grounding) => {
+            if (state.report?.run_id === runId) message.grounding = grounding;
+          })
+          .catch(() => {});
+      }
+    }
   } catch {
     // 历史聊天读取失败不影响报告本身。
   }
@@ -821,7 +833,7 @@ export function closeOverlays() {
 export async function sendChat(raw) {
   const message = String(raw || "").trim();
   if (!message || !state.report || state.chat.streaming) return;
-  const assistant = { role: "assistant", content: "" };
+  const assistant = reactive({ role: "assistant", content: "", grounding: null });
   state.chat.messages.push({ role: "user", content: message });
   state.chat.messages.push(assistant);
   state.chat.streaming = true;
@@ -854,6 +866,13 @@ export async function sendChat(raw) {
     state.chat.status = "";
     if (!failed && !assistant.content.trim()) {
       assistant.content = "（模型没有返回内容，请换个问法再试一次。）";
+    }
+    if (!failed && assistant.content.trim() && state.report) {
+      try {
+        assistant.grounding = await fetchGrounding(state.report.run_id, assistant.content);
+      } catch {
+        assistant.grounding = null;
+      }
     }
   }
 }

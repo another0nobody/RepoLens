@@ -3,7 +3,7 @@ import { computed, nextTick, ref, watch } from "vue";
 
 import Icon from "./Icon.vue";
 import { chatText } from "../utils";
-import { sendChat, state } from "../store";
+import { openCode, sendChat, state } from "../store";
 
 const input = ref("");
 const messagesRef = ref(null);
@@ -101,6 +101,20 @@ function useSuggestion(text) {
   submit();
 }
 
+function groundingLabel(grounding) {
+  if (!grounding) return "";
+  if (!grounding.has_citations) return "未引用文件 / 行号";
+  if (!grounding.invalid && !grounding.partial) return `引用可核对 ${grounding.valid}/${grounding.total}`;
+  return `引用待核对 ${grounding.valid + grounding.partial}/${grounding.total}`;
+}
+
+function groundingClass(grounding) {
+  if (!grounding || !grounding.has_citations) return "muted";
+  if (grounding.invalid) return "warn";
+  if (grounding.partial) return "partial";
+  return "good";
+}
+
 watch(
   () => [state.chat.messages.length, state.chat.messages[lastIndex.value]?.content, state.chat.status],
   () => scrollToBottom()
@@ -183,6 +197,26 @@ watch(
               class="caret"
               aria-hidden="true"
             ></span>
+            <div
+              v-if="message.role === 'assistant' && message.grounding"
+              class="grounding"
+              :class="groundingClass(message.grounding)"
+            >
+              <span class="grounding-label mono">{{ groundingLabel(message.grounding) }}</span>
+              <button
+                v-for="citation in (message.grounding.citations || []).filter((item) => item.status !== 'invalid')"
+                :key="`${citation.path}:${citation.line}`"
+                type="button"
+                class="grounding-link mono"
+                :title="citation.reason"
+                @click="openCode(citation.path, citation.line || 1)"
+              >
+                {{ citation.path }}<template v-if="citation.line">:{{ citation.line }}</template>
+              </button>
+              <span v-if="message.grounding.invalid" class="grounding-invalid mono" title="有引用的文件或行号不在报告中">
+                {{ message.grounding.invalid }} 处不可核对
+              </span>
+            </div>
           </div>
         </template>
       </div>
@@ -463,6 +497,58 @@ watch(
     font-size: 11px;
     padding: 0 4px;
   }
+}
+
+.grounding {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid var(--line);
+  white-space: normal;
+}
+
+.grounding-label {
+  color: var(--faint);
+  font-size: 8px;
+  letter-spacing: 0.04em;
+
+  .good & {
+    color: var(--good);
+  }
+
+  .warn & {
+    color: var(--warn);
+  }
+
+  .partial & {
+    color: var(--warn);
+  }
+}
+
+.grounding-link {
+  max-width: 100%;
+  overflow: hidden;
+  padding: 2px 5px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+}
+
+.grounding-invalid {
+  color: var(--warn);
+  font-size: 8px;
 }
 
 .caret {

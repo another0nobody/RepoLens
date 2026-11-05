@@ -1,5 +1,14 @@
 /** 与 Python 后端通信的薄封装。 */
 
+/** 检查回答中的文件/行号引用是否能在报告中核对。 */
+export async function fetchGrounding(runId, text) {
+  return fetchJSON("/api/ground", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ run_id: runId, text }),
+  });
+}
+
 /** 检查本地仓库在报告生成后是否变化。 */
 export async function fetchWatch(runId) {
   return fetchJSON(`/api/watch?run_id=${encodeURIComponent(runId)}`);
