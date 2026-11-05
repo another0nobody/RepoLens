@@ -134,6 +134,7 @@ run_analysis(ctx)
 | `repolens/adr.py` | 技术选型 ADR Markdown | `build_adr()`, `AdrError` |
 | `repolens/risk.py` | 风险面板聚合 | `build_risk_panel()` |
 | `repolens/watch.py` | 本地仓库变化检测 | `repo_status()` |
+| `repolens/grounding.py` | 回答文件/行号引用核对 | `check_grounding()` |
 | `evals/harness.py` | 确定性多仓库评测 | `evaluate_snapshot()`, `run_cases()`, `render_markdown()` |
 | `scripts/evaluate.py` | 评测 CLI | `main()` |
 | `tests/` | 标准库 unittest 测试 | 扫描器、报告 schema、SQLite、事件、历史恢复 |
@@ -636,6 +637,18 @@ GitHub 报告显示不可用原因；轮询仅在前端开启时发生。
 - `go_service`：Go / Gin / Docker；
 - `rust_cli`：Rust / serde。
 
+### 6.13 回答引用核对
+
+`grounding.check_grounding(report, text)` 从回答中提取 `文件:行号`：
+
+- 路径必须出现在报告的入口、依赖图节点、技术模块或证据中；
+- 行号先对照报告证据；不在证据中时再用 `read_code_window` 检查源码是否存在该行；
+- 源码行存在 → `valid`；文件存在但无法读取且无行号 → `partial`；文件未知/行号越界 → `invalid`；
+- 返回 `score/valid/partial/invalid/citations`；
+- 最多处理 20000 字符回答，历史回答也在恢复时核对。
+
+前端在回答气泡下显示徽标：`引用可核对 x/y`、`引用待核对 x/y` 或 `未引用文件/行号`；可核对引用可点击打开代码。
+
 ---
 
 ## 7. 扫描器细节
@@ -834,6 +847,7 @@ GitHub 报告显示不可用原因；轮询仅在前端开启时发生。
 | `/api/adr?run_id=&tech=` | ADR Markdown | 缺参数 400；报告/技术不存在 404 |
 | `/api/risks?run_id=` | `{level,score,counts,total,findings}` | 缺参数 400；报告不存在 404 |
 | `/api/watch?run_id=` | `{available,changed,latest_path,files_checked,truncated,checked_at}` | 缺参数 400；报告不存在 404 |
+| `POST /api/ground` | `{score,total,valid,partial,invalid,citations}` | 缺参数/空文本 400；超长 413；报告不存在 404 |
 | `/api/report?run_id=` | 完整报告（含 `schema_version`） | 缺失 400，找不到 404 |
 | `/api/run?run_id=` | `{run_id,source,source_type,status,report_ready,elapsed_seconds,repo_name,error?}` | 刷新/重启恢复；可回退 SQLite 行 |
 | `/api/events?run_id=&from=` | `text/event-stream` | SSE；内存优先，重启后回放 SQLite |
@@ -1196,6 +1210,7 @@ cd repolens
 - `test_risk_unit.py`：风险聚合、循环证据、干净报告；
 - `test_watch_unit.py`：变化检测、未来基线、GitHub 不可监听、目录缺失；
 - `test_eval_unit.py`：夹具事实、缺失技术、Markdown、缺失目录隔离；
+- `test_grounding_unit.py`：有效/伪造路径、行号、无引用、混合引用；
 - `test_app_persistence_unit.py`：历史合并、重启后聊天恢复。
 
 ### 14.4 最小冒烟测试

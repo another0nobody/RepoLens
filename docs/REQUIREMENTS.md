@@ -2,7 +2,7 @@
 
 > 本文是 RepoLens 的**产品需求与功能契约**，用于防止后续维护或 AI Agent 修改时丢失已实现特性。
 >
-> - 文档版本：1.17
+> - 文档版本：1.18
 > - 适用基线：`main` 分支（文档创建时最新提交）
 > - 产品版本：后端 `1.0.0`，前端 `repolens-web@2.0.0`
 > - 实现说明：[CODE_DOCUMENTATION.md](CODE_DOCUMENTATION.md)
@@ -241,6 +241,7 @@
 | CHAT-12 | P0 | 深挖答案质量 | 回答区分项目事实/通用知识/推断；深挖先调用 technology_deep_dive；对比给出 2–3 个同类方案；选型无记录时先说明再给推断 |
 | CHAT-13 | P1 | 深挖上下文 | 模板提示词自动带技术名与分类；同项目同类技术与词典同类候选由工具提供，避免只凭模型记忆 |
 | CHAT-14 | P0 | 聊天持久化 | 用户问题与助手回答写入 SQLite `messages` 表；刷新/重启后 `/api/chat/history` 返回历史，前端恢复气泡，并重新注入追问 Agent |
+| CHAT-15 | P0 | 回答引用核对 | 回答结束后提取 `文件:行号`；路径必须在报告中，行号对照报告证据或源码；显示“引用可核对 x/y”，不可核对/待核对不伪装成事实；历史回答也核对 |
 
 ### 4.8 界面与交互（UI）
 
@@ -309,6 +310,7 @@
 | API-11 | P1 | ADR | `GET /api/adr?run_id=&tech=` 返回 `{tech,filename,markdown,alternatives,generated_at}`；缺参数 400；报告/技术不存在 404 |
 | API-12 | P1 | 风险面板 | `GET /api/risks?run_id=` 返回 `{level,score,counts,total,findings}`；缺参数 400；报告不存在 404 |
 | API-13 | P1 | Watch | `GET /api/watch?run_id=` 返回 `{available,changed,reason?,latest_path,files_checked,truncated,checked_at}`；缺参数 400；报告不存在 404 |
+| API-14 | P1 | 引用核对 | `POST /api/ground` 接收 `{run_id,text}`，返回 `{score,total,valid,partial,invalid,citations}`；缺参数 400；空回答 400；超长 413；报告不存在 404 |
 
 ### 4.12 运行环境与运维（OPS）
 
@@ -473,7 +475,7 @@ resolved（SSE interrupt_resolved；关闭弹窗）
 - [ ] **RUN-01~09 / RUN-13~14** 创建、状态、时间线、工具流、待办、Token、重连、恢复、后台、错误重试、SQLite 持久化；
 - [ ] **HITL-01~07** 克隆审批、倒计时、批准/拒绝、Esc 禁止、重复提交防护；
 - [ ] **RPT-01~12 / RPT-16~26** 报告、统计、摘要、技术卡、详情、筛选、模块地图、架构、警告、导出、分享、历史、层级图、schema、模块依赖图、报告对比、证据代码、先看什么、ADR、风险面板、学习路线、Watch；
-- [ ] **CHAT-01~05 / CHAT-11~14** 流式追问、报告依据、技术深挖模板与答案质量、无报告/无 Key 错误、多轮记忆、历史报告追问、聊天持久化；
+- [ ] **CHAT-01~05 / CHAT-11~15** 流式追问、报告依据、技术深挖模板与答案质量、无报告/无 Key 错误、多轮记忆、历史报告追问、聊天持久化、回答引用核对；
 - [ ] **UI-01~06 / UI-13~15** 三视图、双主题、Contact Sheet 设计、技术栈层级阅读、响应式、Header、抽屉/弹窗、Toast；
 - [ ] **DATA-01~04 / DATA-07~08** 报告落盘/读取/历史摘要/data 不提交、SQLite 持久化、schema 版本；
 - [ ] **SEC-01~11** 只读、路径、审批、敏感文件、脱敏、PII、本地监听、Web 防护、发布扫描、不上传整仓、提示词注入防护；
@@ -695,3 +697,4 @@ resolved（SSE interrupt_resolved；关闭弹窗）
 | 1.15 | 2026-11-04 | 新增可交互学习路线（RPT-25）：勾选、进度、按报告持久化、重置、步骤文件跳代码 |
 | 1.16 | 2026-11-05 | 新增 Watch 模式（RPT-26 / API-13）：本地仓库 15 秒变化检测、最新文件提示、重新分析入口 |
 | 1.17 | 2026-11-05 | 新增多仓库评测 Harness（OPS-11）：Python/Node/Go/Rust 用例、技术召回/语言/入口/依赖图/证据覆盖、JSON+Markdown 输出 |
+| 1.18 | 2026-11-06 | 新增回答引用核对（CHAT-15 / API-14）：文件/行号对照报告与源码、历史回答核对、可核对徽标与代码跳转 |

@@ -36,6 +36,7 @@ repolens/
 │   ├── adr.py                 # 技术选型 ADR Markdown
 │   ├── risk.py                # 风险面板聚合
 │   ├── watch.py               # 本地仓库变化检测
+│   ├── grounding.py           # 回答引用 groundedness 检查
 │   ├── sources.py             # 本地路径/GitHub 克隆
 │   ├── security.py            # 脱敏/敏感文件
 │   ├── schemas.py             # RepoInsight / TechFinding
@@ -91,6 +92,7 @@ repolens/
 - **风险面板**：聚合报告风险、循环依赖、测试缺失、低置信度、CI 缺失、扫描限制，按严重度筛选；
 - **学习路线**：learning_path 可勾选、按 run_id 本地持久化、重置，步骤文件可打开代码；
 - **Watch 模式**：本地报告监听文件 mtime，15 秒轮询，变化后提示并可重新分析；
+- **回答引用核对**：回答中的文件:行号对照报告/源码，显示可核对数量，历史回答同样核对；
 - 追问流式输出、报告依据、多轮记忆；**技术深挖四模板**（优势/难点/相似方案/为什么选它）+ `technology_deep_dive` 工具 + 事实/推断分离；
 - **Contact Sheet 设计基线 × 深/浅模式**；
 - 响应式、Toast、抽屉、HITL 弹窗；
@@ -195,6 +197,7 @@ Invoke-RestMethod "http://127.0.0.1:8765/api/report?run_id=$($run.run_id)"
 - [ ] 风险面板可用；严重度筛选、证据代码跳转、API 失败回退正常；
 - [ ] 学习路线可用；勾选刷新后保持、重置有效、步骤文件打开代码；
 - [ ] Watch 可用；本地变化提示、重新分析、GitHub/目录不可用提示正常；
+- [ ] 追问回答显示引用核对徽标；真实/伪造路径分别通过/标红；历史回答也核对；
 - [ ] `scripts/evaluate.py` 四类用例全过；改动扫描器后无召回/入口/依赖图回归；
 - [ ] `python run.py` 启动，`/` 与 `/assets/*` 200；
 - [ ] 本地示例完整走通：首页 → 运行 → 报告 → 模块（每行有大概功能）→ 架构 → 追问（含技术深挖 4 模板）→ 历史；
