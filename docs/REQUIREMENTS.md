@@ -2,7 +2,7 @@
 
 > 本文是 RepoLens 的**产品需求与功能契约**，用于防止后续维护或 AI Agent 修改时丢失已实现特性。
 >
-> - 文档版本：1.20
+> - 文档版本：1.21
 > - 适用基线：`main` 分支（文档创建时最新提交）
 > - 产品版本：后端 `1.0.0`，前端 `repolens-web@2.0.0`
 > - 实现说明：[CODE_DOCUMENTATION.md](CODE_DOCUMENTATION.md)
@@ -221,7 +221,6 @@
 | RPT-23 | P0 | 技术选型 ADR | 技术抽屉可打开 ADR 抽屉；基于报告事实生成中文 Markdown：背景、决策、同类方案、后果、证据、使用模块、待确认；可切换技术、复制、下载 `.md`；同类方案来自词典，动机不编造 |
 | RPT-24 | P0 | 风险面板 | 报告新增“风险面板”Tab；聚合报告风险、循环依赖、测试缺失、低置信度/AI 推断技术、CI 缺失、扫描截断/警告；按严重度筛选；证据可打开代码；API 失败回退报告风险列表 |
 | RPT-25 | P0 | 可交互学习路线 | 报告新增“学习路线”Tab；展示完整 learning_path、勾选完成、进度条、按 run_id 本地持久化、重置；步骤中的文件路径可打开代码；窄屏无横向溢出 |
-| RPT-26 | P0 | Watch 模式 | 本地报告显示监听条；开启后每 15 秒检查文件 mtime；变化时提示最新文件并可重新分析；GitHub/目录不可用显示原因；不读文件内容 |
 
 ### 4.7 追问（CHAT）
 
@@ -311,7 +310,6 @@
 | API-10 | P1 | 证据代码 | `GET /api/file?run_id=&path=&line=` 返回代码窗口；路径越界/敏感文件 403；文件不存在 404；仓库不可用 409 |
 | API-11 | P1 | ADR | `GET /api/adr?run_id=&tech=` 返回 `{tech,filename,markdown,alternatives,generated_at}`；缺参数 400；报告/技术不存在 404 |
 | API-12 | P1 | 风险面板 | `GET /api/risks?run_id=` 返回 `{level,score,counts,total,findings}`；缺参数 400；报告不存在 404 |
-| API-13 | P1 | Watch | `GET /api/watch?run_id=` 返回 `{available,changed,reason?,latest_path,files_checked,truncated,checked_at}`；缺参数 400；报告不存在 404 |
 | API-14 | P1 | 引用核对 | `POST /api/ground` 接收 `{run_id,text}`，返回 `{score,total,valid,partial,invalid,citations}`；缺参数 400；空回答 400；超长 413；报告不存在 404 |
 | API-15 | P2 | 语义核对 | `POST /api/ground/semantic` 返回 `{score,total,results,truncated}`；无引用 400；无模型 503；模型返回异常 502 |
 
@@ -477,7 +475,7 @@ resolved（SSE interrupt_resolved；关闭弹窗）
 - [ ] **AGT-01~07** Agent 流程、6 工具、结构化输出、无 Key/AI 异常降级、调用限制、事实约束；
 - [ ] **RUN-01~09 / RUN-13~14** 创建、状态、时间线、工具流、待办、Token、重连、恢复、后台、错误重试、SQLite 持久化；
 - [ ] **HITL-01~07** 克隆审批、倒计时、批准/拒绝、Esc 禁止、重复提交防护；
-- [ ] **RPT-01~12 / RPT-16~26** 报告、统计、摘要、技术卡、详情、筛选、模块地图、架构、警告、导出、分享、历史、层级图、schema、模块依赖图、报告对比、证据代码、先看什么、ADR、风险面板、学习路线、Watch；
+- [ ] **RPT-01~12 / RPT-16~25** 报告、统计、摘要、技术卡、详情、筛选、模块地图、架构、警告、导出、分享、历史、层级图、schema、模块依赖图、报告对比、证据代码、先看什么、ADR、风险面板、学习路线；
 - [ ] **CHAT-01~05 / CHAT-11~16** 流式追问、报告依据、技术深挖模板与答案质量、无报告/无 Key 错误、多轮记忆、历史报告追问、聊天持久化、引用核对、语义深度核对；
 - [ ] **UI-01~06 / UI-13~16** 三视图、双主题、Contact Sheet 设计、技术栈层级阅读、响应式、Header、抽屉/弹窗、Toast、报告信息层级；
 - [ ] **DATA-01~04 / DATA-07~08** 报告落盘/读取/历史摘要/data 不提交、SQLite 持久化、schema 版本；
@@ -703,3 +701,4 @@ resolved（SSE interrupt_resolved；关闭弹窗）
 | 1.18 | 2026-11-06 | 新增回答引用核对（CHAT-15 / API-14）：文件/行号对照报告与源码、历史回答核对、可核对徽标与代码跳转 |
 | 1.19 | 2026-11-06 | 新增语义深度核对（CHAT-16 / API-15）：模型按引用行判断支持/部分/不支持，可选按次调用 |
 | 1.20 | 2026-11-06 | 收敛报告信息层级（UI-16）：默认 5 个核心 Tab、专业工具菜单、更多动作菜单、风险快捷入口 |
+| 1.21 | 2026-11-07 | 移除 Watch 模式（RPT-26 / API-13）：分钟级 mtime 轮询对代码修改价值不足，统一用「重新分析」 |
