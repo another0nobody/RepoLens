@@ -37,6 +37,45 @@ const warnings = computed(() => report.value?.warnings || []);
 const codeLanguages = computed(() => (report.value?.languages || []).filter((item) => item.is_code).length);
 const scanSeconds = computed(() => Number(stats.value.scan_seconds || 0));
 
+const CORE_TAB_KEYS = ["stack", "modules", "architecture", "learn", "chat"];
+const ADVANCED_TAB_KEYS = ["deps", "risks", "process"];
+const moreOpen = ref(false);
+const toolsOpen = ref(false);
+const moreRef = ref(null);
+const toolsRef = ref(null);
+
+const coreTabs = computed(() => TABS.filter((tab) => CORE_TAB_KEYS.includes(tab.key)));
+const advancedTabs = computed(() => TABS.filter((tab) => ADVANCED_TAB_KEYS.includes(tab.key)));
+const visibleTabs = computed(() => {
+  if (!ADVANCED_TAB_KEYS.includes(state.tab)) return coreTabs.value;
+  const current = TABS.find((tab) => tab.key === state.tab);
+  return current ? [...coreTabs.value, current] : coreTabs.value;
+});
+
+function closeMenus() {
+  moreOpen.value = false;
+  toolsOpen.value = false;
+}
+
+function onDocumentClick(event) {
+  if (moreRef.value && !moreRef.value.contains(event.target)) moreOpen.value = false;
+  if (toolsRef.value && !toolsRef.value.contains(event.target)) toolsOpen.value = false;
+}
+
+function onMenuKeydown(event) {
+  if (event.key === "Escape") closeMenus();
+}
+
+function moreAction(action) {
+  moreOpen.value = false;
+  action();
+}
+
+function chooseAdvanced(key) {
+  switchTab(key);
+  toolsOpen.value = false;
+}
+
 const categories = computed(() => {
   if (report.value?.categories?.length) return report.value.categories;
   const counts = new Map();
@@ -199,10 +238,16 @@ function onScroll() {
 
 onMounted(() => {
   window.addEventListener("scroll", onScroll, { passive: true });
+  document.addEventListener("click", onDocumentClick);
+  document.addEventListener("keydown", onMenuKeydown);
   onScroll();
 });
 
-onBeforeUnmount(() => window.removeEventListener("scroll", onScroll));
+onBeforeUnmount(() => {
+  window.removeEventListener("scroll", onScroll);
+  document.removeEventListener("click", onDocumentClick);
+  document.removeEventListener("keydown", onMenuKeydown);
+});
 
 function reanalyze() {
   if (report.value) startAnalysis(report.value.source);
@@ -248,11 +293,32 @@ function copyLink() {
       </div>
 
       <div class="actions">
-        <button class="text-action" type="button" @click="openCompare">对比历史</button>
-        <button class="text-action" type="button" @click="copyLink">复制链接</button>
         <button class="text-action" type="button" @click="reanalyze">重新分析</button>
-        <button class="text-action" type="button" @click="exportMarkdown">Markdown</button>
-        <button class="text-action" type="button" @click="exportJSON">JSON</button>
+        <div ref="moreRef" class="more-wrap">
+          <button
+            class="text-action more-trigger"
+            type="button"
+            :aria-expanded="moreOpen"
+            aria-haspopup="menu"
+            @click.stop="moreOpen = !moreOpen; toolsOpen = false"
+          >
+            更多 <Icon name="down" :size="12" />
+          </button>
+          <div v-if="moreOpen" class="more-menu" role="menu" @click.stop>
+            <button type="button" role="menuitem" @click="moreAction(openCompare)">
+              <Icon name="history" :size="13" /> 对比历史
+            </button>
+            <button type="button" role="menuitem" @click="moreAction(copyLink)">
+              <Icon name="copy" :size="13" /> 复制链接
+            </button>
+            <button type="button" role="menuitem" @click="moreAction(exportMarkdown)">
+              <Icon name="download" :size="13" /> 导出 Markdown
+            </button>
+            <button type="button" role="menuitem" @click="moreAction(exportJSON)">
+              <Icon name="download" :size="13" /> 导出 JSON
+            </button>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -349,6 +415,14 @@ function copyLink() {
           </div>
           <p v-if="readingGuide.risk" class="read-risk">{{ readingGuide.risk }}</p>
           <p v-else class="read-empty">未发现明显风险，仍建议从入口文件开始读。</p>
+          <button
+            v-if="(report.risks || []).length"
+            class="read-risk-link"
+            type="button"
+            @click="switchTab('risks')"
+          >
+            查看全部 {{ report.risks.length }} 项风险 →
+          </button>
           <p v-if="readingGuide.steps.length" class="read-steps-label mono">30 分钟路线</p>
           <ol v-if="readingGuide.steps.length" class="read-steps">
             <li v-for="(step, index) in readingGuide.steps" :key="index">{{ step }}</li>
@@ -374,18 +448,44 @@ function copyLink() {
       </p>
     </div>
 
-    <nav class="tabs" aria-label="报告分区">
-      <button
-        v-for="tab in TABS"
-        :key="tab.key"
-        class="tab"
-        :class="{ active: state.tab === tab.key }"
-        type="button"
-        @click="switchTab(tab.key)"
-      >
-        {{ tab.label }}
-      </button>
-    </nav>
+    <div class="tabs-row">
+      <nav class="tabs" aria-label="报告分区">
+        <button
+          v-for="tab in visibleTabs"
+          :key="tab.key"
+          class="tab"
+          :class="{ active: state.tab === tab.key, advanced: ADVANCED_TAB_KEYS.includes(tab.key) }"
+          type="button"
+          @click="switchTab(tab.key)"
+        >
+          {{ tab.label }}
+        </button>
+      </nav>
+      <div ref="toolsRef" class="tools-wrap">
+        <button
+          class="tools-trigger"
+          :class="{ active: ADVANCED_TAB_KEYS.includes(state.tab) }"
+          type="button"
+          :aria-expanded="toolsOpen"
+          aria-haspopup="menu"
+          @click.stop="toolsOpen = !toolsOpen; moreOpen = false"
+        >
+          <Icon name="layers" :size="13" /> 专业工具 <Icon name="down" :size="11" />
+        </button>
+        <div v-if="toolsOpen" class="tools-menu" role="menu" @click.stop>
+          <button
+            v-for="tab in advancedTabs"
+            :key="tab.key"
+            type="button"
+            role="menuitem"
+            :class="{ active: state.tab === tab.key }"
+            @click="chooseAdvanced(tab.key)"
+          >
+            {{ tab.label }}
+          </button>
+        </div>
+      </div>
+    </div>
 
     <div class="tab-panels">
       <section v-show="state.tab === 'stack'" class="tab-panel">
@@ -600,13 +700,59 @@ function copyLink() {
   font-size: 10.5px;
   cursor: pointer;
 
-  &:last-child {
-    border-right: 0;
-  }
-
   &:hover {
     color: var(--accent);
     background: var(--panel-soft);
+  }
+}
+
+.more-wrap {
+  position: relative;
+  display: flex;
+}
+
+.more-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-right: 0;
+}
+
+.more-menu,
+.tools-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 60;
+  min-width: 150px;
+  border: 1px solid var(--line-strong);
+  background: var(--panel);
+}
+
+.more-menu button,
+.tools-menu button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-ui);
+  font-size: 10px;
+  text-align: left;
+  cursor: pointer;
+
+  &:last-child {
+    border-bottom: 0;
+  }
+
+  &:hover,
+  &.active {
+    color: var(--accent);
+    background: var(--accent-soft);
   }
 }
 
@@ -808,6 +954,22 @@ function copyLink() {
   line-height: 1.6;
 }
 
+.read-risk-link {
+  margin-top: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-family: var(--font-ui);
+  font-size: 9px;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+
 .read-empty {
   margin: 0;
   color: var(--faint);
@@ -900,17 +1062,25 @@ function copyLink() {
   }
 }
 
-.tabs {
+.tabs-row {
   position: sticky;
   top: 78px;
   z-index: 30;
   display: flex;
-  gap: 0;
+  align-items: stretch;
   margin: 16px 0 18px;
-  padding: 0;
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line-strong);
   background: var(--bg);
+}
+
+.tabs {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  gap: 0;
+  margin: 0;
+  padding: 0;
   overflow-x: auto;
 }
 
@@ -929,6 +1099,39 @@ function copyLink() {
     background: var(--panel-soft);
   }
 
+  &.active {
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  &.advanced::before {
+    content: "·";
+    margin-right: 4px;
+    color: var(--warn);
+  }
+}
+
+.tools-wrap {
+  position: relative;
+  display: flex;
+  flex: none;
+  border-left: 1px solid var(--line);
+}
+
+.tools-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 9px 11px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-ui);
+  font-size: 10px;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover,
   &.active {
     color: var(--accent);
     background: var(--accent-soft);
@@ -1211,8 +1414,16 @@ function copyLink() {
     width: 100%;
   }
 
-  .tabs {
+  .tabs-row {
     top: 70px;
+  }
+
+  .tools-trigger {
+    padding: 9px 8px;
+
+    svg:first-child {
+      display: none;
+    }
   }
 
   .tech-grid {
