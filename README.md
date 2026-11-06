@@ -51,6 +51,7 @@
 | [需求文档](docs/REQUIREMENTS.md) | 产品 / 维护者 / Agent | 功能契约、优先级、状态机、验收场景、防遗忘清单 |
 | [代码文档](docs/CODE_DOCUMENTATION.md) | 维护者 / Agent | 文件地图、调用链、报告 JSON、API/SSE 契约、前端 store、已知限制 |
 | [优化路线图](docs/OPTIMIZATION_ROADMAP.md) | 产品 / 维护者 | 程序与设计优化方向、可新增模块、阶段路线与待决策项 |
+| [报告页 UI 收敛方案](docs/REPORT_UI_REFINEMENT.md) | 设计 / 前端 / 产品 | 首屏压缩、内容归属、风险/学习路线去重、技术栈渐进披露、验收清单 |
 
 > **给 Agent 的硬要求**：改代码前先读 [AGENTS.md](AGENTS.md) 和 [需求文档](docs/REQUIREMENTS.md)；任何 P0 功能删除都必须得到人类明确确认。
 
