@@ -29,6 +29,7 @@ Python 自带的 http.server 虽然朴素，但足够支撑：
     GET  /api/memory            长期记忆
     POST /api/chat              追问（SSE 流式回答）
     POST /api/ground            检查回答引用是否可核对
+    POST /api/ground/semantic   让模型判断引用是否支持结论（可选）
 """
 
 from __future__ import annotations
@@ -61,6 +62,7 @@ from .pipeline import run_analysis, stream_chat
 from .report import list_reports, load_report
 from .risk import build_risk_panel
 from .scanner import MAX_FILES
+from .semantic import SemanticError, review as review_semantic
 from .sources import SourceError, looks_like_github, parse_github, validate_local_path
 from .storage import SQLiteStore
 from .watch import repo_status
@@ -383,6 +385,8 @@ class RepoLensHandler(BaseHTTPRequestHandler):
             self._handle_hitl()
         elif parsed.path == "/api/ground":
             self._handle_ground()
+        elif parsed.path == "/api/ground/semantic":
+            self._handle_ground_semantic()
         elif parsed.path == "/api/chat":
             self._handle_chat()
         else:
@@ -769,6 +773,32 @@ class RepoLensHandler(BaseHTTPRequestHandler):
             self._json({"error": "报告不存在"}, HTTPStatus.NOT_FOUND)
             return
         self._json(check_grounding(report, text))
+
+    def _handle_ground_semantic(self) -> None:
+        payload = self._read_json()
+        if payload is None:
+            return
+        run_id = str(payload.get("run_id", "")).strip()
+        text = str(payload.get("text", ""))
+        if not run_id:
+            self._json({"error": "缺少 run_id"}, HTTPStatus.BAD_REQUEST)
+            return
+        if not text.strip():
+            self._json({"error": "回答内容不能为空"}, HTTPStatus.BAD_REQUEST)
+            return
+        if len(text) > 20000:
+            self._json({"error": "回答内容过长"}, HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
+            return
+        report = self.app.get_report(run_id)
+        if report is None:
+            self._json({"error": "报告不存在"}, HTTPStatus.NOT_FOUND)
+            return
+        try:
+            self._json(review_semantic(report, text))
+        except SemanticError as exc:
+            self._json({"error": str(exc)}, exc.status)
+        except Exception as exc:  # 模型超时/网络错误也要给前端可读提示。
+            self._json({"error": f"深度核对失败：{exc}"}, HTTPStatus.BAD_GATEWAY)
 
     def _handle_chat(self) -> None:
         payload = self._read_json()

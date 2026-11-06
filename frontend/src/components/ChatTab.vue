@@ -3,6 +3,7 @@ import { computed, nextTick, ref, watch } from "vue";
 
 import Icon from "./Icon.vue";
 import { chatText } from "../utils";
+import { fetchSemanticGrounding } from "../api";
 import { openCode, sendChat, state } from "../store";
 
 const input = ref("");
@@ -115,6 +116,21 @@ function groundingClass(grounding) {
   return "good";
 }
 
+async function runSemantic(message) {
+  if (!state.report || message.semantic?.loading) return;
+  message.semantic = { loading: true, error: "", data: null };
+  try {
+    const data = await fetchSemanticGrounding(state.report.run_id, message.content);
+    message.semantic = { loading: false, error: "", data };
+  } catch (error) {
+    message.semantic = { loading: false, error: error.message, data: null };
+  }
+}
+
+function verdictClass(verdict) {
+  return `verdict-${verdict}`;
+}
+
 watch(
   () => [state.chat.messages.length, state.chat.messages[lastIndex.value]?.content, state.chat.status],
   () => scrollToBottom()
@@ -216,6 +232,32 @@ watch(
               <span v-if="message.grounding.invalid" class="grounding-invalid mono" title="有引用的文件或行号不在报告中">
                 {{ message.grounding.invalid }} 处不可核对
               </span>
+              <button
+                v-if="message.grounding.has_citations && state.health?.ai_available && !message.semantic?.loading"
+                type="button"
+                class="grounding-deep"
+                @click="runSemantic(message)"
+              >
+                {{ message.semantic?.data ? "重新核对" : "深度核对" }}
+              </button>
+            </div>
+            <div v-if="message.semantic?.loading" class="semantic-state mono">模型正在判断引用是否支持结论…</div>
+            <div v-else-if="message.semantic?.error" class="semantic-state warn">
+              深度核对失败：{{ message.semantic.error }}
+            </div>
+            <div v-else-if="message.semantic?.data" class="semantic-result">
+              <div class="semantic-head">
+                <span class="mono">深度核对 · {{ message.semantic.data.score }}%</span>
+                <span v-if="message.semantic.data.truncated" class="semantic-note mono">只核对了前 5 条</span>
+              </div>
+              <div v-for="(result, resultIndex) in message.semantic.data.results" :key="resultIndex" class="semantic-item">
+                <span class="semantic-verdict mono" :class="verdictClass(result.verdict)">{{ result.verdict_label }}</span>
+                <span class="semantic-reason">{{ result.reason }}</span>
+                <span v-if="result.quote" class="semantic-quote mono">{{ result.quote }}</span>
+                <button type="button" class="semantic-link mono" @click="openCode(result.path, result.line || 1)">
+                  {{ result.path }}:{{ result.line }}
+                </button>
+              </div>
             </div>
           </div>
         </template>
@@ -549,6 +591,105 @@ watch(
 .grounding-invalid {
   color: var(--warn);
   font-size: 8px;
+}
+
+.grounding-deep {
+  padding: 2px 5px;
+  border: 1px solid var(--accent-line);
+  background: transparent;
+  color: var(--accent);
+  font-family: var(--font-ui);
+  font-size: 8px;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--accent-soft);
+  }
+}
+
+.semantic-state {
+  margin-top: 7px;
+  color: var(--faint);
+  font-size: 8px;
+
+  &.warn {
+    color: var(--warn);
+  }
+}
+
+.semantic-result {
+  margin-top: 8px;
+  padding: 7px 8px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.semantic-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 5px;
+  color: var(--faint);
+  font-size: 8px;
+}
+
+.semantic-note {
+  color: var(--faint);
+  font-size: 8px;
+}
+
+.semantic-item {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 4px 0;
+  border-top: 1px solid var(--line);
+}
+
+.semantic-verdict {
+  flex: none;
+  font-size: 8px;
+
+  &.verdict-support {
+    color: var(--good);
+  }
+
+  &.verdict-partial {
+    color: var(--warn);
+  }
+
+  &.verdict-unsupported {
+    color: var(--accent);
+  }
+}
+
+.semantic-reason {
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.semantic-quote {
+  width: 100%;
+  color: var(--faint);
+  font-size: 8px;
+  overflow-wrap: anywhere;
+}
+
+.semantic-link {
+  padding: 1px 4px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--faint);
+  font-size: 8px;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
 }
 
 .caret {

@@ -9,6 +9,15 @@ export async function fetchGrounding(runId, text) {
   });
 }
 
+/** 可选的语义核对：让模型判断引用是否真的支持回答结论。 */
+export async function fetchSemanticGrounding(runId, text) {
+  return fetchJSON("/api/ground/semantic", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ run_id: runId, text }),
+  });
+}
+
 /** 检查本地仓库在报告生成后是否变化。 */
 export async function fetchWatch(runId) {
   return fetchJSON(`/api/watch?run_id=${encodeURIComponent(runId)}`);
