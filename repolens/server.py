@@ -24,7 +24,6 @@ Python 自带的 http.server 虽然朴素，但足够支撑：
     GET  /api/file              读取证据对应代码片段
     GET  /api/adr               生成技术选型 ADR
     GET  /api/risks             风险面板
-    GET  /api/watch             检查本地仓库变化
     GET  /api/chat/history      追问历史
     GET  /api/memory            长期记忆
     POST /api/chat              追问（SSE 流式回答）
@@ -65,7 +64,6 @@ from .scanner import MAX_FILES
 from .semantic import SemanticError, review as review_semantic
 from .sources import SourceError, looks_like_github, parse_github, validate_local_path
 from .storage import SQLiteStore
-from .watch import repo_status
 
 STATIC_DIR = config.PROJECT_ROOT / "static"
 DIST_DIR = STATIC_DIR / "dist"
@@ -339,8 +337,6 @@ class RepoLensHandler(BaseHTTPRequestHandler):
             self._handle_adr(parsed)
         elif path == "/api/risks":
             self._handle_risks(parsed)
-        elif path == "/api/watch":
-            self._handle_watch(parsed)
         elif path == "/api/chat/history":
             self._handle_chat_history(parsed)
         elif path == "/api/report":
@@ -652,19 +648,6 @@ class RepoLensHandler(BaseHTTPRequestHandler):
                     self.wfile.flush()
         except (BrokenPipeError, ConnectionResetError, OSError):
             pass
-
-    # ------------------------------------------------------------- Watch
-    def _handle_watch(self, parsed) -> None:
-        query = parse_qs(parsed.query)
-        run_id = (query.get("run_id") or [""])[0].strip()
-        if not run_id:
-            self._json({"error": "缺少 run_id"}, HTTPStatus.BAD_REQUEST)
-            return
-        report = self.app.get_report(run_id)
-        if report is None:
-            self._json({"error": "报告不存在"}, HTTPStatus.NOT_FOUND)
-            return
-        self._json(repo_status(report))
 
     # ------------------------------------------------------------- 风险
     def _handle_risks(self, parsed) -> None:
