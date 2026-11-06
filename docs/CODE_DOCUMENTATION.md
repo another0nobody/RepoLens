@@ -157,7 +157,7 @@ run_analysis(ctx)
 | `frontend/src/theme.js` | 6 套风格元数据（标签、描述、预览色、theme-color、localStorage 规范化） |
 | `frontend/src/views/HomeView.vue` | 首页 hero、输入、示例、步骤/能力介绍、鼠标光晕 |
 | `frontend/src/views/RunView.vue` | 分析页布局、状态胶囊、计时、错误/完成操作 |
-| `frontend/src/views/ReportView.vue` | 报告头、统计、摘要、警告、Tab、分类筛选、搜索、技术卡片 |
+| `frontend/src/views/ReportView.vue` | 报告头、统计、摘要、警告、核心 Tab/专业工具菜单、分类筛选、搜索、技术卡片 |
 | `frontend/src/components/DependencyGraph.vue` | 模块依赖图：目录/文件视图、圆形布局、搜索、入边/出边详情 |
 | `frontend/src/components/CompareDrawer.vue` | 报告对比抽屉：选择基准报告、统计差、技术/依赖/风险/架构差异 |
 | `frontend/src/components/CodeViewer.vue` | 证据代码查看器：行号、高亮、脱敏、复制位置/片段 |
@@ -661,6 +661,17 @@ GitHub 报告显示不可用原因；轮询仅在前端开启时发生。
 - 不自动运行，前端点「深度核对」才调用；结果不持久化。
 
 提示词明确要求“只依据给出的代码，不确定时用 partial/unsupported”，避免把语义判断伪装成事实。
+
+### 6.15 报告信息层级
+
+`ReportView` 不再把所有 Tab 平铺：
+
+- 默认核心 Tab：技术栈、模块地图、架构解读、学习路线、追问；
+- `deps / risks / process` 收进「专业工具」下拉；
+- 头部只保留「重新分析」+「更多」；对比、复制链接、Markdown、JSON 在更多菜单；
+- 当前 Tab 是高级 Tab 时，临时把它追加到可见 Tab，保证深链接仍可用；
+- 「先看什么」的风险块增加“查看全部 N 项风险”，点击进入风险面板；
+- 不改变 `TABS` 与 URL 契约，功能不删除，只调整入口层级。
 
 ---
 
