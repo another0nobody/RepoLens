@@ -135,6 +135,7 @@ run_analysis(ctx)
 | `repolens/risk.py` | 风险面板聚合 | `build_risk_panel()` |
 | `repolens/watch.py` | 本地仓库变化检测 | `repo_status()` |
 | `repolens/grounding.py` | 回答文件/行号引用核对 | `check_grounding()` |
+| `repolens/semantic.py` | 引用语义支持判断（可选模型） | `review()`, `SemanticError` |
 | `evals/harness.py` | 确定性多仓库评测 | `evaluate_snapshot()`, `run_cases()`, `render_markdown()` |
 | `scripts/evaluate.py` | 评测 CLI | `main()` |
 | `tests/` | 标准库 unittest 测试 | 扫描器、报告 schema、SQLite、事件、历史恢复 |
@@ -649,6 +650,18 @@ GitHub 报告显示不可用原因；轮询仅在前端开启时发生。
 
 前端在回答气泡下显示徽标：`引用可核对 x/y`、`引用待核对 x/y` 或 `未引用文件/行号`；可核对引用可点击打开代码。
 
+### 6.14 引用语义深度核对
+
+`semantic.review(report, text, model=None)` 是可选、按次调用的模型审阅：
+
+- 复用 `check_grounding` 找出前 5 条带行号的引用；
+- 读取每条引用附近 2 行代码，连同回答片段组成提示词；
+- 模型只返回 `support / partial / unsupported`、理由和关键代码行；
+- JSON 解析失败返回 502；没有引用 400；没有模型 Key 503；
+- 不自动运行，前端点「深度核对」才调用；结果不持久化。
+
+提示词明确要求“只依据给出的代码，不确定时用 partial/unsupported”，避免把语义判断伪装成事实。
+
 ---
 
 ## 7. 扫描器细节
@@ -848,6 +861,7 @@ GitHub 报告显示不可用原因；轮询仅在前端开启时发生。
 | `/api/risks?run_id=` | `{level,score,counts,total,findings}` | 缺参数 400；报告不存在 404 |
 | `/api/watch?run_id=` | `{available,changed,latest_path,files_checked,truncated,checked_at}` | 缺参数 400；报告不存在 404 |
 | `POST /api/ground` | `{score,total,valid,partial,invalid,citations}` | 缺参数/空文本 400；超长 413；报告不存在 404 |
+| `POST /api/ground/semantic` | `{score,total,results,truncated}` | 无引用 400；无模型 503；模型解析失败 502 |
 | `/api/report?run_id=` | 完整报告（含 `schema_version`） | 缺失 400，找不到 404 |
 | `/api/run?run_id=` | `{run_id,source,source_type,status,report_ready,elapsed_seconds,repo_name,error?}` | 刷新/重启恢复；可回退 SQLite 行 |
 | `/api/events?run_id=&from=` | `text/event-stream` | SSE；内存优先，重启后回放 SQLite |
@@ -1211,6 +1225,7 @@ cd repolens
 - `test_watch_unit.py`：变化检测、未来基线、GitHub 不可监听、目录缺失；
 - `test_eval_unit.py`：夹具事实、缺失技术、Markdown、缺失目录隔离；
 - `test_grounding_unit.py`：有效/伪造路径、行号、无引用、混合引用；
+- `test_semantic_unit.py`：支持/部分/不支持、缺引用、缺结果补齐；
 - `test_app_persistence_unit.py`：历史合并、重启后聊天恢复。
 
 ### 14.4 最小冒烟测试
