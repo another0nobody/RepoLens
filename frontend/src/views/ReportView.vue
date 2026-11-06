@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 import ArchitectureTab from "../components/ArchitectureTab.vue";
 import ChatTab from "../components/ChatTab.vue";
@@ -33,8 +33,20 @@ const stats = computed(() => report.value?.stats || {});
 const techs = computed(() => report.value?.techs || []);
 const warnings = computed(() => report.value?.warnings || []);
 
-const codeLanguages = computed(() => (report.value?.languages || []).filter((item) => item.is_code).length);
-const scanSeconds = computed(() => Number(stats.value.scan_seconds || 0));
+const showAllHighlights = ref(false);
+const highlights = computed(() => report.value?.highlights || []);
+const visibleHighlights = computed(() =>
+  showAllHighlights.value ? highlights.value : highlights.value.slice(0, 2)
+);
+const hiddenHighlights = computed(() => Math.max(0, highlights.value.length - 2));
+const routeCount = computed(() => (report.value?.learning_path || []).length);
+
+watch(
+  () => report.value?.run_id,
+  () => {
+    showAllHighlights.value = false;
+  }
+);
 
 const CORE_TAB_KEYS = ["stack", "modules", "architecture", "learn", "chat"];
 const ADVANCED_TAB_KEYS = ["deps", "risks", "process"];
@@ -323,12 +335,8 @@ function copyLink() {
 
     <div class="stat-strip">
       <div class="stat">
-        <span class="l">文件总数</span>
+        <span class="l">文件</span>
         <span class="v">{{ fmtNumber(stats.file_count) }}</span>
-      </div>
-      <div class="stat">
-        <span class="l">代码文件</span>
-        <span class="v">{{ fmtNumber(stats.code_file_count) }}</span>
       </div>
       <div class="stat">
         <span class="l">代码行数</span>
@@ -338,14 +346,16 @@ function copyLink() {
         <span class="l">技术项</span>
         <span class="v">{{ fmtNumber(techs.length) }}</span>
       </div>
-      <div class="stat">
-        <span class="l">编程语言</span>
-        <span class="v">{{ fmtNumber(codeLanguages) }}</span>
-      </div>
-      <div class="stat">
-        <span class="l">扫描耗时</span>
-        <span class="v">{{ scanSeconds < 0.1 ? "<0.1" : scanSeconds.toFixed(1) }}s</span>
-      </div>
+      <button
+        class="stat stat-action"
+        type="button"
+        aria-label="查看风险面板"
+        title="报告风险条数；完整风险见风险面板"
+        @click="switchTab('risks')"
+      >
+        <span class="l">风险提示</span>
+        <span class="v">{{ fmtNumber((report.risks || []).length) }}</span>
+      </button>
     </div>
 
     <section v-if="readingGuide" class="read-first">
@@ -420,10 +430,15 @@ function copyLink() {
           >
             查看全部 {{ report.risks.length }} 项风险 →
           </button>
-          <p v-if="readingGuide.steps.length" class="read-steps-label mono">30 分钟路线</p>
-          <ol v-if="readingGuide.steps.length" class="read-steps">
-            <li v-for="(step, index) in readingGuide.steps" :key="index">{{ step }}</li>
-          </ol>
+          <button
+            v-if="routeCount"
+            class="read-route"
+            type="button"
+            @click="switchTab('learn')"
+          >
+            <span class="mono">30 分钟路线 · {{ routeCount }} 步</span>
+            <span>继续 →</span>
+          </button>
         </article>
       </div>
     </section>
@@ -434,15 +449,23 @@ function copyLink() {
         <span class="muted">{{ summaryNote }}</span>
       </div>
       <p>{{ report.summary }}</p>
-      <div v-if="(report.highlights || []).length" class="highlights">
-        <span v-for="(item, index) in report.highlights" :key="index">{{ item }}</span>
+      <div v-if="highlights.length" class="highlights">
+        <span v-for="(item, index) in visibleHighlights" :key="index">{{ item }}</span>
+        <button
+          v-if="hiddenHighlights > 0 || showAllHighlights"
+          class="highlight-toggle"
+          type="button"
+          @click="showAllHighlights = !showAllHighlights"
+        >
+          {{ showAllHighlights ? "收起" : `+${hiddenHighlights} 条亮点` }}
+        </button>
       </div>
     </div>
 
-    <div v-if="warnings.length" class="warnings">
-      <p v-for="(warning, index) in warnings" :key="index">
-        <Icon name="warning" :size="13" /> {{ warning }}
-      </p>
+    <div v-if="warnings.length" class="warning-line">
+      <Icon name="warning" :size="13" />
+      <span>{{ warnings.length }} 条扫描提示</span>
+      <button type="button" @click="switchTab('risks')">查看风险面板 →</button>
     </div>
 
     <div class="tabs-row">
@@ -467,7 +490,7 @@ function copyLink() {
           aria-haspopup="menu"
           @click.stop="toolsOpen = !toolsOpen; moreOpen = false"
         >
-          <Icon name="layers" :size="13" /> 专业工具 <Icon name="down" :size="11" />
+          <Icon name="layers" :size="13" /> 更多视图 <Icon name="down" :size="11" />
         </button>
         <div v-if="toolsOpen" class="tools-menu" role="menu" @click.stop>
           <button
@@ -612,7 +635,7 @@ function copyLink() {
   justify-content: space-between;
   gap: 24px;
   flex-wrap: wrap;
-  padding: 10px 0 18px;
+  padding: 8px 0 10px;
   border-bottom: 1px solid var(--line-strong);
 }
 
@@ -620,9 +643,9 @@ function copyLink() {
   min-width: 0;
 
   h2 {
-    margin: 10px 0 0;
-    font-size: clamp(32px, 4.6vw, 52px);
-    line-height: 0.98;
+    margin: 8px 0 0;
+    font-size: clamp(30px, 4vw, 46px);
+    line-height: 1;
     letter-spacing: -0.04em;
     font-weight: 500;
     word-break: break-word;
@@ -755,16 +778,21 @@ function copyLink() {
 
 .stat-strip {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  margin: 18px 0;
+  grid-template-columns: repeat(4, 1fr);
+  margin: 8px 0 10px;
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
 }
 
 .stat {
   min-width: 0;
-  padding: 10px 12px;
+  padding: 8px 12px;
+  border: 0;
   border-right: 1px solid var(--line);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
 
   &:last-child {
     border-right: 0;
@@ -773,7 +801,7 @@ function copyLink() {
   .l {
     display: block;
     color: var(--faint);
-    font-size: 9px;
+    font-size: 10px;
     letter-spacing: 0.06em;
   }
 
@@ -788,8 +816,22 @@ function copyLink() {
   }
 }
 
+.stat-action {
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--panel-soft);
+
+    .v,
+    .l {
+      color: var(--accent);
+    }
+  }
+}
+
 .read-first {
-  margin-top: 22px;
+  margin-top: 12px;
   border-top: 1px solid var(--line-strong);
   border-bottom: 1px solid var(--line-strong);
 }
@@ -799,12 +841,12 @@ function copyLink() {
   align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
-  padding: 14px 0 10px;
+  padding: 8px 0 6px;
 
   h3 {
     margin: 3px 0 0;
     font-family: var(--font-display);
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 500;
   }
 }
@@ -826,7 +868,7 @@ function copyLink() {
 
 .read-block {
   min-width: 0;
-  padding: 10px 14px 12px 0;
+  padding: 8px 14px 10px 0;
   border-right: 1px solid var(--line);
 
   &:last-child {
@@ -881,7 +923,7 @@ function copyLink() {
   align-items: flex-start;
   gap: 2px;
   width: 100%;
-  padding: 6px 0;
+  padding: 4px 0;
   border: 0;
   border-bottom: 1px solid var(--line);
   background: transparent;
@@ -913,7 +955,7 @@ function copyLink() {
 
 .read-file-meta {
   color: var(--faint);
-  font-size: 9px;
+  font-size: 10px;
   line-height: 1.45;
 }
 
@@ -935,12 +977,12 @@ function copyLink() {
 
   span {
     color: var(--muted);
-    font-size: 9px;
+    font-size: 10px;
   }
 
   small {
     color: var(--faint);
-    font-size: 8.5px;
+    font-size: 10px;
   }
 }
 
@@ -958,7 +1000,7 @@ function copyLink() {
   background: transparent;
   color: var(--accent);
   font-family: var(--font-ui);
-  font-size: 9px;
+  font-size: 10px;
   cursor: pointer;
 
   &:hover {
@@ -974,34 +1016,43 @@ function copyLink() {
   line-height: 1.55;
 }
 
-.read-steps-label {
-  margin: 10px 0 3px;
-  color: var(--faint);
-  font-size: 8px;
-  letter-spacing: 0.06em;
-}
+.read-route {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  margin-top: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-ui);
+  font-size: 10px;
+  text-align: left;
+  cursor: pointer;
 
-.read-steps {
-  margin: 0;
-  padding-left: 16px;
-  color: var(--faint);
-  font-size: 9px;
-  line-height: 1.55;
+  &:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
 
-  li {
-    margin-bottom: 3px;
+  .mono {
+    color: var(--faint);
+    font-size: 8px;
+    letter-spacing: 0.04em;
   }
 }
 
 .proof-note {
-  padding: 16px 18px;
+  padding: 10px 14px;
   border: 1px solid var(--line-strong);
   background: var(--panel);
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 
   > p {
     max-width: 74ch;
-    margin: 12px 0 0;
+    margin: 8px 0 0;
     color: var(--text);
     font-size: 15px;
     line-height: 1.8;
@@ -1027,8 +1078,8 @@ function copyLink() {
   display: flex;
   flex-wrap: wrap;
   gap: 5px 14px;
-  margin-top: 12px;
-  padding-top: 10px;
+  margin-top: 8px;
+  padding-top: 6px;
   border-top: 1px solid var(--line);
 
   span {
@@ -1043,19 +1094,46 @@ function copyLink() {
   }
 }
 
-.warnings {
-  padding: 10px 12px;
+.highlight-toggle {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-family: var(--font-ui);
+  font-size: 10px;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+
+.warning-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  padding: 8px 10px;
   border: 1px solid color-mix(in srgb, var(--warn) 40%, var(--line));
   color: var(--warn);
-  margin-bottom: 14px;
   font-size: 10.5px;
-  line-height: 1.7;
 
-  p {
-    display: flex;
-    align-items: flex-start;
-    gap: 6px;
-    margin: 3px 0;
+  button {
+    margin-left: auto;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--warn);
+    font-family: var(--font-ui);
+    font-size: 10px;
+    cursor: pointer;
+
+    &:hover {
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
   }
 }
 
@@ -1356,21 +1434,6 @@ function copyLink() {
   height: 520px;
 }
 
-@media (max-width: @bp-xl) {
-  .stat-strip {
-    grid-template-columns: repeat(3, 1fr);
-    row-gap: 0;
-  }
-
-  .stat:nth-child(3) {
-    border-right: 0;
-  }
-
-  .stat:nth-child(n + 4) {
-    border-top: 1px solid var(--line);
-  }
-}
-
 @media (max-width: @bp-lg) {
   .tech-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1397,10 +1460,6 @@ function copyLink() {
 
   .stat:nth-child(2n) {
     border-right: 0;
-  }
-
-  .stat:nth-child(3) {
-    border-right: 1px solid var(--line);
   }
 
   .stat:nth-child(n + 3) {

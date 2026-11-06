@@ -146,7 +146,7 @@ const keyModules = computed(() =>
 
 .tech-version {
   color: var(--faint);
-  font-size: 8.5px;
+  font-size: 10px;
   white-space: nowrap;
 }
 
@@ -165,7 +165,7 @@ const keyModules = computed(() =>
   padding-top: 7px;
   border-top: 1px solid var(--line);
   color: var(--faint);
-  font-size: 9px;
+  font-size: 10px;
   flex-wrap: wrap;
 }
 

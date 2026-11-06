@@ -2,6 +2,7 @@
 import { computed } from "vue";
 
 import Icon from "./Icon.vue";
+import { switchTab } from "../store";
 import { fmtNumber } from "../utils";
 
 const props = defineProps({
@@ -38,11 +39,12 @@ const maxLoc = computed(() => Math.max(1, ...languages.value.map((item) => item.
       <section class="card">
         <header class="card-head">
           <Icon name="warning" :size="16" />
-          <h3>风险与建议</h3>
+          <h3>风险提示</h3>
         </header>
-        <ul v-if="risks.length" class="risk-list">
-          <li v-for="(item, index) in risks" :key="index">{{ item }}</li>
-        </ul>
+        <div v-if="risks.length" class="risk-link">
+          <span><b>{{ risks.length }}</b> 项风险，完整清单与证据在风险面板。</span>
+          <button type="button" @click="switchTab('risks')">查看风险面板 →</button>
+        </div>
         <div v-else class="risk-empty">
           <Icon name="check" :size="15" />
           没有发现明显的风险信号。仍建议人工检查依赖版本与密钥配置。
@@ -208,38 +210,35 @@ const maxLoc = computed(() => Math.max(1, ...languages.value.map((item) => item.
   }
 }
 
-.risk-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+.risk-link {
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--warn) 24%, var(--line));
+  background: var(--warn-soft);
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
 
-  li {
-    position: relative;
-    padding: 10px 12px 10px 32px;
-    border-radius: @radius-sm;
-    border: 1px solid color-mix(in srgb, var(--warn) 20%, transparent);
-    background: var(--warn-soft);
-    color: var(--muted);
-    font-size: 12px;
-    line-height: 1.65;
+  b {
+    color: var(--warn);
+    font-family: @font-mono;
+    font-size: 15px;
+  }
 
-    &::before {
-      content: "!";
-      position: absolute;
-      left: 12px;
-      top: 11px;
-      width: 14px;
-      height: 14px;
-      display: grid;
-      place-items: center;
-      border-radius: 50%;
-      background: var(--warn);
-      color: #101828;
-      font-size: 9px;
-      font-weight: 800;
+  button {
+    padding: 4px 7px;
+    border: 1px solid var(--warn);
+    background: transparent;
+    color: var(--warn);
+    font-family: var(--font-ui);
+    font-size: 10px;
+    cursor: pointer;
+
+    &:hover {
+      background: color-mix(in srgb, var(--warn) 10%, transparent);
     }
   }
 }

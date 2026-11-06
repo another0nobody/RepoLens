@@ -554,7 +554,7 @@ watch(
 
 .grounding-label {
   color: var(--faint);
-  font-size: 8px;
+  font-size: 10px;
   letter-spacing: 0.04em;
 
   .good & {
@@ -577,7 +577,7 @@ watch(
   border: 1px solid var(--line);
   background: transparent;
   color: var(--muted);
-  font-size: 8px;
+  font-size: 10px;
   text-overflow: ellipsis;
   white-space: nowrap;
   cursor: pointer;
@@ -590,7 +590,7 @@ watch(
 
 .grounding-invalid {
   color: var(--warn);
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .grounding-deep {

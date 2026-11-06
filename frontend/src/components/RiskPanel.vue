@@ -291,20 +291,19 @@ function severityClass(severity) {
 .risk-item {
   padding: 14px 14px 13px;
   border: 1px solid var(--line);
-  border-left: 3px solid var(--line-strong);
   background: var(--panel);
   margin-bottom: 8px;
 
   &.severity-high {
-    border-left-color: var(--accent);
+    border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
   }
 
   &.severity-medium {
-    border-left-color: var(--warn);
+    border-color: color-mix(in srgb, var(--warn) 30%, var(--line));
   }
 
   &.severity-low {
-    border-left-color: var(--good);
+    border-color: color-mix(in srgb, var(--good) 24%, var(--line));
   }
 
   h3 {
@@ -388,7 +387,7 @@ function severityClass(severity) {
   border: 1px solid var(--line);
   background: transparent;
   color: var(--muted);
-  font-size: 8px;
+  font-size: 10px;
   text-overflow: ellipsis;
   white-space: nowrap;
   cursor: pointer;
