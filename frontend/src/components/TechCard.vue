@@ -1,7 +1,6 @@
 <script setup>
 import { computed } from "vue";
 
-import Icon from "./Icon.vue";
 import { categoryColor, categoryIcon, confidenceClass, fmtNumber } from "../utils";
 
 const props = defineProps({
@@ -47,9 +46,6 @@ const keyModules = computed(() =>
       <span class="conf"><i :class="confidence"></i>置信度 {{ tech.confidence || "中" }}</span>
       <span class="sep"></span>
       <span>{{ fmtNumber(tech.module_count) }} 模块</span>
-      <span class="sep"></span>
-      <span>{{ fmtNumber((tech.evidence || []).length) }} 证据</span>
-      <span v-if="tech.ai_inferred" class="ai-flag"><Icon name="spark" :size="11" /> AI 推断</span>
       <span class="open-arrow" aria-hidden="true">↗</span>
     </div>
   </article>
@@ -196,15 +192,8 @@ const keyModules = computed(() =>
   opacity: 0.7;
 }
 
-.ai-flag {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  margin-left: auto;
-  color: var(--warn);
-}
-
 .open-arrow {
+  margin-left: auto;
   color: var(--faint);
   font-size: 11px;
   transition: 0.16s @ease-out;

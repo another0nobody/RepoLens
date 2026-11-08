@@ -11,9 +11,6 @@ const props = defineProps({
 
 const architecture = computed(() => props.report.architecture || []);
 const risks = computed(() => props.report.risks || []);
-const learning = computed(() =>
-  (props.report.learning_path || []).map((item) => String(item).replace(/^\s*\d+\s*[.、]\s*/, ""))
-);
 const entryPoints = computed(() => (props.report.entry_points || []).slice(0, 8));
 const manifests = computed(() => (props.report.manifests || []).slice(0, 8));
 const topDirs = computed(() => (props.report.top_dirs || []).slice(0, 6));
@@ -52,18 +49,7 @@ const maxLoc = computed(() => Math.max(1, ...languages.value.map((item) => item.
       </section>
     </div>
 
-    <div class="two-col">
-      <section class="card">
-        <header class="card-head">
-          <Icon name="book" :size="16" />
-          <h3>学习路径</h3>
-        </header>
-        <ul v-if="learning.length" class="learn-list">
-          <li v-for="(item, index) in learning" :key="index">{{ item }}</li>
-        </ul>
-        <p v-else class="muted small">报告没有提供学习路径。</p>
-      </section>
-
+    <div class="two-col single-col">
       <section class="card">
         <header class="card-head">
           <Icon name="folder" :size="16" />
@@ -126,6 +112,10 @@ const maxLoc = computed(() => Math.max(1, ...languages.value.map((item) => item.
   gap: 14px;
 }
 
+.two-col.single-col {
+  grid-template-columns: 1fr;
+}
+
 .card {
   padding: 20px;
   border-radius: @radius-lg;
@@ -172,36 +162,6 @@ const maxLoc = computed(() => Math.max(1, ...languages.value.map((item) => item.
       border: 1px solid var(--accent-line);
       border-radius: 6px;
       padding: 1px 4px;
-    }
-
-    &:last-child {
-      padding-bottom: 0;
-    }
-  }
-}
-
-.learn-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-
-  li {
-    position: relative;
-    padding: 0 0 12px 22px;
-    color: var(--muted);
-    font-size: 12.5px;
-    line-height: 1.7;
-
-    &::before {
-      content: "";
-      position: absolute;
-      left: 3px;
-      top: 8px;
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--accent);
-      box-shadow: 0 0 8px var(--accent);
     }
 
     &:last-child {

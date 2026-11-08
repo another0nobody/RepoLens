@@ -1470,6 +1470,16 @@ function copyLink() {
     width: 100%;
   }
 
+  .chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+
+  .chip {
+    flex: none;
+  }
+
   .tabs-row {
     top: 70px;
   }

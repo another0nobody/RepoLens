@@ -4,7 +4,6 @@ import { computed, ref, watch } from "vue";
 import Icon from "./Icon.vue";
 import { fetchRisks } from "../api";
 import { openCode, openTech } from "../store";
-import { fmtNumber } from "../utils";
 
 const props = defineProps({
   report: { type: Object, default: null },
@@ -16,10 +15,6 @@ const error = ref("");
 const filter = ref("all");
 
 const counts = computed(() => data.value?.counts || { high: 0, medium: 0, low: 0 });
-const level = computed(() => data.value?.level || "none");
-const levelLabel = computed(
-  () => ({ high: "高风险", medium: "中风险", low: "低风险", none: "未发现" })[level.value] || "未知"
-);
 const visible = computed(() => {
   const findings = data.value?.findings || [];
   return filter.value === "all" ? findings : findings.filter((item) => item.severity === filter.value);
@@ -83,10 +78,9 @@ function severityClass(severity) {
         <h2>哪些地方值得先确认</h2>
         <p class="risk-note">风险来自报告事实、依赖结构和扫描限制；不是安全审计结论。</p>
       </div>
-      <div v-if="data" class="risk-score" :class="severityClass(level)">
-        <span class="score mono">{{ fmtNumber(data.score) }}</span>
-        <span class="score-label">{{ levelLabel }}</span>
-        <span class="score-total mono">{{ data.total }} 项</span>
+      <div v-if="data" class="risk-summary">
+        <span class="summary-total"><b>{{ data.total }}</b> 项风险</span>
+        <span class="summary-counts">高 {{ counts.high }} · 中 {{ counts.medium }} · 低 {{ counts.low }}</span>
       </div>
     </div>
 
@@ -175,44 +169,34 @@ function severityClass(severity) {
   line-height: 1.6;
 }
 
-.risk-score {
+.risk-summary {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  min-width: 82px;
-  padding: 6px 9px;
+  gap: 3px;
+  min-width: 100px;
+  padding: 7px 9px;
   border: 1px solid var(--line);
   background: var(--panel);
 
-  .score {
+  .summary-total {
     color: var(--text);
-    font-size: 26px;
+    font-size: 10px;
+  }
+
+  .summary-total b {
+    margin-right: 2px;
+    color: var(--accent);
+    font-family: @font-mono;
+    font-size: 22px;
+    font-weight: 500;
     line-height: 1;
   }
 
-  .score-label {
-    margin-top: 4px;
+  .summary-counts {
     color: var(--faint);
-    font-size: 9px;
-  }
-
-  .score-total {
-    margin-top: 2px;
-    color: var(--faint);
-    font-size: 8px;
-  }
-
-  &.severity-high {
-    border-color: var(--accent);
-
-    .score,
-    .score-label {
-      color: var(--accent);
-    }
-  }
-
-  &.severity-medium .score-label {
-    color: var(--warn);
+    font-size: 10px;
+    white-space: nowrap;
   }
 }
 
@@ -413,7 +397,7 @@ function severityClass(severity) {
     display: block;
   }
 
-  .risk-score {
+  .risk-summary {
     align-items: flex-start;
     margin-top: 10px;
   }
