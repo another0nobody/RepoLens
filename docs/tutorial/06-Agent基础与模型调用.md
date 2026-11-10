@@ -1,7 +1,7 @@
 # 第 06 章：Agent 基础与模型调用
 
-> 阅读时间：60–90 分钟  
-> 前置：第 03 章  
+> 阅读时间：60–90 分钟
+> 前置：第 03 章
 > 目标：理解“模型 + 工具 + 循环 + 结构化输出”如何组成一个 Agent
 
 ---
@@ -56,7 +56,7 @@ response = model.invoke(messages)
 print(response.content)
 ```
 
-`system` 设定角色和规则，`user` 是任务。  
+`system` 设定角色和规则，`user` 是任务。
 模型返回一段文本。
 
 问题了：
@@ -131,7 +131,7 @@ init_chat_model(
 
 ### 没有 Key
 
-`cfg.available == False`。  
+`cfg.available == False`。
 `run_analysis` 不创建 Agent，而是直接扫描并生成规则报告。
 
 ---
@@ -171,7 +171,7 @@ agent = create_agent(
 
 ### `system_prompt`
 
-规则：先准备仓库、再看候选技术、再核实、最后提交。  
+规则：先准备仓库、再看候选技术、再核实、最后提交。
 第 07 章会读完整提示词。
 
 ### `middleware`
@@ -233,7 +233,7 @@ class RepoInsight(BaseModel):
 
 > `warnings` 不在 `RepoInsight` 里，它由 `report.build_report()` 根据扫描截断、AI 失败、AI 推断技术等事实生成。
 
-字段有 `description`，模型知道每个字段该写什么。  
+字段有 `description`，模型知道每个字段该写什么。
 `ToolStrategy` 会让模型通过一个“提交报告”的工具输出结构化结果。
 
 ### 好处
@@ -385,22 +385,22 @@ build_report(ctx, insight=None, ai_error=...)
 
 ### “Agent 会自己读整个仓库”
 
-不会。  
+不会。
 它只能通过工具读取，工具返回的是摘要/片段。
 
 ### “模型调用了工具就一定会成功”
 
-不一定。  
+不一定。
 工具可能报错：路径不存在、GitHub 无法访问、文件敏感。
 
 ### “结构化输出就是让模型输出 JSON”
 
-不只是。  
+不只是。
 项目会校验字段、类型、分类，并把错误反馈给模型重填。
 
 ### “没有 Key 就没有报告”
 
-不对。  
+不对。
 规则扫描仍然生成报告，只是没有 AI 解释。
 
 ---

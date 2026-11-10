@@ -1,14 +1,14 @@
 # 第 08 章：分析流水线、SSE 与 HITL
 
-> 阅读时间：60–90 分钟  
-> 前置：第 06/07 章  
+> 阅读时间：60–90 分钟
+> 前置：第 06/07 章
 > 目标：理解后台线程如何把 Agent 的每一步实时送到浏览器，以及失败时如何降级
 
 ---
 
 ## 8.1 一次分析为什么需要“流”
 
-Agent 可能运行 30 秒到几分钟。  
+Agent 可能运行 30 秒到几分钟。
 如果页面只显示一个 spinner：
 
 - 用户不知道卡在哪；
@@ -130,7 +130,7 @@ bus.close()
 
 ## 8.5 SSE 是什么
 
-SSE = Server-Sent Events。  
+SSE = Server-Sent Events。
 服务器保持连接，持续推送文本：
 
 ```text
@@ -171,7 +171,7 @@ chunk = "\n".join(lines) + "\n\n"
 
 ## 8.6 断线重连
 
-前端保存最后收到的 `seq`。  
+前端保存最后收到的 `seq`。
 重连时请求：
 
 ```text
@@ -366,7 +366,7 @@ GET /api/run?run_id=...
 
 ### 看 `/api/events`
 
-在浏览器 Network 里看 SSE 流。  
+在浏览器 Network 里看 SSE 流。
 如果没有事件，检查：
 
 - run 是否创建成功；
@@ -383,7 +383,7 @@ GET /api/run?run_id=...
 
 ### 看后端终端
 
-`pipeline` 会打印异常 traceback。  
+`pipeline` 会打印异常 traceback。
 这是第一手信息。
 
 ---

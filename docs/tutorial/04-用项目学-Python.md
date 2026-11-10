@@ -1,14 +1,14 @@
 # 第 04 章：用项目学 Python
 
-> 阅读时间：60–90 分钟  
-> 前置：第 03 章  
+> 阅读时间：60–90 分钟
+> 前置：第 03 章
 > 目标：看懂这个项目里最常见的 Python 写法，而不是重新学一遍语法
 
 ---
 
 ## 4.1 这一章怎么用
 
-你不需要先成为 Python 高手。  
+你不需要先成为 Python 高手。
 本章只讲 RepoLens 真正用到的 Python 特性，并配项目中的真实例子。
 
 顺序：
@@ -169,7 +169,7 @@ snapshot["techs"]
 snapshot["module_graph"]
 ```
 
-拼错字段名运行时才发现。  
+拼错字段名运行时才发现。
 用 dataclass：
 
 ```python
@@ -203,14 +203,14 @@ name / category / version / confidence
 modules / evidence
 ```
 
-`default_factory` 用于可变默认值。  
+`default_factory` 用于可变默认值。
 不要写：
 
 ```python
 evidence: list = []
 ```
 
-多个 `TechHit` 会共享同一个列表，产生隐藏 bug。  
+多个 `TechHit` 会共享同一个列表，产生隐藏 bug。
 项目用：
 
 ```python
@@ -344,7 +344,7 @@ except Exception:
     pass
 ```
 
-这会吞掉错误。  
+这会吞掉错误。
 项目里确实有少量“不能影响主流程”的 `except Exception: pass`，比如事件持久化失败，但都有注释说明。
 
 ---
@@ -389,7 +389,7 @@ for tech in techs:
 sorted(techs, key=lambda tech: len(tech.modules), reverse=True)
 ```
 
-`key` 返回排序依据。  
+`key` 返回排序依据。
 项目用它按模块数、置信度、层级排序。
 
 ---
@@ -418,7 +418,7 @@ def add(item, items=[]):
     items.append(item)
 ```
 
-列表会在多次调用间共享。  
+列表会在多次调用间共享。
 用：
 
 ```python
@@ -429,7 +429,7 @@ def add(item, items=None):
 
 ### docstring
 
-工具函数的 docstring 不只是注释。  
+工具函数的 docstring 不只是注释。
 LangChain 的 `@tool(parse_docstring=True)` 会读取：
 
 ```python
@@ -442,7 +442,7 @@ def inspect_technology(name: str, runtime: ToolRuntime) -> dict:
     """
 ```
 
-模型通过函数名、参数说明、docstring 决定“该不该调用、怎么传参”。  
+模型通过函数名、参数说明、docstring 决定“该不该调用、怎么传参”。
 所以项目要求参数说明用中文，且写清楚。
 
 ---
@@ -475,7 +475,7 @@ with self._condition:
     self._condition.notify_all()
 ```
 
-一个线程写，多个 HTTP 线程读。  
+一个线程写，多个 HTTP 线程读。
 `Condition` 让读线程等待“有新事件”。
 
 第 08 章会讲 SSE 如何消费它。
@@ -499,7 +499,7 @@ for event in stream_chat(ctx, message):
     ...
 ```
 
-生成器不会等全部完成才返回，而是每次 `yield` 一个值。  
+生成器不会等全部完成才返回，而是每次 `yield` 一个值。
 这正是“打字机效果”的基础。
 
 ### `yield` 和 `return` 的区别
@@ -600,7 +600,7 @@ except Exception as exc:
     ctx.emit("warning", {...})
 ```
 
-然后降级为规则扫描。  
+然后降级为规则扫描。
 所以模型报错不一定让页面失败。
 
 ---
@@ -643,7 +643,7 @@ print(data["stats"])
 scan_repository(Path("does-not-exist"), "x", "local")
 ```
 
-观察异常类型和信息。  
+观察异常类型和信息。
 思考：工具层应该怎么把它变成用户可读的错误？
 
 ---
